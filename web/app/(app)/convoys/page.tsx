@@ -1,139 +1,97 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { MapPin, Calendar, Users, Clock, ChevronRight } from 'lucide-react';
+import { ConvoysMap } from '@/components/ConvoysMap';
+import { EventCard } from '@/components/EventCard';
+import { Plus } from 'lucide-react';
 
-const convoys = [
+// MOCK EVENTS
+const EVENTS = [
     {
         id: '1',
-        title: 'MIDNIGHT CANYON RUN',
-        location: 'Jebel Hafeet, UAE',
-        date: 'Sat, Jun 14 • 11:00 PM',
-        attendees: 24,
-        maxAttendees: 30,
-        image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80',
-        host: '@SheikhSpeed',
-        tags: ['Night Run', 'Canyon', 'Supercar'],
-        status: 'open',
+        title: 'Friday Night Daikoku',
+        date: 'Oct 24',
+        time: '8:00 PM',
+        location: 'Daikoku PA',
+        image: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
+        attendees: 142,
+        type: 'meet' as const
     },
     {
         id: '2',
-        title: 'TRACK DAY — DXB AUTODROME',
-        location: 'Dubai Autodrome, UAE',
-        date: 'Sun, Jun 22 • 7:00 AM',
-        attendees: 18,
-        maxAttendees: 20,
-        image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
-        host: '@TrackDayDXB',
-        tags: ['Track Day', 'Timed Laps', 'Open Pit'],
-        status: 'almost-full',
+        title: 'Canyon Carving: Angels Crest',
+        date: 'Oct 25',
+        time: '6:30 AM',
+        location: 'Shell, La Cañada',
+        image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=2698&auto=format&fit=crop',
+        attendees: 12,
+        type: 'drive' as const
     },
     {
         id: '3',
-        title: 'COASTAL CRUISE — JBR TO ABU DHABI',
-        location: 'JBR Beach, Dubai → Abu Dhabi',
-        date: 'Fri, Jun 27 • 8:30 AM',
-        attendees: 41,
-        maxAttendees: 50,
-        image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80',
-        host: '@CruzControl',
-        tags: ['Coastal', 'Scenic', 'All Welcome'],
-        status: 'open',
+        title: 'Track Day: Laguna Seca',
+        date: 'Nov 02',
+        time: '7:00 AM',
+        location: 'Laguna Seca Raceway',
+        image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2670&auto=format&fit=crop',
+        attendees: 45,
+        type: 'track' as const
     },
     {
         id: '4',
-        title: 'SUPERCAR SUNDAY — YAS MARINA',
-        location: 'Yas Marina Circuit, Abu Dhabi',
-        date: 'Sun, Jul 6 • 9:00 AM',
-        attendees: 8,
-        maxAttendees: 15,
-        image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80',
-        host: '@YasCircuit',
-        tags: ['Supercar', 'F1 Track', 'Exclusive'],
-        status: 'open',
-    },
+        title: 'Euro Sunday',
+        date: 'Oct 26',
+        time: '9:00 AM',
+        location: 'The Avenue',
+        image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2670&auto=format&fit=crop',
+        attendees: 88,
+        type: 'meet' as const
+    }
 ];
-
-const statusColors: Record<string, string> = {
-    open: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    'almost-full': 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
-    full: 'text-red-400 bg-red-500/10 border-red-500/20',
-};
-
-const statusLabels: Record<string, string> = {
-    open: 'Open',
-    'almost-full': 'Almost Full',
-    full: 'Full',
-};
 
 export default function ConvoysPage() {
     return (
-        <div className="space-y-8">
-            <div>
-                <p className="text-text-dim text-sm font-bold uppercase tracking-wider mb-1">Upcoming Drives</p>
-                <h1 className="text-4xl font-black tracking-tighter text-white">Convoys</h1>
-                <p className="text-text-dim mt-2">Find and join drives near you.</p>
+        <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-100px)] flex flex-col">
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6 shrink-0">
+                <div>
+                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
+                        Convoys
+                    </h1>
+                    <p className="text-text-dim text-sm">
+                        Find meets, join drives, and track local activity.
+                    </p>
+                </div>
+                <button className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create Event
+                </button>
             </div>
 
-            <div className="space-y-4">
-                {convoys.map((convoy, i) => (
-                    <motion.div
-                        key={convoy.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.08, duration: 0.4 }}
-                        className="rounded-3xl bg-steel border border-white/8 overflow-hidden group hover:border-white/15 transition-all cursor-pointer"
-                    >
-                        <div className="flex flex-col md:flex-row">
-                            <div className="md:w-56 h-40 md:h-auto relative flex-shrink-0 overflow-hidden">
-                                <img src={convoy.image} alt={convoy.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-steel/60 hidden md:block" />
-                            </div>
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
 
-                            <div className="flex-1 p-6">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="text-xl font-black text-white group-hover:text-signal-orange transition-colors tracking-tight">
-                                                {convoy.title}
-                                            </h3>
-                                            <span className={`px-2 py-0.5 border rounded-full text-[10px] font-bold flex-shrink-0 ${statusColors[convoy.status]}`}>
-                                                {statusLabels[convoy.status]}
-                                            </span>
-                                        </div>
+                {/* LEFT: Event List (Scrollable) */}
+                <div className="lg:col-span-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between mb-4 px-1">
+                        <h3 className="font-bold text-white uppercase tracking-wider text-sm">Nearby Events</h3>
+                        <button className="text-xs text-signal-orange font-bold hover:text-orange-400">View All</button>
+                    </div>
 
-                                        <div className="flex flex-wrap gap-4 text-sm text-text-dim mb-3">
-                                            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-signal-orange" />{convoy.location}</span>
-                                            <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-signal-orange" />{convoy.date}</span>
-                                            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-signal-orange" />{convoy.attendees}/{convoy.maxAttendees} going</span>
-                                        </div>
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                        {EVENTS.map(event => (
+                            <EventCard key={event.id} event={event} />
+                        ))}
+                        {EVENTS.map(event => (
+                            <EventCard key={`dup-${event.id}`} event={{ ...event, id: `dup-${event.id}` }} />
+                        ))}
+                    </div>
+                </div>
 
-                                        <div className="flex gap-2 flex-wrap">
-                                            {convoy.tags.map(tag => (
-                                                <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/8 rounded-full text-[10px] text-text-dim font-bold">
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
+                {/* RIGHT: Map Interface (Full Height) */}
+                <div className="lg:col-span-2 min-h-[400px]">
+                    <ConvoysMap />
+                </div>
 
-                                    <button className="flex-shrink-0 px-5 py-2.5 bg-signal-orange text-white font-bold rounded-xl text-sm hover:bg-signal-orange-dim transition-all active:scale-[0.98] flex items-center gap-2">
-                                        RSVP <ChevronRight className="h-4 w-4" />
-                                    </button>
-                                </div>
-
-                                {/* Progress bar */}
-                                <div className="mt-4 h-1 bg-white/5 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-signal-orange rounded-full transition-all"
-                                        style={{ width: `${(convoy.attendees / convoy.maxAttendees) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
             </div>
         </div>
     );
