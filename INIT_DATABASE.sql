@@ -27,6 +27,7 @@ CREATE POLICY "Enable insert for authenticated users" ON public.profiles FOR INS
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS measurement_unit TEXT DEFAULT 'mi';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cover_url TEXT;
 
 -- Trigger to handle new user signup with automatic username duplicate resolving
 CREATE OR REPLACE FUNCTION public.handle_new_user()
