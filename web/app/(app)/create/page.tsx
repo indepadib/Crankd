@@ -146,7 +146,7 @@ export default function CreatePage() {
                 setEngine(parsed.engine || '');
                 setTransmission(parsed.transmission || 'Manual');
                 setExtColor(parsed.color || '');
-                setInteriorColor(parsed.interiorColor || '');
+                setIntColor(parsed.interiorColor || '');
                 setMileage(parsed.mileage || '');
                 setListingMods(parsed.mods || '');
             } catch (e) {}
