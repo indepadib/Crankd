@@ -14,12 +14,16 @@ interface EventCardProps {
         image: string;
         attendees: number;
         type: 'meet' | 'drive' | 'track';
-    }
+    };
+    onClick?: () => void;
 }
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, onClick }: EventCardProps) {
     return (
-        <div className="group relative flex gap-4 p-4 rounded-2xl bg-steel/50 border border-white/5 hover:bg-steel hover:border-signal-orange/30 transition-all duration-300 active:scale-[0.98]">
+        <div 
+            onClick={onClick}
+            className="group relative flex gap-4 p-4 rounded-2xl bg-steel/50 border border-white/5 hover:bg-steel hover:border-signal-orange/30 transition-all duration-300 active:scale-[0.98] cursor-pointer"
+        >
             {/* Image */}
             <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 relative">
                 <Image

@@ -6,6 +6,7 @@ import { ConvoysMap } from '@/components/ConvoysMap';
 import { EventCard } from '@/components/EventCard';
 import { Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { DetailModal } from '@/components/ui/DetailModal';
 
 // MOCK EVENTS (FALLBACK)
 const EVENTS = [
@@ -56,77 +57,89 @@ export default function ConvoysPage() {
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('posts')
-                    .select('*, profiles:author_id(username)')
-                    .eq('content_type', 'convoy')
-                    .order('created_at', { ascending: false });
+    // Modal details
+    const [selectedEvent, setSelectedEvent] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-                if (error) throw error;
+    const fetchEvents = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*, profiles:author_id(username)')
+                .eq('content_type', 'convoy')
+                .order('created_at', { ascending: false });
 
-                if (data && data.length > 0) {
-                    const parsed = data.map(post => {
-                        // Parse body to retrieve meeting location and description
-                        let location = 'Local Meet';
-                        if (post.body && post.body.startsWith('Location: ')) {
-                            const parts = post.body.split('. Description: ');
-                            if (parts.length >= 2) {
-                                location = parts[0].replace('Location: ', '');
-                            } else {
-                                const parts2 = post.body.split('Location: ');
-                                if (parts2[1]) {
-                                    location = parts2[1];
-                                }
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                const parsed = data.map(post => {
+                    // Parse body to retrieve meeting location and description
+                    let location = 'Local Meet';
+                    if (post.body && post.body.startsWith('Location: ')) {
+                        const parts = post.body.split('. Description: ');
+                        if (parts.length >= 2) {
+                            location = parts[0].replace('Location: ', '');
+                        } else {
+                            const parts2 = post.body.split('Location: ');
+                            if (parts2[1]) {
+                                location = parts2[1];
                             }
                         }
-
-                        // Determine event type based on tags or title
-                        let type: 'meet' | 'drive' | 'track' = 'drive';
-                        const lowerTitle = (post.title || '').toLowerCase();
-                        const tags = post.tags || [];
-                        const hasTrack = tags.some((t: string) => t.toLowerCase().includes('track')) || lowerTitle.includes('track');
-                        const hasMeet = tags.some((t: string) => t.toLowerCase().includes('meet') || t.toLowerCase().includes('coffee')) || lowerTitle.includes('meet') || lowerTitle.includes('coffee');
-                        
-                        if (hasTrack) {
-                            type = 'track';
-                        } else if (hasMeet) {
-                            type = 'meet';
+                    } else if (post.body && post.body.startsWith('{')) {
+                        try {
+                            const parsedJson = JSON.parse(post.body);
+                            location = parsedJson.location || 'Local Meet';
+                        } catch (e) {
+                            location = 'Local Meet';
                         }
+                    }
 
-                        // Format created_at date
-                        const createdDate = new Date(post.created_at);
-                        const month = createdDate.toLocaleString('default', { month: 'short' });
-                        const day = createdDate.getDate();
-                        const dateStr = `${month} ${day}`;
-                        const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    // Determine event type based on tags or title
+                    let type: 'meet' | 'drive' | 'track' = 'drive';
+                    const lowerTitle = (post.title || '').toLowerCase();
+                    const tags = post.tags || [];
+                    const hasTrack = tags.some((t: string) => t.toLowerCase().includes('track')) || lowerTitle.includes('track');
+                    const hasMeet = tags.some((t: string) => t.toLowerCase().includes('meet') || t.toLowerCase().includes('coffee')) || lowerTitle.includes('meet') || lowerTitle.includes('coffee');
+                    
+                    if (hasTrack) {
+                        type = 'track';
+                    } else if (hasMeet) {
+                        type = 'meet';
+                    }
 
-                        return {
-                            id: post.id,
-                            title: post.title || 'Untitled Convoy',
-                            date: dateStr,
-                            time: timeStr,
-                            location: location,
-                            image: post.image_url || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
-                            attendees: post.like_count ? post.like_count + 1 : 8,
-                            type: type
-                        };
-                    });
-                    setEvents(parsed);
-                } else {
-                    setEvents(EVENTS);
-                }
-            } catch (err) {
-                console.warn('[Convoys] Fetch failed, using mock events:', err);
+                    // Format created_at date
+                    const createdDate = new Date(post.created_at);
+                    const month = createdDate.toLocaleString('default', { month: 'short' });
+                    const day = createdDate.getDate();
+                    const dateStr = `${month} ${day}`;
+                    const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    return {
+                        id: post.id,
+                        title: post.title || 'Untitled Convoy',
+                        date: dateStr,
+                        time: timeStr,
+                        location: location,
+                        image: post.image_url || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
+                        attendees: post.like_count ? post.like_count + 1 : 8,
+                        type: type,
+                        body: post.body
+                    };
+                });
+                setEvents(parsed);
+            } else {
                 setEvents(EVENTS);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (err) {
+            console.warn('[Convoys] Fetch failed, using mock events:', err);
+            setEvents(EVENTS);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchEvents();
     }, []);
 
@@ -166,7 +179,14 @@ export default function ConvoysPage() {
                             <div className="py-20 text-center text-zinc-500 font-bold">Pinging satellites...</div>
                         ) : (
                             events.map(event => (
-                                <EventCard key={event.id} event={event} />
+                                <EventCard 
+                                    key={event.id} 
+                                    event={event} 
+                                    onClick={() => {
+                                        setSelectedEvent(event);
+                                        setIsModalOpen(true);
+                                    }}
+                                />
                             ))
                         )}
                     </div>
@@ -178,6 +198,15 @@ export default function ConvoysPage() {
                 </div>
 
             </div>
+
+            {/* Dynamic Event Details Modal */}
+            <DetailModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                type="convoy"
+                data={selectedEvent}
+                onActionSuccess={fetchEvents}
+            />
         </div>
     );
 }

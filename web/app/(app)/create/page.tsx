@@ -62,11 +62,17 @@ export default function CreatePage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Form states
+    // General states
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
     const [tags, setTags] = useState('');
     const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0]);
+
+    // Build Post specific states
+    const [chassisCode, setChassisCode] = useState('');
+    const [dynoHp, setDynoHp] = useState('');
+    const [modList, setModList] = useState('');
+    const [modCost, setModCost] = useState('');
 
     // Listing specific states
     const [make, setMake] = useState('');
@@ -75,6 +81,19 @@ export default function CreatePage() {
     const [price, setPrice] = useState('');
     const [mileage, setMileage] = useState('');
     const [location, setLocation] = useState('');
+    const [vin, setVin] = useState('');
+    const [engine, setEngine] = useState('');
+    const [transmission, setTransmission] = useState('');
+    const [extColor, setExtColor] = useState('');
+    const [intColor, setIntColor] = useState('');
+    const [listingMods, setListingMods] = useState('');
+
+    // Convoy specific states
+    const [startPoint, setStartPoint] = useState('');
+    const [endPoint, setEndPoint] = useState('');
+    const [dateTime, setDateTime] = useState('');
+    const [driverLimit, setDriverLimit] = useState('');
+    const [eligibleCars, setEligibleCars] = useState('');
 
     const handlePublishPost = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -88,11 +107,20 @@ export default function CreatePage() {
 
         const cleanTags = tags.split(',').map(t => t.trim()).filter(Boolean);
 
+        // Pack rich specs into JSON body
+        const richBody = JSON.stringify({
+            chassis: chassisCode,
+            hp: dynoHp,
+            mods: modList,
+            cost: modCost,
+            text: body
+        });
+
         try {
             const { error } = await supabase.from('posts').insert({
                 author_id: user.id,
                 title,
-                body,
+                body: richBody,
                 image_url: imageUrl,
                 content_type: 'media',
                 tags: cleanTags.length > 0 ? cleanTags : ['Build']
@@ -116,6 +144,17 @@ export default function CreatePage() {
         setLoading(true);
         setError(null);
 
+        // Pack rich specs into JSON description
+        const richDescription = JSON.stringify({
+            vin,
+            engine,
+            transmission,
+            exteriorColor: extColor,
+            interiorColor: intColor,
+            mods: listingMods,
+            text: body
+        });
+
         try {
             const { error } = await supabase.from('listings').insert({
                 seller_id: user.id,
@@ -125,7 +164,7 @@ export default function CreatePage() {
                 price: parseFloat(price),
                 mileage: parseInt(mileage),
                 location,
-                description: body,
+                description: richDescription,
                 images: [imageUrl]
             });
 
@@ -149,11 +188,22 @@ export default function CreatePage() {
 
         const eventTags = tags.split(',').map(t => t.trim()).filter(Boolean);
 
+        // Pack rich specs into JSON body
+        const richBody = JSON.stringify({
+            location,
+            startPoint,
+            endPoint,
+            dateTime,
+            driverLimit,
+            eligibleCars,
+            text: body
+        });
+
         try {
             const { error } = await supabase.from('posts').insert({
                 author_id: user.id,
                 title,
-                body: `Location: ${location}. Description: ${body}`,
+                body: richBody,
                 image_url: imageUrl,
                 content_type: 'convoy',
                 tags: eventTags.length > 0 ? eventTags : ['Convoy', 'Drive']
@@ -179,6 +229,21 @@ export default function CreatePage() {
         setPrice('');
         setMileage('');
         setLocation('');
+        setChassisCode('');
+        setDynoHp('');
+        setModList('');
+        setModCost('');
+        setVin('');
+        setEngine('');
+        setTransmission('');
+        setExtColor('');
+        setIntColor('');
+        setListingMods('');
+        setStartPoint('');
+        setEndPoint('');
+        setDateTime('');
+        setDriverLimit('');
+        setEligibleCars('');
     };
 
     return (
@@ -261,19 +326,51 @@ export default function CreatePage() {
                             />
                         </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Chassis / Engine Code</label>
+                                <input
+                                    type="text"
+                                    value={chassisCode}
+                                    onChange={e => setChassisCode(e.target.value)}
+                                    placeholder="e.g. FD3S / 13B-REW"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Dyno Horsepower (WHP)</label>
+                                <input
+                                    type="text"
+                                    value={dynoHp}
+                                    onChange={e => setDynoHp(e.target.value)}
+                                    placeholder="e.g. 420 WHP"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Story / Modifications</label>
-                            <textarea
-                                value={body}
-                                onChange={e => setBody(e.target.value)}
-                                required
-                                rows={5}
-                                placeholder="Describe the process, parts used, dyno targets, etc..."
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 transition-all resize-none"
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mods List (comma separated)</label>
+                            <input
+                                type="text"
+                                value={modList}
+                                onChange={e => setModList(e.target.value)}
+                                placeholder="Garrett G30-770, HKS Manifold, KW V3"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Modification Cost ($)</label>
+                                <input
+                                    type="text"
+                                    value={modCost}
+                                    onChange={e => setModCost(e.target.value)}
+                                    placeholder="e.g. 6500"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tags (comma separated)</label>
                                 <input
@@ -281,24 +378,36 @@ export default function CreatePage() {
                                     value={tags}
                                     onChange={e => setTags(e.target.value)}
                                     placeholder="BMW, M3, Coilover, Exhaust"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 transition-all"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
                                 />
                             </div>
+                        </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cover Photo Preset</label>
-                                <div className="flex gap-2 overflow-x-auto py-1">
-                                    {PRESET_IMAGES.map((img, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={() => setImageUrl(img)}
-                                            className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img ? 'border-signal-orange' : 'border-transparent'}`}
-                                        >
-                                            <img src={img} alt="preset" className="w-full h-full object-cover" />
-                                        </button>
-                                    ))}
-                                </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Story & Dyno Targets</label>
+                            <textarea
+                                value={body}
+                                onChange={e => setBody(e.target.value)}
+                                required
+                                rows={5}
+                                placeholder="Describe the process, parts used, dyno targets, etc..."
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cover Photo Preset</label>
+                            <div className="flex gap-2 overflow-x-auto py-1">
+                                {PRESET_IMAGES.map((img, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => setImageUrl(img)}
+                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img ? 'border-signal-orange' : 'border-transparent'}`}
+                                    >
+                                        <img src={img} alt="preset" className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -395,8 +504,75 @@ export default function CreatePage() {
                             </div>
                         </div>
 
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">VIN / Chassis Code</label>
+                                <input
+                                    type="text"
+                                    value={vin}
+                                    onChange={e => setVin(e.target.value)}
+                                    placeholder="WBA333X..."
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Engine Config</label>
+                                <input
+                                    type="text"
+                                    value={engine}
+                                    onChange={e => setEngine(e.target.value)}
+                                    placeholder="e.g. 3.2L S54 Inline-6"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Transmission</label>
+                                <input
+                                    type="text"
+                                    value={transmission}
+                                    onChange={e => setTransmission(e.target.value)}
+                                    placeholder="e.g. 6-Speed Manual"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Exterior Color</label>
+                                <input
+                                    type="text"
+                                    value={extColor}
+                                    onChange={e => setExtColor(e.target.value)}
+                                    placeholder="e.g. Chalk Grey"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Interior Color</label>
+                                <input
+                                    type="text"
+                                    value={intColor}
+                                    onChange={e => setIntColor(e.target.value)}
+                                    placeholder="e.g. Black Alcantara"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Description</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Upgraded Modifications (comma separated)</label>
+                            <input
+                                type="text"
+                                value={listingMods}
+                                onChange={e => setListingMods(e.target.value)}
+                                placeholder="KW V3 Coilovers, rod bearings replaced, carbon intake"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Narrative Description</label>
                             <textarea
                                 value={body}
                                 onChange={e => setBody(e.target.value)}
@@ -456,21 +632,79 @@ export default function CreatePage() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Meeting Location</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Starting Point</label>
                                 <input
                                     type="text"
-                                    value={location}
-                                    onChange={e => setLocation(e.target.value)}
+                                    value={startPoint}
+                                    onChange={e => setStartPoint(e.target.value)}
                                     required
                                     placeholder="Shell Station, La Cañada"
                                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
                                 />
                             </div>
-
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tags (e.g. NightRun, Cruise)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ending Destination</label>
+                                <input
+                                    type="text"
+                                    value={endPoint}
+                                    onChange={e => setEndPoint(e.target.value)}
+                                    required
+                                    placeholder="Newcomb's Ranch Peak"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">General Location / Hub</label>
+                                <input
+                                    type="text"
+                                    value={location}
+                                    onChange={e => setLocation(e.target.value)}
+                                    required
+                                    placeholder="LA, California"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date & Time</label>
+                                <input
+                                    type="text"
+                                    value={dateTime}
+                                    onChange={e => setDateTime(e.target.value)}
+                                    required
+                                    placeholder="Oct 28 • 10:00 PM"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Limit</label>
+                                <input
+                                    type="number"
+                                    value={driverLimit}
+                                    onChange={e => setDriverLimit(e.target.value)}
+                                    placeholder="e.g. 30"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Eligible Vehicles</label>
+                                <input
+                                    type="text"
+                                    value={eligibleCars}
+                                    onChange={e => setEligibleCars(e.target.value)}
+                                    placeholder="e.g. All welcome / JDM Only"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tags (comma separated)</label>
                                 <input
                                     type="text"
                                     value={tags}
@@ -482,7 +716,7 @@ export default function CreatePage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Event Description & Route</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Event Description & Safety Rules</label>
                             <textarea
                                 value={body}
                                 onChange={e => setBody(e.target.value)}

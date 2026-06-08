@@ -1,10 +1,11 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import {
     Activity,
-    Calendar, // Keep for potential usage or remove if unused, but spec says "Use standard lucide-react"
-    MapPin,   // Keep
-    Share2,   // Keep
+    Calendar,
+    MapPin,
+    Share2,
     Shield,
     Zap,
     Gauge,
@@ -19,11 +20,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 
-// MOCK DATA
-const VEHICLE_DATA = {
-    id: '1',
-    vin: 'WBA333X...',
+// MOCK DATA (FALLBACK)
+const MOCK_VEHICLE = {
+    id: 'mock-1',
+    vin: 'WBA333XE46CSL007',
     year: 2003,
     make: 'BMW',
     model: 'M3 CSL',
@@ -66,18 +68,115 @@ const item = {
 
 export default function VehicleProfilePage() {
     const params = useParams();
+    const vehicleId = params.id as string;
+
+    const [vehicle, setVehicle] = useState<any>(null);
+    const [timeline, setTimeline] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchVehicle = async () => {
+            if (!vehicleId) return;
+            setLoading(true);
+
+            try {
+                // Fetch vehicle and join profile owner
+                const { data, error } = await supabase
+                    .from('vehicles')
+                    .select('*, profiles:owner_id(username, avatar_url)')
+                    .eq('id', vehicleId)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    // Fetch timeline logs from posts table
+                    const { data: logs, error: logsError } = await supabase
+                        .from('posts')
+                        .select('*')
+                        .eq('vehicle_id', vehicleId)
+                        .order('created_at', { ascending: false });
+
+                    const parsedTimeline = (logs || []).map((log: any, idx: number) => {
+                        const isMaintenance = log.content_type === 'maintenance_log' || log.title?.toLowerCase().includes('service');
+                        const isMod = log.content_type === 'media' || log.title?.toLowerCase().includes('upgrade') || log.title?.toLowerCase().includes('install');
+                        
+                        return {
+                            id: log.id,
+                            type: isMaintenance ? 'maintenance' : isMod ? 'mod' : 'event',
+                            title: log.title || 'Build Update',
+                            date: new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
+                            detail: log.body || 'No description provided.',
+                            icon: isMaintenance ? Wrench : isMod ? Zap : Trophy
+                        };
+                    });
+
+                    setVehicle({
+                        id: data.id,
+                        vin: data.vin || 'WBAXXXXXXXXXXXXXX',
+                        year: data.year,
+                        make: data.make,
+                        model: data.model,
+                        trim: data.trim || 'OEM Spec',
+                        health_score: 95, // Simulated score based on record count
+                        image_url: data.image_url || 'https://images.unsplash.com/photo-1605515298946-d062f2e9da53?q=80&w=2600&auto=format&fit=crop',
+                        specs: {
+                            engine: 'OEM Configured',
+                            power: 'N/A HP',
+                            weight: 'OEM Curb Weight',
+                            drivetrain: 'N/A'
+                        },
+                        owner: {
+                            name: data.profiles?.username || 'Chassis Owner',
+                            handle: data.profiles?.username ? `@${data.profiles.username}` : '@Anonymous',
+                            avatar: (data.profiles?.username?.[0] || 'C').toUpperCase()
+                        }
+                    });
+
+                    setTimeline(parsedTimeline.length > 0 ? parsedTimeline : [
+                        { id: 99, type: 'transfer', title: 'Ledger Created', date: new Date(data.created_at).toLocaleDateString(), detail: 'Vehicle recorded on the Crankd public database.', icon: ArrowRightLeft }
+                    ]);
+                } else {
+                    // Fallback to mock data if single query succeeds but returns empty
+                    setVehicle(MOCK_VEHICLE);
+                    setTimeline(MOCK_VEHICLE.timeline);
+                }
+            } catch (err) {
+                console.warn('[VehicleProfile] Fetch failed or mock ID, falling back:', err);
+                setVehicle(MOCK_VEHICLE);
+                setTimeline(MOCK_VEHICLE.timeline);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchVehicle();
+    }, [vehicleId]);
+
+    if (loading) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-zinc-500 font-bold">
+                Reading chassis telemetry...
+            </div>
+        );
+    }
+
+    if (!vehicle) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-red-400 font-bold">
+                Telemetry reading failed. Vehicle not found.
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto pb-24">
-
             {/* HERO SECTION */}
             <div className="relative h-[50vh] min-h-[400px] w-full rounded-b-3xl overflow-hidden group">
-                <Image
-                    src={VEHICLE_DATA.image_url}
-                    alt={VEHICLE_DATA.model}
-                    fill
-                    priority
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                <img
+                    src={vehicle.image_url}
+                    alt={vehicle.model}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/20 to-transparent" />
 
@@ -94,14 +193,14 @@ export default function VehicleProfilePage() {
                                 </span>
                                 <span className="flex items-center gap-1 text-white/70 text-sm font-mono">
                                     <Shield className="h-4 w-4" />
-                                    {VEHICLE_DATA.vin}
+                                    {vehicle.vin}
                                 </span>
                             </div>
                             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase italic drop-shadow-2xl">
-                                {VEHICLE_DATA.model}
+                                {vehicle.model}
                             </h1>
                             <p className="text-xl md:text-2xl text-white/70 font-light mt-2">
-                                {VEHICLE_DATA.year} {VEHICLE_DATA.make}
+                                {vehicle.year} {vehicle.make}
                             </p>
                         </motion.div>
 
@@ -113,7 +212,7 @@ export default function VehicleProfilePage() {
                         >
                             {/* Health Score Badge */}
                             <div className="h-24 w-24 rounded-full border-4 border-signal-orange bg-carbon/80 backdrop-blur-md flex flex-col items-center justify-center shadow-[0_0_30px_rgba(249,115,22,0.4)]">
-                                <span className="text-3xl font-black text-white">{VEHICLE_DATA.health_score}</span>
+                                <span className="text-3xl font-black text-white">{vehicle.health_score}</span>
                                 <span className="text-[10px] uppercase text-signal-orange font-bold">Health</span>
                             </div>
                         </motion.div>
@@ -122,22 +221,21 @@ export default function VehicleProfilePage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-4 md:px-0 -mt-8 relative z-10">
-
                 {/* LEFT COLUMN: SPECS & ACTIONS */}
                 <div className="lg:col-span-1 space-y-6">
                     {/* Owner Card */}
-                    <Link href="/profile" className="block glass-panel p-6 rounded-2xl hover:bg-white/5 transition-colors border border-white/5 hover:border-signal-orange/30">
+                    <div className="block glass-panel p-6 rounded-2xl border border-white/5">
                         <div className="text-xs text-text-dim uppercase tracking-wider mb-4 font-bold">Current Custodian</div>
                         <div className="flex items-center gap-4">
                             <div className="h-12 w-12 rounded-lg bg-steel flex items-center justify-center text-white font-bold border border-white/10 text-xl">
-                                {VEHICLE_DATA.owner.avatar}
+                                {vehicle.owner.avatar}
                             </div>
                             <div>
-                                <div className="text-white font-bold text-lg">{VEHICLE_DATA.owner.name}</div>
-                                <div className="text-signal-orange text-sm font-medium">{VEHICLE_DATA.owner.handle}</div>
+                                <div className="text-white font-bold text-lg">{vehicle.owner.name}</div>
+                                <div className="text-signal-orange text-sm font-medium">{vehicle.owner.handle}</div>
                             </div>
                         </div>
-                    </Link>
+                    </div>
 
                     {/* Specs Grid */}
                     <motion.div
@@ -151,10 +249,10 @@ export default function VehicleProfilePage() {
                             Build Specs
                         </h3>
                         <div className="grid grid-cols-2 gap-4">
-                            <SpecItem label="Engine" value={VEHICLE_DATA.specs.engine} icon={Zap} />
-                            <SpecItem label="Power" value={VEHICLE_DATA.specs.power} icon={Gauge} />
-                            <SpecItem label="Weight" value={VEHICLE_DATA.specs.weight} icon={Scale} />
-                            <SpecItem label="Drivetrain" value={VEHICLE_DATA.specs.drivetrain} icon={GitCommit} />
+                            <SpecItem label="Engine" value={vehicle.specs.engine} icon={Zap} />
+                            <SpecItem label="Power" value={vehicle.specs.power} icon={Gauge} />
+                            <SpecItem label="Weight" value={vehicle.specs.weight} icon={Scale} />
+                            <SpecItem label="Drivetrain" value={vehicle.specs.drivetrain} icon={GitCommit} />
                         </div>
                     </motion.div>
 
@@ -164,10 +262,10 @@ export default function VehicleProfilePage() {
                             <ArrowRightLeft className="h-5 w-5" />
                             Transfer Ownership
                         </button>
-                        <button className="w-full py-4 bg-steel border border-white/10 text-white font-bold uppercase tracking-wider rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center gap-2">
+                        <Link href="/create" className="w-full py-4 bg-steel border border-white/10 text-white font-bold uppercase tracking-wider rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center gap-2 text-center">
                             <DollarSign className="h-5 w-5 text-signal-orange" />
                             List for Sale
-                        </button>
+                        </Link>
                     </div>
                 </div>
 
@@ -186,7 +284,7 @@ export default function VehicleProfilePage() {
                             viewport={{ once: true }}
                             className="space-y-8 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent"
                         >
-                            {VEHICLE_DATA.timeline.map((event) => (
+                            {timeline.map((event) => (
                                 <motion.div
                                     key={event.id}
                                     variants={item}
@@ -208,7 +306,6 @@ export default function VehicleProfilePage() {
                                 </motion.div>
                             ))}
                         </motion.div>
-
                     </div>
                 </div>
             </div>

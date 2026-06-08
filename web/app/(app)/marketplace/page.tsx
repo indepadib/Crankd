@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Shield, MapPin, Fuel, Gauge } from 'lucide-react';
+import { Search, SlidersHorizontal, Shield, MapPin, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { DetailModal } from '@/components/ui/DetailModal';
 
 const MOCK_LISTINGS = [
     { id: 'mock-1', make: 'Nissan', model: 'GT-R R35', year: 2012, price: 85000, mileage: 28000, location: 'Dubai, UAE', image_url: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80', verified: true, seller_username: '@NightRacerJP' },
@@ -18,6 +19,10 @@ export default function MarketplacePage() {
     const [search, setSearch] = useState('');
     const [listings, setListings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal details
+    const [selectedListing, setSelectedListing] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchListings = async () => {
@@ -94,14 +99,18 @@ export default function MarketplacePage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.06, duration: 0.4 }}
-                            className="rounded-3xl bg-steel border border-white/8 overflow-hidden group hover:border-white/15 transition-all cursor-pointer flex flex-col justify-between"
+                            onClick={() => {
+                                setSelectedListing(listing);
+                                setIsModalOpen(true);
+                            }}
+                            className="rounded-3xl bg-steel border border-white/8 overflow-hidden group hover:border-white/15 hover:shadow-2xl transition-all cursor-pointer flex flex-col justify-between"
                         >
                             <div>
                                 <div className="aspect-[16/10] relative overflow-hidden">
                                     <img
                                         src={listing.image_url || listing.image}
                                         alt={listing.model}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-700"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-steel/80 via-transparent to-transparent" />
                                     {listing.verified && (
@@ -137,6 +146,14 @@ export default function MarketplacePage() {
                     ))}
                 </div>
             )}
+
+            {/* Dynamic Details Modal Overlay */}
+            <DetailModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                type="listing"
+                data={selectedListing}
+            />
         </div>
     );
 }
