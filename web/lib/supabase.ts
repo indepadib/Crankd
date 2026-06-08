@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 if (supabaseUrl) {
     supabaseUrl = supabaseUrl.replace(/\/+$/, '');
+    supabaseUrl = supabaseUrl.replace(/\/rest\/v1$/, '');
 }
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
