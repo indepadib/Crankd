@@ -59,4 +59,6 @@ export interface Post {
     vehicle_id?: string; // Sometimes linked
     vehicle?: Vehicle;
     log?: MaintenanceLog;
+    community_id?: string | null;
+    community?: { id: string; name: string } | null;
 }
