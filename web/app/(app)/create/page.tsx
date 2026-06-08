@@ -186,6 +186,9 @@ export default function CreatePage() {
             text: body
         });
 
+        const userEmail = user.email || 'enthusiast';
+        const userUsername = `@${userEmail.split('@')[0]}`;
+
         const localPost = {
             id: `local-post-${Date.now()}`,
             author_id: user.id,
@@ -198,7 +201,7 @@ export default function CreatePage() {
             like_count: 0,
             view_count: 0,
             comment_count: 0,
-            author: { id: user.id, username: `@${user.email.split('@')[0]}`, avatar_url: '' }
+            author: { id: user.id, username: userUsername, avatar_url: '', garage_rank: 1 }
         };
 
         try {
@@ -244,6 +247,9 @@ export default function CreatePage() {
             text: body
         });
 
+        const userEmail = user.email || 'enthusiast';
+        const userUsername = `@${userEmail.split('@')[0]}`;
+
         const localListing = {
             id: `local-list-${Date.now()}`,
             seller_id: user.id,
@@ -257,7 +263,7 @@ export default function CreatePage() {
             images: [finalImg],
             status: 'active',
             created_at: new Date().toISOString(),
-            author: { id: user.id, username: `@${user.email.split('@')[0]}`, avatar_url: '' }
+            author: { id: user.id, username: userUsername, avatar_url: '', garage_rank: 1 }
         };
 
         try {
@@ -316,6 +322,9 @@ export default function CreatePage() {
             text: body
         });
 
+        const userEmail = user.email || 'enthusiast';
+        const userUsername = `@${userEmail.split('@')[0]}`;
+
         const localEvent = {
             id: `local-post-${Date.now()}`,
             author_id: user.id,
@@ -328,7 +337,7 @@ export default function CreatePage() {
             like_count: 0,
             view_count: 0,
             comment_count: 0,
-            author: { id: user.id, username: `@${user.email.split('@')[0]}`, avatar_url: '' }
+            author: { id: user.id, username: userUsername, avatar_url: '', garage_rank: 1 }
         };
 
         try {
