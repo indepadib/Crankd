@@ -2,7 +2,28 @@
 
 import { MapPin, Navigation } from 'lucide-react';
 
-export function ConvoysMap() {
+interface ConvoysMapProps {
+    events?: {
+        id: string;
+        title: string;
+        attendees: number;
+        type: 'meet' | 'drive' | 'track';
+    }[];
+}
+
+export function ConvoysMap({ events = [] }: ConvoysMapProps) {
+    // Deterministic position based on string ID hash to keep them stable
+    const getCoords = (id: string, index: number) => {
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+            hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // Map hash to stable coordinates in the central area of the map
+        const x = 25 + Math.abs((hash + index * 17) % 50); // 25% to 75%
+        const y = 25 + Math.abs((hash * 7 + index * 23) % 50); // 25% to 75%
+        return { x: `${x}%`, y: `${y}%` };
+    };
+
     return (
         <div className="w-full h-full rounded-3xl overflow-hidden relative bg-[#0a0a0a] border border-white/5 group shadow-2xl">
 
@@ -26,32 +47,40 @@ export function ConvoysMap() {
             </div>
 
             {/* Active Convoys (Pins) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full">
+            <div className="absolute inset-0 w-full h-full">
+                {events.map((event, index) => {
+                    const { x, y } = getCoords(event.id, index);
+                    const isTrack = event.type === 'track';
+                    const isDrive = event.type === 'drive';
+                    
+                    const pinColorClass = isTrack 
+                        ? 'bg-signal-orange shadow-[0_0_15px_#f97316]' 
+                        : isDrive 
+                            ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' 
+                            : 'bg-green-500 shadow-[0_0_10px_#22c55e]';
+                    
+                    const pingBgClass = isTrack 
+                        ? 'bg-signal-orange' 
+                        : isDrive 
+                            ? 'bg-blue-500' 
+                            : 'bg-green-500';
 
-                {/* Pin 1 */}
-                <div className="absolute top-[40%] left-[60%] flex flex-col items-center gap-2 group/pin cursor-pointer z-10">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-signal-orange rounded-full animate-ping opacity-50" />
-                        <div className="relative h-4 w-4 bg-signal-orange rounded-full border-2 border-black shadow-[0_0_15px_#f97316]" />
-                    </div>
-                    <div className="bg-carbon/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 opacity-0 group-hover/pin:opacity-100 transition-all transform translate-y-2 group-hover/pin:translate-y-0 shadow-xl whitespace-nowrap font-bold">
-                        Midnight Run <span className="text-signal-orange ml-1">(12 cars)</span>
-                    </div>
-                </div>
-
-                {/* Pin 2 */}
-                <div className="absolute top-[30%] left-[35%] flex flex-col items-center gap-2 group/pin cursor-pointer z-10">
-                    <div className="relative h-3 w-3 bg-blue-500 rounded-full border-2 border-black shadow-[0_0_10px_#3b82f6]" />
-                    <div className="bg-carbon/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 opacity-0 group-hover/pin:opacity-100 transition-all transform translate-y-2 group-hover/pin:translate-y-0 shadow-xl whitespace-nowrap font-bold">
-                        Cars & Coffee Setup
-                    </div>
-                </div>
-
-                {/* Pin 3 */}
-                <div className="absolute bottom-[40%] right-[30%] flex flex-col items-center gap-2 group/pin cursor-pointer z-10">
-                    <div className="relative h-3 w-3 bg-white/50 rounded-full border-2 border-black" />
-                </div>
-
+                    return (
+                        <div 
+                            key={event.id}
+                            style={{ top: y, left: x }}
+                            className="absolute flex flex-col items-center gap-2 group/pin cursor-pointer z-10 -translate-x-1/2 -translate-y-1/2"
+                        >
+                            <div className="relative">
+                                <div className={`absolute inset-0 ${pingBgClass} rounded-full animate-ping opacity-50`} />
+                                <div className={`relative h-3.5 w-3.5 rounded-full border-2 border-black ${pinColorClass}`} />
+                            </div>
+                            <div className="bg-carbon/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 opacity-0 group-hover/pin:opacity-100 transition-all transform translate-y-2 group-hover/pin:translate-y-0 shadow-xl whitespace-nowrap font-bold pointer-events-none">
+                                {event.title} <span className="text-signal-orange ml-1">({event.attendees} cars)</span>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* UI Overlays */}
@@ -61,7 +90,7 @@ export function ConvoysMap() {
                     <h2 className="text-xl font-black text-white italic uppercase tracking-tighter shadow-black drop-shadow-lg">Live Map</h2>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono text-signal-orange/80 bg-black/40 backdrop-blur rounded px-2 py-1 border border-white/5">
-                    3 Active Groups nearby
+                    {events.length} Active Groups nearby
                 </div>
             </div>
 
