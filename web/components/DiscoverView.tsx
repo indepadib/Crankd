@@ -21,13 +21,17 @@ const HERO_ITEMS = [
 
 const TRENDING_TAGS = [
     { id: '1', label: '#JDM', count: '12.4k' },
-    { id: '2', label: '#Porsche911', count: '8.2k' },
+    { id: '2', label: '#Porsche', count: '8.2k' },
     { id: '3', label: '#TrackDay', count: '5.1k' },
     { id: '4', label: '#Restomod', count: '3.9k' },
     { id: '5', label: '#Drift', count: '15.2k' },
 ];
 
-export function DiscoverView() {
+interface DiscoverViewProps {
+    onSelectTag?: (tag: string) => void;
+}
+
+export function DiscoverView({ onSelectTag }: DiscoverViewProps) {
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
@@ -61,7 +65,11 @@ export function DiscoverView() {
                 </div>
                 <div className="flex flex-wrap gap-3">
                     {TRENDING_TAGS.map(tag => (
-                        <div key={tag.id} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center gap-2 group">
+                        <div 
+                            key={tag.id} 
+                            onClick={() => onSelectTag?.(tag.label.replace('#', ''))}
+                            className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center gap-2 group"
+                        >
                             <span className="font-bold group-hover:text-signal-orange transition-colors">{tag.label}</span>
                             <span className="text-xs text-text-dim">{tag.count}</span>
                         </div>
@@ -71,7 +79,10 @@ export function DiscoverView() {
 
             {/* Categories / Grid */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="group relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-steel border border-white/5 cursor-pointer">
+                <div 
+                    onClick={() => onSelectTag?.('Build')}
+                    className="group relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-steel border border-white/5 cursor-pointer"
+                >
                     <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2670&auto=format&fit=crop" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Cars" />
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
                     <div className="absolute bottom-6 left-6">
@@ -83,7 +94,10 @@ export function DiscoverView() {
                     </div>
                 </div>
 
-                <div className="group relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-steel border border-white/5 cursor-pointer">
+                <div 
+                    onClick={() => onSelectTag?.('Convoy')}
+                    className="group relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-steel border border-white/5 cursor-pointer"
+                >
                     <img src="https://images.unsplash.com/photo-1542282088-fe8426682b8f?q=80&w=2670&auto=format&fit=crop" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Track" />
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
                     <div className="absolute bottom-6 left-6">

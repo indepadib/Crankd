@@ -1,4 +1,4 @@
--- ⚡ CRANKD DATABASE SETUP SCRIPT (Consolidated v2)
+-- ⚡ CRANKD DATABASE SETUP SCRIPT (Consolidated v3)
 -- Copy and paste this directly into your Supabase SQL Editor to set up all tables and functions.
 
 -- Enable UUID Extension
@@ -199,7 +199,90 @@ DROP POLICY IF EXISTS "Users can delete own logs" ON public.maintenance_logs;
 CREATE POLICY "Users can delete own logs" ON public.maintenance_logs FOR DELETE USING (auth.uid() = performed_by_user_id);
 
 
--- 8. PERSONALIZED FEED RPC FUNCTION
+-- 8. COMMUNITIES TABLE (Tribes)
+CREATE TABLE IF NOT EXISTS public.communities (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  creator_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  image_url TEXT,
+  category TEXT NOT NULL,
+  member_count INT DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.communities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Communities are public" ON public.communities;
+CREATE POLICY "Communities are public" ON public.communities FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated users can create communities" ON public.communities;
+CREATE POLICY "Authenticated users can create communities" ON public.communities FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Creators can update own communities" ON public.communities;
+CREATE POLICY "Creators can update own communities" ON public.communities FOR UPDATE USING (auth.uid() = creator_id);
+
+
+-- 9. COMMUNITY MEMBERS TABLE
+CREATE TABLE IF NOT EXISTS public.community_members (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  community_id UUID REFERENCES public.communities(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(community_id, user_id)
+);
+
+ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Memberships are public" ON public.community_members;
+CREATE POLICY "Memberships are public" ON public.community_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can join communities" ON public.community_members;
+CREATE POLICY "Users can join communities" ON public.community_members FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Users can leave communities" ON public.community_members;
+CREATE POLICY "Users can leave communities" ON public.community_members FOR DELETE USING (auth.uid() = user_id);
+
+
+-- 10. POSTS ALTERATION FOR COMMUNITIES
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS community_id UUID REFERENCES public.communities(id) ON DELETE SET NULL;
+
+
+-- 11. COMMUNITY MEMBERSHIP TRIGGER FOR COUNT SYNCING
+CREATE OR REPLACE FUNCTION public.handle_community_membership_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.communities
+    SET member_count = member_count + 1
+    WHERE id = NEW.community_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.communities
+    SET member_count = GREATEST(0, member_count - 1)
+    WHERE id = OLD.community_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_community_member_change ON public.community_members;
+CREATE TRIGGER on_community_member_change
+  AFTER INSERT OR DELETE ON public.community_members
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_community_membership_change();
+
+
+-- 12. SEED DEFAULT COMMUNITIES WITH MATCHING UUIDS
+INSERT INTO public.communities (id, name, description, image_url, category, member_count)
+VALUES 
+  ('1a111111-1111-1111-1111-111111111111', 'JDM Legends', 'Celebrating the Golden Era of Japanese performance. From Skylines to RX-7s, if it is from the 90s and right-hand drive, it belongs here.', 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?q=80&w=2600&auto=format&fit=crop', 'JDM', 12400),
+  ('2b222222-2222-2222-2222-222222222222', 'Euro Outlaws', 'Precision engineering meets rebel spirit. BMW M, AMG, and Porsche enthusiasts pushing the limits on street and track.', 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2670&auto=format&fit=crop', 'Euro', 8200),
+  ('3c333333-3333-3333-3333-333333333333', 'Overland Syndicate', 'Go where roads do not. A community for 4x4 builds, expedition rigs, and getting lost in nature.', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2670&auto=format&fit=crop', 'Off-Road', 5600),
+  ('4d444444-4444-4444-4444-444444444444', 'Track Day Heroes', 'Lap times matter. Discuss setups, lines, and upcoming track events. No parking lot posers allowed.', 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2670&auto=format&fit=crop', 'Track', 4100),
+  ('5e555555-5555-5555-5555-555555555555', 'Stance Nation', 'Low is a lifestyle. Fitment, bags, and static drops. Appreciating the art of the perfect stance.', 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2670&auto=format&fit=crop', 'Classic', 15000)
+ON CONFLICT (name) DO UPDATE SET
+  description = EXCLUDED.description,
+  image_url = EXCLUDED.image_url,
+  category = EXCLUDED.category;
+
+
+-- 13. PERSONALIZED FEED RPC FUNCTION
 DROP FUNCTION IF EXISTS get_personalized_feed(UUID, integer, integer);
 CREATE OR REPLACE FUNCTION get_personalized_feed(
   p_user_id UUID,
@@ -223,14 +306,18 @@ BEGIN
     'comment_count', p.comment_count,
     'cohort_level', p.cohort_level,
     'tags', p.tags,
+    'community_id', p.community_id,
+    'community', CASE WHEN c.id IS NOT NULL THEN json_build_object('id', c.id, 'name', c.name) ELSE NULL END,
     'author', json_build_object('id', u.id, 'username', u.username, 'avatar_url', u.avatar_url),
     'vehicle', CASE WHEN v.id IS NOT NULL THEN json_build_object('id', v.id, 'make', v.make, 'model', v.model, 'year', v.year, 'image_url', v.image_url) ELSE NULL END
   )
   FROM posts p
   JOIN profiles u ON p.author_id = u.id
   LEFT JOIN vehicles v ON p.vehicle_id = v.id
+  LEFT JOIN communities c ON p.community_id = c.id
   ORDER BY p.created_at DESC
   LIMIT p_limit
   OFFSET p_offset;
 END;
 $$;
+

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { MOCK_COMMUNITIES } from '@/lib/constants';
 import { 
     Image as ImageIcon, 
     Car, 
@@ -59,8 +60,9 @@ const PRESET_IMAGES = [
     'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80'
 ];
 
-export default function CreatePage() {
+function CreateFormContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const [selectedForm, setSelectedForm] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -73,6 +75,53 @@ export default function CreatePage() {
     const [tags, setTags] = useState('');
     const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0]);
     const [customImageUrl, setCustomImageUrl] = useState('');
+
+    // Community / Tribe states
+    const [communityId, setCommunityId] = useState('');
+    const [communityName, setCommunityName] = useState('');
+    const [availableCommunities, setAvailableCommunities] = useState<any[]>([]);
+
+    // Load available communities and pre-populate query parameters
+    useEffect(() => {
+        const defaultCommId = searchParams.get('communityId') || '';
+        const defaultCommName = searchParams.get('communityName') || '';
+        
+        if (defaultCommId) {
+            setCommunityId(defaultCommId);
+        }
+        if (defaultCommName) {
+            setCommunityName(decodeURIComponent(defaultCommName));
+        }
+
+        const fetchCommunities = async () => {
+            let dbCommunities: any[] = [];
+            try {
+                const { data } = await supabase
+                    .from('communities')
+                    .select('*');
+                if (data) dbCommunities = data;
+            } catch (e) {}
+
+            const savedLocal = localStorage.getItem('local-communities');
+            const localList = savedLocal ? JSON.parse(savedLocal) : [];
+
+            // Combine DB, local storage, and static mock communities
+            const combined = [...localList, ...dbCommunities, ...MOCK_COMMUNITIES];
+            
+            // Filter duplicates by name or ID
+            const unique = combined.reduce((acc: any[], current) => {
+                const exists = acc.find(item => item.name.toLowerCase() === current.name.toLowerCase() || item.id === current.id);
+                if (!exists) {
+                    return acc.concat([current]);
+                }
+                return acc;
+            }, []);
+
+            setAvailableCommunities(unique);
+        };
+
+        fetchCommunities();
+    }, [searchParams]);
 
     // Build Post specific states
     const [chassisCode, setChassisCode] = useState('');
@@ -176,6 +225,10 @@ export default function CreatePage() {
         setError(null);
 
         const cleanTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+        if (communityName && !cleanTags.includes(communityName)) {
+            cleanTags.push(communityName);
+        }
+        
         const finalImg = customImageUrl.trim() || imageUrl;
 
         const richBody = JSON.stringify({
@@ -197,6 +250,8 @@ export default function CreatePage() {
             image_url: finalImg,
             content_type: 'media',
             tags: cleanTags.length > 0 ? cleanTags : ['Build'],
+            community_id: communityId || null,
+            community: communityId ? { id: communityId, name: communityName } : null,
             created_at: new Date().toISOString(),
             like_count: 0,
             view_count: 0,
@@ -211,7 +266,8 @@ export default function CreatePage() {
                 body: richBody,
                 image_url: finalImg,
                 content_type: 'media',
-                tags: cleanTags.length > 0 ? cleanTags : ['Build']
+                tags: cleanTags.length > 0 ? cleanTags : ['Build'],
+                community_id: communityId || null
             });
 
             if (error) throw error;
@@ -483,6 +539,27 @@ export default function CreatePage() {
                                 placeholder="e.g. HKS Exhaust & Coilover Installation"
                                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 transition-all font-semibold"
                             />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Post to Tribe (Optional)</label>
+                            <select
+                                value={communityId}
+                                onChange={e => {
+                                    const selectedId = e.target.value;
+                                    setCommunityId(selectedId);
+                                    const match = availableCommunities.find(c => c.id === selectedId);
+                                    setCommunityName(match ? match.name : '');
+                                }}
+                                className="w-full px-4 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-signal-orange/40 font-semibold"
+                            >
+                                <option value="" className="text-zinc-500">-- None / Post to Global Feed --</option>
+                                {availableCommunities.map(c => (
+                                    <option key={c.id} value={c.id} className="text-white">
+                                        {c.name} ({c.category})
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1093,5 +1170,13 @@ export default function CreatePage() {
             </AnimatePresence>
 
         </div>
+    );
+}
+
+export default function CreatePage() {
+    return (
+        <Suspense fallback={<div className="py-20 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse">Loading creation console...</div>}>
+            <CreateFormContent />
+        </Suspense>
     );
 }

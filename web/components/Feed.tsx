@@ -424,11 +424,31 @@ function FeedItem({
                             <span className="text-[10px] text-text-dim font-mono">{new Date(post.created_at || Date.now()).toLocaleDateString()}</span>
                         </div>
                         {post.vehicle ? (
-                            <Link href={`/vehicle/${post.vehicle.id}`} className="text-[10px] font-black text-signal-orange hover:underline font-mono uppercase tracking-tight flex items-center gap-1 mt-0.5">
-                                🚗 {post.vehicle.year} {post.vehicle.make} {post.vehicle.model}
-                            </Link>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <Link href={`/vehicle/${post.vehicle.id}`} className="text-[10px] font-black text-signal-orange hover:underline font-mono uppercase tracking-tight flex items-center gap-1">
+                                    🚗 {post.vehicle.year} {post.vehicle.make} {post.vehicle.model}
+                                </Link>
+                                {post.community && (
+                                    <>
+                                        <span className="text-zinc-600 font-mono text-[9px]">•</span>
+                                        <Link href={`/communities/${post.community.id}`} className="text-[10px] font-bold text-zinc-400 hover:text-signal-orange hover:underline font-mono uppercase tracking-tight">
+                                            🛡️ {post.community.name}
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
                         ) : (
-                            <span className="text-[10px] text-zinc-500 font-mono">Enthusiast</span>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] text-zinc-500 font-mono">Enthusiast</span>
+                                {post.community && (
+                                    <>
+                                        <span className="text-zinc-600 font-mono text-[9px]">•</span>
+                                        <Link href={`/communities/${post.community.id}`} className="text-[10px] font-bold text-zinc-400 hover:text-signal-orange hover:underline font-mono uppercase tracking-tight">
+                                            🛡️ {post.community.name}
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -441,7 +461,7 @@ function FeedItem({
             {/* 2.2 Story Content */}
             <div className="p-5 pb-4 space-y-3">
                 {post.title && (
-                    <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white font-black">
+                    <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">
                         {post.title}
                     </h3>
                 )}
@@ -704,6 +724,7 @@ function FeedItem({
 export function Feed() {
     const [view, setView] = useState<'following' | 'discover'>('discover');
     const [layoutType, setLayoutType] = useState<'social' | 'grid'>('social');
+    const [activeTag, setActiveTag] = useState<string | null>(null);
     const { user } = useAuth();
     const { posts, loading, logView } = useFeed(user?.id);
 
@@ -712,14 +733,33 @@ export function Feed() {
     const [modalType, setModalType] = useState<'post' | 'listing' | 'convoy'>('post');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    const filteredPosts = activeTag 
+        ? posts.filter(post => 
+            post.tags?.some(t => t.toLowerCase().includes(activeTag.toLowerCase())) ||
+            post.content_type?.toLowerCase().includes(activeTag.toLowerCase()) ||
+            post.title?.toLowerCase().includes(activeTag.toLowerCase()) ||
+            post.body?.toLowerCase().includes(activeTag.toLowerCase())
+          )
+        : posts;
+
     return (
         <div className="max-w-7xl mx-auto pb-12">
             {/* Header / Filter */}
             <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 pb-4 border-b border-white/5">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-white uppercase mb-2 italic">
-                        {view === 'following' ? 'Driver Feed' : 'Discover'}
-                    </h1>
+                    <div className="flex items-center gap-3 mb-2">
+                        <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
+                            {view === 'following' ? 'Driver Feed' : 'Discover'}
+                        </h1>
+                        {activeTag && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-signal-orange/10 border border-signal-orange/20 text-signal-orange text-[10px] font-mono font-bold uppercase tracking-wider rounded-lg animate-in zoom-in-95 select-none">
+                                #{activeTag}
+                                <button onClick={() => setActiveTag(null)} className="hover:text-white transition-colors p-0.5 rounded-full bg-white/5">
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <p className="text-text-dim text-sm">
                         {view === 'following' ? 'Command center for your garage.' : 'Trending stories and builds from the streets.'}
                     </p>
@@ -778,12 +818,12 @@ export function Feed() {
                             ? "max-w-2xl mx-auto flex flex-col gap-8"
                             : "grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-min"
                     )}>
-                        {loading && posts.length === 0 ? (
+                        {loading && filteredPosts.length === 0 ? (
                             <div className="col-span-full py-20 text-center text-white/50 font-mono uppercase tracking-widest animate-pulse">Scanning frequencies...</div>
                         ) : (
                             <>
                                 {layoutType === 'social' && <FeedTuner />}
-                                {posts.map((post, idx) => (
+                                {filteredPosts.map((post, idx) => (
                                     <React.Fragment key={post.id}>
                                         {layoutType === 'grid' && idx === 1 && <FeedTuner key="tuner" />}
                                         <FeedItem 
@@ -810,7 +850,10 @@ export function Feed() {
                     )}
                 </div>
             ) : (
-                <DiscoverView />
+                <DiscoverView onSelectTag={(tag) => {
+                    setActiveTag(tag);
+                    setView('following');
+                }} />
             )}
 
             {/* Global Overlay Detail Modal */}
