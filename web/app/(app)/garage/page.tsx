@@ -30,9 +30,36 @@ import Link from 'next/link';
 const PRESET_VEHICLE_IMAGES = [
     { name: 'M3 Black', url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80' },
     { name: 'Singer 911', url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80' },
-    { name: 'JDM Supra', url: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600&q=80' },
+    { name: 'JDM Supra', url: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&q=80' },
     { name: 'GT-R R35', url: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80' },
     { name: '488 Pista', url: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&q=80' }
+];
+
+const MOCK_VEHICLES = [
+    {
+        id: 'mock-v-1',
+        owner_id: 'u1',
+        make: 'BMW',
+        model: 'M3 (E46)',
+        year: 2003,
+        image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80',
+        health_score: 98,
+        logs: 2,
+        mods: 4,
+        verified: true
+    },
+    {
+        id: 'mock-v-2',
+        owner_id: 'u1',
+        make: 'Porsche',
+        model: '911 Singer',
+        year: 1990,
+        image_url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80',
+        health_score: 99,
+        logs: 1,
+        mods: 1,
+        verified: true
+    }
 ];
 
 export default function GaragePage() {
