@@ -1,318 +1,382 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
-import { PhoneMockup } from '@/components/PhoneMockup';
-import { motion } from 'framer-motion';
+import { 
+    Car, 
+    MapPin, 
+    Users, 
+    ShoppingBag, 
+    Plus, 
+    ChevronRight, 
+    Sparkles, 
+    Wrench,
+    TrendingUp, 
+    Compass,
+    ShieldCheck,
+    Gauge
+} from 'lucide-react';
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 24 },
-    visible: (delay = 0) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] as any }
-    }),
-};
+const FEATURES = [
+    {
+        id: 'garage',
+        title: 'Digital Garage',
+        icon: Car,
+        accent: 'from-orange-500 to-red-600',
+        badge: 'On-Chain Ledger',
+        description: 'Mint your machine. Record dyno graphs, parts listings, and service records in a secure digital logbook.',
+        mockup: {
+            title: '1994 Mazda RX-7 FD',
+            spec: '13B-REW • Single Turbo Conversion',
+            power: '420 WHP',
+            status: 'Ready',
+            logs: [
+                { type: 'Mod', label: 'HKS Super Manifold & Garrett G30-770', cost: '$4,200' },
+                { type: 'Service', label: 'Apex seals & housing check', cost: '$1,850' }
+            ]
+        }
+    },
+    {
+        id: 'convoys',
+        title: 'Live Convoys',
+        icon: MapPin,
+        accent: 'from-blue-500 to-indigo-600',
+        badge: 'GPS Tracking',
+        description: 'Organize canyon runs, track days, or local meets. Lead active drives with integrated route navigation.',
+        mockup: {
+            title: 'Midnight Canyon Run',
+            location: 'Jebel Hafeet, UAE',
+            date: 'Sat, Jun 14 • 11:00 PM',
+            attendees: '24 drivers RSVP\'d',
+            tags: ['Supercar', 'Night Run']
+        }
+    },
+    {
+        id: 'tribes',
+        title: 'Enthusiast Tribes',
+        icon: Users,
+        accent: 'from-purple-500 to-pink-600',
+        badge: 'Sub-Cultures',
+        description: 'Join communities dedicated to specific chassis, engines, or regions. Exchange tuning knowledge with peers.',
+        mockup: {
+            groups: [
+                { name: 'JDM Legends', members: '12.4k', active: '142 online' },
+                { name: 'Euro Outlaws', members: '8.2k', active: '98 online' },
+                { name: 'Rotary Club', members: '2.8k', active: '45 online' }
+            ]
+        }
+    },
+    {
+        id: 'marketplace',
+        title: 'Peer Marketplace',
+        icon: ShoppingBag,
+        accent: 'from-emerald-500 to-teal-600',
+        badge: 'Zero Fees',
+        description: 'Buy and sell enthusiast cars and components directly. All vehicles link directly to verified build logs.',
+        mockup: {
+            title: 'Porsche 911 GT3 RS (997.2)',
+            price: '$245,000',
+            mileage: '12,400 mi',
+            history: 'Verified Logged History (7 Records)',
+            badge: 'Verified Sale'
+        }
+    }
+];
 
 export default function Home() {
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState('garage');
+    const [username, setUsername] = useState('');
+
+    const handleClaimUsername = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username) return;
+        // Strip out spaces and symbols to make a clean username
+        const cleanName = username.replace(/[^a-zA-Z0-9_]/g, '');
+        router.push(`/signup?username=${cleanName}`);
+    };
+
+    const currentFeature = FEATURES.find(f => f.id === activeTab)!;
+
     return (
-        <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
+        <div className="min-h-screen bg-carbon text-white overflow-x-hidden flex flex-col justify-between selection:bg-signal-orange selection:text-white">
             <Navbar />
 
-            {/* ── HERO ── */}
-            <section className="relative pt-36 pb-24 md:pt-52 md:pb-36">
-                {/* Ambient Orbs */}
-                <div className="absolute top-[-15%] left-[-5%] w-[55%] h-[65%] bg-orange-600/10 blur-[160px] rounded-full pointer-events-none" />
-                <div className="absolute bottom-[-5%] right-[-8%] w-[45%] h-[55%] bg-blue-700/8 blur-[180px] rounded-full pointer-events-none" />
-                <div className="absolute top-[30%] left-[40%] w-[25%] h-[30%] bg-purple-700/8 blur-[120px] rounded-full pointer-events-none" />
-
-                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
-
-                    {/* Left: Copy */}
-                    <div className="text-center lg:text-left">
-                        <motion.div
-                            variants={fadeUp}
-                            initial="hidden"
-                            animate="visible"
-                            custom={0}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-zinc-300 text-xs font-semibold mb-10 backdrop-blur-sm"
-                        >
-                            <span className="w-1.5 h-1.5 rounded-full bg-signal-orange animate-pulse" />
-                            v1.0 is now live for iOS & Android
-                        </motion.div>
-
-                        <motion.h1
-                            variants={fadeUp}
-                            initial="hidden"
-                            animate="visible"
-                            custom={0.1}
-                            className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.88] text-white"
-                        >
-                            THE PULSE<br />
-                            OF{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-orange-500 animate-gradient bg-300%">
-                                CAR CULTURE.
-                            </span>
-                        </motion.h1>
-
-                        <motion.p
-                            variants={fadeUp}
-                            initial="hidden"
-                            animate="visible"
-                            custom={0.25}
-                            className="text-lg md:text-xl text-zinc-400 mb-12 max-w-lg mx-auto lg:mx-0 leading-relaxed font-light"
-                        >
-                            Discover unique builds, mint your garage on-chain, and join the world's most exclusive automotive marketplace.
-                        </motion.p>
-
-                        <motion.div
-                            variants={fadeUp}
-                            initial="hidden"
-                            animate="visible"
-                            custom={0.4}
-                            className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
-                        >
-                            {/* App Store Button */}
-                            <button className="group relative px-7 py-3.5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg">
-                                <span className="text-xl leading-none">🍎</span>
-                                <div className="flex flex-col items-start leading-none gap-0.5">
-                                    <span className="text-[9px] font-semibold uppercase tracking-wider opacity-50">Download on the</span>
-                                    <span className="text-base font-bold">App Store</span>
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-tr from-zinc-200/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-
-                            {/* Play Store Button */}
-                            <button className="group px-7 py-3.5 bg-white/5 border border-white/10 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all hover:bg-white/8 hover:border-white/20 hover:scale-[1.02] active:scale-[0.98]">
-                                <span className="text-xl leading-none">🤖</span>
-                                <div className="flex flex-col items-start leading-none gap-0.5">
-                                    <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Get it on</span>
-                                    <span className="text-base font-bold">Google Play</span>
-                                </div>
-                            </button>
-                        </motion.div>
-
-                        {/* Social Proof */}
-                        <motion.div
-                            variants={fadeUp}
-                            initial="hidden"
-                            animate="visible"
-                            custom={0.55}
-                            className="mt-12 flex items-center gap-4 justify-center lg:justify-start"
-                        >
-                            <div className="flex -space-x-2">
-                                {['#F97316', '#3B82F6', '#8B5CF6', '#10B981'].map((c, i) => (
-                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-[#050505]" style={{ background: c }} />
-                                ))}
-                            </div>
-                            <p className="text-sm text-zinc-500">
-                                <span className="text-white font-bold">12,400+</span> enthusiasts already in
-                            </p>
-                        </motion.div>
-                    </div>
-
-                    {/* Right: Phone */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 40, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.9, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                        className="flex justify-center lg:justify-end relative"
-                    >
-                        <div className="relative animate-float">
-                            <PhoneMockup />
-                        </div>
-                        {/* Glow behind phone */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[480px] bg-gradient-to-tr from-orange-500/25 to-purple-600/15 blur-[80px] rounded-full -z-10" />
-                    </motion.div>
-                </div>
-
-                {/* Scroll indicator */}
+            {/* Cinematic Background Elements */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.5, duration: 1 }}
-                    className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-600"
-                >
-                    <div className="w-px h-10 bg-gradient-to-b from-transparent to-zinc-600" />
-                </motion.div>
-            </section>
+                    animate={{ opacity: [0.3, 0.45, 0.3], scale: [1, 1.05, 1] }}
+                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-orange-600/10 rounded-full blur-[140px]"
+                />
+                <motion.div
+                    animate={{ opacity: [0.2, 0.35, 0.2], scale: [1.05, 1, 1.05] }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-blue-700/8 rounded-full blur-[160px]"
+                />
+                {/* Tech Grid Overlay */}
+                <div className="absolute inset-0 opacity-[0.06]"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0H0v40h40V0zM1 1h38v38H1V1z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                        maskImage: 'radial-gradient(circle at center, black, transparent 90%)'
+                    }}
+                />
+            </div>
 
-            {/* ── BENTO GRID ── */}
-            <section className="py-32 border-t border-white/5 relative overflow-hidden">
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-3xl" />
-
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
-                        className="mb-16 text-center"
-                    >
-                        <p className="text-signal-orange text-xs font-bold uppercase tracking-[0.2em] mb-4">Everything You Need</p>
-                        <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-5">Built for enthusiasts.</h2>
-                        <p className="text-zinc-500 text-lg max-w-lg mx-auto">One platform for your entire automotive life.</p>
-                    </motion.div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Large: Verified Garage */}
+            {/* ── HERO SECTION ── */}
+            <section className="relative z-10 pt-36 pb-20 md:pt-48 md:pb-24 max-w-7xl mx-auto px-6 w-full text-center lg:text-left">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+                    
+                    {/* Left: Main Copy & Username Claim */}
+                    <div className="lg:col-span-7 space-y-8">
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.1 }}
-                            className="md:col-span-2 rounded-3xl bg-zinc-900/50 border border-white/8 p-8 relative overflow-hidden group min-h-[320px] flex flex-col justify-between"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 bg-white/5 text-zinc-400 text-xs font-semibold backdrop-blur-md"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                            <div className="relative z-10">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/20 text-blue-400 flex items-center justify-center text-2xl mb-6">💎</div>
-                                <h3 className="text-2xl font-bold mb-3">Verified Garage</h3>
-                                <p className="text-zinc-400 leading-relaxed max-w-sm">Mint your vehicle's history on the blockchain. Service records, modifications, and ownership history become immutable assets.</p>
-                            </div>
-                            <div className="relative z-10 mt-6 p-4 bg-zinc-950/60 rounded-2xl border border-white/5 font-mono text-[11px] text-blue-400/50 leading-relaxed">
-                                <div>0x7f23a4b9c1e...</div>
-                                <div className="text-white/20">Block: 19284372 • Minted: ✓</div>
-                                <div className="text-white/20">Owner: 0xDriftKing.eth</div>
-                            </div>
+                            <Sparkles className="w-3.5 h-3.5 text-signal-orange animate-pulse" />
+                            <span>v1.0 is now live for web & mobile</span>
                         </motion.div>
 
-                        {/* Algorithm */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="rounded-3xl bg-zinc-900/50 border border-white/8 p-8 relative overflow-hidden group min-h-[320px] flex flex-col justify-between"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-b from-orange-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                            <div className="relative z-10">
-                                <div className="w-12 h-12 rounded-2xl bg-signal-orange/15 border border-signal-orange/20 text-signal-orange flex items-center justify-center text-2xl mb-6">🔥</div>
-                                <h3 className="text-2xl font-bold mb-3">Algorithm</h3>
-                                <p className="text-zinc-400">A feed that actually understands cars.</p>
-                            </div>
-                            <div className="relative z-10 flex items-end justify-center gap-1.5 h-24 mt-6">
-                                {[35, 75, 45, 95, 55, 70, 40, 85].map((h, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex-1 bg-signal-orange/30 group-hover:bg-signal-orange/50 rounded-t-md transition-all duration-500"
-                                        style={{ height: `${h}%`, transitionDelay: `${i * 50}ms` }}
-                                    />
-                                ))}
-                            </div>
-                        </motion.div>
-
-                        {/* Marketplace */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
-                            className="rounded-3xl bg-zinc-900/50 border border-white/8 p-8 group relative overflow-hidden min-h-[200px] flex flex-col justify-between"
-                        >
-                            <div>
-                                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mb-4">🤝</div>
-                                <h3 className="text-xl font-bold mb-2">Marketplace</h3>
-                                <p className="text-zinc-400 text-sm">No scams. No middlemen. Just cars.</p>
-                            </div>
-                            <div className="mt-4 flex gap-2">
-                                <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">Verified Sellers</span>
-                                <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-zinc-400 text-xs">$2.3M+ traded</span>
-                            </div>
-                        </motion.div>
-
-                        {/* Direct Chat */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.4 }}
-                            className="rounded-3xl bg-zinc-900/50 border border-white/8 p-8 group relative overflow-hidden min-h-[200px] flex flex-col justify-between"
-                        >
-                            <div>
-                                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xl mb-4">💬</div>
-                                <h3 className="text-xl font-bold mb-2">Direct Chat</h3>
-                                <p className="text-zinc-400 text-sm">Talk to sellers and builders instantly.</p>
-                            </div>
-                            <div className="mt-4 space-y-2">
-                                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                    <div className="w-5 h-5 rounded-full bg-blue-500" />
-                                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full w-2/3 bg-blue-500/30 rounded-full" />
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                    <div className="w-5 h-5 rounded-full bg-purple-500" />
-                                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full w-1/2 bg-purple-500/30 rounded-full" />
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Convoys */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.5 }}
-                            className="rounded-3xl bg-gradient-to-br from-signal-orange/10 to-transparent border border-signal-orange/20 p-8 group relative overflow-hidden min-h-[200px] flex flex-col justify-between"
-                        >
-                            <div>
-                                <div className="w-10 h-10 rounded-xl bg-signal-orange/15 border border-signal-orange/30 text-signal-orange flex items-center justify-center text-xl mb-4">📍</div>
-                                <h3 className="text-xl font-bold mb-2">Convoys</h3>
-                                <p className="text-zinc-400 text-sm">Organize and join local drives with your tribe.</p>
-                            </div>
-                            <Link
-                                href="/signup"
-                                className="mt-4 w-full py-2.5 bg-signal-orange text-white font-bold rounded-xl text-sm text-center hover:bg-signal-orange-dim transition-colors block"
+                        <div className="space-y-4">
+                            <motion.h1 
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.7, delay: 0.1 }}
+                                className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.88] text-white"
                             >
-                                Find a Convoy →
-                            </Link>
+                                The digital soul<br />
+                                of your <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-orange-400">machine.</span>
+                            </motion.h1>
+                            <motion.p 
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.7, delay: 0.2 }}
+                                className="text-lg md:text-xl text-zinc-400 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed"
+                            >
+                                Document your builds, join GPS-tracked drives, and connect with verified enthusiasts. Rebuilt to be fast, clean, and interactive.
+                            </motion.p>
+                        </div>
+
+                        {/* Frictionless Onboarding input */}
+                        <motion.form 
+                            onSubmit={handleClaimUsername}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.7, delay: 0.3 }}
+                            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0 p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md focus-within:border-signal-orange/40 transition-all shadow-xl"
+                        >
+                            <div className="flex-1 flex items-center px-4 gap-1">
+                                <span className="text-signal-orange font-bold text-lg select-none">@</span>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={e => setUsername(e.target.value)}
+                                    placeholder="your_username"
+                                    className="bg-transparent text-white placeholder-text-muted text-sm font-semibold focus:outline-none w-full"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="px-6 py-3 bg-white text-carbon font-bold rounded-xl text-sm hover:bg-zinc-200 transition-all active:scale-[0.97] flex items-center justify-center gap-2 group"
+                            >
+                                Claim Username
+                                <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </motion.form>
+
+                        {/* Core features indicators */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-4 text-xs font-mono text-zinc-500 pt-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="h-4 w-4 text-signal-orange" />
+                                <span>Verified Builds</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Gauge className="h-4 w-4 text-signal-orange" />
+                                <span>Realtime Analytics</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Compass className="h-4 w-4 text-signal-orange" />
+                                <span>No Middlemen</span>
+                            </div>
                         </motion.div>
                     </div>
-                </div>
-            </section>
 
-            {/* ── CTA SECTION ── */}
-            <section className="py-32 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-signal-orange/5 to-transparent pointer-events-none" />
-                <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
-                    <motion.div
+                    {/* Right: Premium Interactive Showcase */}
+                    <motion.div 
                         initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="lg:col-span-5 w-full flex flex-col"
                     >
-                        <p className="text-signal-orange text-xs font-bold uppercase tracking-[0.2em] mb-6">The Machine is the Hero</p>
-                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 text-white">
-                            Your car deserves a <span className="text-gradient-orange">digital soul.</span>
-                        </h2>
-                        <p className="text-zinc-500 text-lg mb-12 max-w-xl mx-auto">
-                            Join thousands of enthusiasts who are building the future of automotive culture.
-                        </p>
-                        <Link
-                            href="/signup"
-                            className="inline-flex items-center gap-3 px-10 py-4 bg-signal-orange text-white font-black text-lg rounded-2xl hover:bg-signal-orange-dim transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_40px_rgba(249,115,22,0.3)]"
-                        >
-                            Get Early Access
-                            <span className="text-xl">→</span>
-                        </Link>
+                        <div className="glass-panel p-6 rounded-3xl border border-white/8 bg-[#0a0a0a]/90 backdrop-blur-xl relative overflow-hidden shadow-2xl flex-1 flex flex-col justify-between min-h-[380px]">
+                            
+                            {/* Tab Selectors */}
+                            <div className="flex gap-1.5 overflow-x-auto pb-4 border-b border-white/5 scrollbar-hide">
+                                {FEATURES.map(feat => {
+                                    const Icon = feat.icon;
+                                    const isSelected = activeTab === feat.id;
+                                    return (
+                                        <button
+                                            key={feat.id}
+                                            onClick={() => setActiveTab(feat.id)}
+                                            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 relative ${isSelected ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            {isSelected && (
+                                                <motion.div 
+                                                    layoutId="activeTabBackground"
+                                                    className="absolute inset-0 bg-white/5 border border-white/10 rounded-xl"
+                                                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                                />
+                                            )}
+                                            <Icon className={`h-3.5 w-3.5 relative z-10 ${isSelected ? 'text-signal-orange' : ''}`} />
+                                            <span className="relative z-10">{feat.title}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Dynamic Panel Content */}
+                            <div className="py-6 flex-1 flex flex-col justify-between">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={activeTab}
+                                        initial={{ opacity: 0, y: 12 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -12 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="space-y-4"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 rounded-md text-zinc-300">
+                                                {currentFeature.badge}
+                                            </span>
+                                        </div>
+                                        <p className="text-zinc-400 text-sm leading-relaxed font-medium">
+                                            {currentFeature.description}
+                                        </p>
+
+                                         {/* Mockup Previews */}
+                                         <div className="mt-4 p-5 bg-black/40 border border-white/5 rounded-2xl relative overflow-hidden flex flex-col gap-3">
+                                             {(() => {
+                                                 const mockup = currentFeature.mockup as any;
+                                                 if (activeTab === 'garage') {
+                                                     return (
+                                                         <>
+                                                             <div className="flex justify-between items-start">
+                                                                 <div>
+                                                                     <div className="font-black text-lg italic uppercase text-white tracking-tight">{mockup.title}</div>
+                                                                     <div className="text-xs text-zinc-500 font-mono mt-0.5">{mockup.spec}</div>
+                                                                 </div>
+                                                                 <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded">
+                                                                     {mockup.status}
+                                                                 </span>
+                                                             </div>
+                                                             <div className="h-px bg-white/5 my-1" />
+                                                             <div className="space-y-2">
+                                                                 {mockup.logs?.map((log: any, i: number) => (
+                                                                     <div key={i} className="flex justify-between text-xs">
+                                                                         <span className="text-zinc-400 font-mono"><span className="text-signal-orange">[{log.type}]</span> {log.label}</span>
+                                                                         <span className="text-white font-bold">{log.cost}</span>
+                                                                     </div>
+                                                                 ))}
+                                                             </div>
+                                                         </>
+                                                     );
+                                                 }
+                                                 if (activeTab === 'convoys') {
+                                                     return (
+                                                         <>
+                                                             <div>
+                                                                 <div className="font-black text-lg italic uppercase text-white tracking-tight">{mockup.title}</div>
+                                                                 <div className="text-xs text-signal-orange font-bold mt-1 flex items-center gap-1">
+                                                                     <MapPin className="h-3 w-3" /> {mockup.location}
+                                                                 </div>
+                                                             </div>
+                                                             <div className="flex flex-wrap gap-2 mt-2">
+                                                                 {mockup.tags?.map((t: string, i: number) => (
+                                                                     <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[9px] text-zinc-400 font-bold">
+                                                                         #{t}
+                                                                     </span>
+                                                                 ))}
+                                                             </div>
+                                                             <div className="text-xs text-zinc-500 font-mono pt-2 border-t border-white/5 mt-2 flex justify-between">
+                                                                 <span>{mockup.date}</span>
+                                                                 <span className="text-white font-bold">{mockup.attendees}</span>
+                                                             </div>
+                                                         </>
+                                                     );
+                                                 }
+                                                 if (activeTab === 'tribes') {
+                                                     return (
+                                                         <div className="space-y-3">
+                                                             {mockup.groups?.map((g: any, i: number) => (
+                                                                 <div key={i} className="flex justify-between items-center bg-white/2 p-3 rounded-xl border border-white/5">
+                                                                     <div className="font-bold text-white text-xs">{g.name}</div>
+                                                                     <div className="flex gap-3 text-[10px] text-zinc-500 font-mono">
+                                                                         <span>{g.members}</span>
+                                                                         <span className="text-green-500">{g.active}</span>
+                                                                     </div>
+                                                                 </div>
+                                                             ))}
+                                                         </div>
+                                                     );
+                                                 }
+                                                 if (activeTab === 'marketplace') {
+                                                     return (
+                                                         <>
+                                                             <div className="flex justify-between items-start">
+                                                                 <div>
+                                                                     <div className="font-black text-lg italic uppercase text-white tracking-tight">{mockup.title}</div>
+                                                                     <div className="text-xs text-zinc-500 font-mono mt-0.5">{mockup.mileage} • {mockup.history}</div>
+                                                                 </div>
+                                                                 <span className="px-2 py-0.5 bg-signal-orange/10 border border-signal-orange/20 text-signal-orange text-[10px] font-bold rounded">
+                                                                     {mockup.badge}
+                                                                 </span>
+                                                             </div>
+                                                             <div className="h-px bg-white/5 my-1" />
+                                                             <div className="flex justify-between items-center">
+                                                                 <span className="text-zinc-500 text-xs font-mono">Asking Price</span>
+                                                                 <span className="text-xl font-black text-white">{mockup.price}</span>
+                                                             </div>
+                                                         </>
+                                                     );
+                                                 }
+                                                 return null;
+                                             })()}
+                                         </div>
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Floating decorative lights */}
+                            <div className="absolute bottom-[-20%] right-[-10%] w-32 h-32 bg-signal-orange/10 rounded-full blur-2xl pointer-events-none" />
+                        </div>
                     </motion.div>
+
                 </div>
             </section>
 
             {/* ── FOOTER ── */}
-            <footer className="py-16 bg-zinc-950 border-t border-white/5">
-                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="text-center md:text-left">
-                        <h3 className="text-2xl font-black tracking-tighter mb-1">CRANKD</h3>
-                        <p className="text-zinc-600 text-sm">© 2026 Crankd Inc. The Digital Soul of Your Machine.</p>
+            <footer className="py-12 bg-zinc-950/40 border-t border-white/5 relative z-10 w-full mt-auto">
+                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="text-center md:text-left space-y-1">
+                        <h3 className="text-xl font-black tracking-tighter text-white uppercase italic">CRANKD</h3>
+                        <p className="text-zinc-500 text-xs">© 2026 Crankd Inc. Built with passion for the machine.</p>
                     </div>
-                    <div className="flex gap-8 text-sm font-bold text-zinc-500">
-                        <a href="#" className="hover:text-white transition-colors">Twitter</a>
-                        <a href="#" className="hover:text-white transition-colors">Instagram</a>
-                        <a href="#" className="hover:text-white transition-colors">Discord</a>
+                    <div className="flex gap-6 text-xs font-bold text-zinc-500">
+                        <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>
+                        <Link href="/signup" className="hover:text-white transition-colors">Register</Link>
                         <Link href="/dashboard" className="text-signal-orange hover:text-orange-400 transition-colors">Dealer Portal</Link>
                     </div>
                 </div>
