@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
@@ -17,7 +17,10 @@ import {
     MapPin,
     DollarSign,
     Gauge,
-    Info
+    Info,
+    Check,
+    Clock,
+    Shield
 } from 'lucide-react';
 
 const OPTIONS = [
@@ -61,12 +64,14 @@ export default function CreatePage() {
     const [selectedForm, setSelectedForm] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [userVehicles, setUserVehicles] = useState<any[]>([]);
 
     // General states
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
     const [tags, setTags] = useState('');
     const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0]);
+    const [customImageUrl, setCustomImageUrl] = useState('');
 
     // Build Post specific states
     const [chassisCode, setChassisCode] = useState('');
@@ -83,17 +88,70 @@ export default function CreatePage() {
     const [location, setLocation] = useState('');
     const [vin, setVin] = useState('');
     const [engine, setEngine] = useState('');
-    const [transmission, setTransmission] = useState('');
+    const [transmission, setTransmission] = useState('Manual');
     const [extColor, setExtColor] = useState('');
     const [intColor, setIntColor] = useState('');
     const [listingMods, setListingMods] = useState('');
 
     // Convoy specific states
+    const [convoyStep, setConvoyStep] = useState(1);
     const [startPoint, setStartPoint] = useState('');
     const [endPoint, setEndPoint] = useState('');
-    const [dateTime, setDateTime] = useState('');
+    const [eventDate, setEventDate] = useState('');
+    const [eventTime, setEventTime] = useState('');
     const [driverLimit, setDriverLimit] = useState('');
     const [eligibleCars, setEligibleCars] = useState('');
+    const [cruiseStyle, setCruiseStyle] = useState('Canyon Run');
+    const [pace, setPace] = useState('Spirited');
+    const [requiredGear, setRequiredGear] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchUserVehicles = async () => {
+            if (!user) return;
+            try {
+                const { data } = await supabase
+                    .from('vehicles')
+                    .select('*')
+                    .eq('owner_id', user.id);
+                if (data) {
+                    setUserVehicles(data);
+                }
+            } catch (e) {}
+        };
+        fetchUserVehicles();
+    }, [user]);
+
+    const handleAutofillListing = (vehicleId: string) => {
+        if (!vehicleId) return;
+        const selected = userVehicles.find(v => v.id === vehicleId);
+        if (!selected) return;
+
+        setMake(selected.make || '');
+        setModel(selected.model || '');
+        setYear((selected.year || '').toString());
+        const img = selected.image_url || selected.image || PRESET_IMAGES[0];
+        if (PRESET_IMAGES.includes(img)) {
+            setImageUrl(img);
+            setCustomImageUrl('');
+        } else {
+            setCustomImageUrl(img);
+        }
+
+        // Fetch specs from registry
+        const saved = localStorage.getItem(`vehicle-specs-${selected.id}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setVin(parsed.vin || '');
+                setEngine(parsed.engine || '');
+                setTransmission(parsed.transmission || 'Manual');
+                setExtColor(parsed.color || '');
+                setInteriorColor(parsed.interiorColor || '');
+                setMileage(parsed.mileage || '');
+                setListingMods(parsed.mods || '');
+            } catch (e) {}
+        }
+    };
 
     const handlePublishPost = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -106,8 +164,8 @@ export default function CreatePage() {
         setError(null);
 
         const cleanTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+        const finalImg = customImageUrl.trim() || imageUrl;
 
-        // Pack rich specs into JSON body
         const richBody = JSON.stringify({
             chassis: chassisCode,
             hp: dynoHp,
@@ -121,7 +179,7 @@ export default function CreatePage() {
                 author_id: user.id,
                 title,
                 body: richBody,
-                image_url: imageUrl,
+                image_url: finalImg,
                 content_type: 'media',
                 tags: cleanTags.length > 0 ? cleanTags : ['Build']
             });
@@ -144,7 +202,8 @@ export default function CreatePage() {
         setLoading(true);
         setError(null);
 
-        // Pack rich specs into JSON description
+        const finalImg = customImageUrl.trim() || imageUrl;
+
         const richDescription = JSON.stringify({
             vin,
             engine,
@@ -165,7 +224,7 @@ export default function CreatePage() {
                 mileage: parseInt(mileage),
                 location,
                 description: richDescription,
-                images: [imageUrl]
+                images: [finalImg]
             });
 
             if (error) throw error;
@@ -183,19 +242,28 @@ export default function CreatePage() {
             return;
         }
 
+        if (convoyStep === 1) {
+            setConvoyStep(2);
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
         const eventTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+        const finalImg = customImageUrl.trim() || imageUrl;
+        const formattedDateTime = `${eventDate} • ${eventTime}`;
 
-        // Pack rich specs into JSON body
         const richBody = JSON.stringify({
             location,
             startPoint,
             endPoint,
-            dateTime,
+            dateTime: formattedDateTime,
             driverLimit,
             eligibleCars,
+            cruiseStyle,
+            pace,
+            requiredGear,
             text: body
         });
 
@@ -204,7 +272,7 @@ export default function CreatePage() {
                 author_id: user.id,
                 title,
                 body: richBody,
-                image_url: imageUrl,
+                image_url: finalImg,
                 content_type: 'convoy',
                 tags: eventTags.length > 0 ? eventTags : ['Convoy', 'Drive']
             });
@@ -219,6 +287,7 @@ export default function CreatePage() {
 
     const resetForms = () => {
         setSelectedForm(null);
+        setConvoyStep(1);
         setError(null);
         setTitle('');
         setBody('');
@@ -235,15 +304,29 @@ export default function CreatePage() {
         setModCost('');
         setVin('');
         setEngine('');
-        setTransmission('');
+        setTransmission('Manual');
         setExtColor('');
         setIntColor('');
         setListingMods('');
         setStartPoint('');
         setEndPoint('');
-        setDateTime('');
+        setEventDate('');
+        setEventTime('');
         setDriverLimit('');
         setEligibleCars('');
+        setCruiseStyle('Canyon Run');
+        setPace('Spirited');
+        setRequiredGear([]);
+        setCustomImageUrl('');
+        setImageUrl(PRESET_IMAGES[0]);
+    };
+
+    const toggleGear = (item: string) => {
+        if (requiredGear.includes(item)) {
+            setRequiredGear(requiredGear.filter(g => g !== item));
+        } else {
+            setRequiredGear([...requiredGear, item]);
+        }
     };
 
     return (
@@ -252,7 +335,7 @@ export default function CreatePage() {
             {/* Header Row */}
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-text-dim text-sm font-bold uppercase tracking-wider mb-1">
+                    <p className="text-text-dim text-sm font-bold uppercase tracking-wider mb-1 font-mono">
                         {selectedForm ? 'Create Panel' : 'System Ready'}
                     </p>
                     <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
@@ -263,9 +346,9 @@ export default function CreatePage() {
                 {selectedForm && (
                     <button
                         onClick={resetForms}
-                        className="group relative h-10 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-2 hover:border-white/30 transition-all text-xs font-bold text-white"
+                        className="group relative h-10 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-2 hover:border-white/30 transition-all text-xs font-bold text-white uppercase font-mono"
                     >
-                        ← Back to Options
+                        ← Back
                     </button>
                 )}
             </div>
@@ -285,14 +368,14 @@ export default function CreatePage() {
                                 <button
                                     key={opt.id}
                                     onClick={() => setSelectedForm(opt.id)}
-                                    className="block w-full text-left rounded-3xl bg-[#0a0a0a]/90 border border-white/5 p-6 hover:border-signal-orange/40 hover:shadow-[0_0_20px_rgba(249,115,22,0.08)] transition-all group relative overflow-hidden"
+                                    className="block w-full text-left rounded-3xl bg-[#0a0a0a]/90 border border-white/5 p-6 hover:border-signal-orange/40 hover:shadow-[0_0_25px_rgba(249,115,22,0.06)] transition-all group relative overflow-hidden"
                                 >
                                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${opt.accent} p-[1px] mb-6`}>
                                         <div className="w-full h-full bg-black/40 rounded-[11px] flex items-center justify-center">
                                             <Icon className="h-5 w-5 text-white" />
                                         </div>
                                     </div>
-                                    <h3 className="text-xl font-black text-white italic tracking-tight mb-2 group-hover:text-signal-orange transition-colors">
+                                    <h3 className="text-xl font-black text-white italic tracking-tight mb-2 group-hover:text-signal-orange transition-colors uppercase">
                                         {opt.title}
                                     </h3>
                                     <p className="text-xs text-text-dim leading-relaxed">
@@ -312,10 +395,10 @@ export default function CreatePage() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
-                        className="glass-panel p-6 rounded-3xl border border-white/8 space-y-6"
+                        className="glass-panel p-6 rounded-3xl border border-white/8 space-y-6 shadow-xl"
                     >
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Build Title</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Build Title</label>
                             <input
                                 type="text"
                                 value={title}
@@ -328,7 +411,7 @@ export default function CreatePage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Chassis / Engine Code</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Chassis / Engine Code</label>
                                 <input
                                     type="text"
                                     value={chassisCode}
@@ -338,7 +421,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Dyno Horsepower (WHP)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Dyno Horsepower (WHP)</label>
                                 <input
                                     type="text"
                                     value={dynoHp}
@@ -350,7 +433,7 @@ export default function CreatePage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mods List (comma separated)</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Mods List (comma separated)</label>
                             <input
                                 type="text"
                                 value={modList}
@@ -362,7 +445,7 @@ export default function CreatePage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Modification Cost ($)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Modification Cost ($)</label>
                                 <input
                                     type="text"
                                     value={modCost}
@@ -372,7 +455,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tags (comma separated)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Tags (comma separated)</label>
                                 <input
                                     type="text"
                                     value={tags}
@@ -384,7 +467,7 @@ export default function CreatePage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Story & Dyno Targets</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Story & Dyno Targets</label>
                             <textarea
                                 value={body}
                                 onChange={e => setBody(e.target.value)}
@@ -396,22 +479,35 @@ export default function CreatePage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cover Photo Preset</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Cover Photo Preset</label>
                             <div className="flex gap-2 overflow-x-auto py-1">
                                 {PRESET_IMAGES.map((img, idx) => (
                                     <button
                                         key={idx}
                                         type="button"
-                                        onClick={() => setImageUrl(img)}
-                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img ? 'border-signal-orange' : 'border-transparent'}`}
+                                        onClick={() => {
+                                            setImageUrl(img);
+                                            setCustomImageUrl('');
+                                        }}
+                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange' : 'border-transparent'}`}
                                     >
                                         <img src={img} alt="preset" className="w-full h-full object-cover" />
                                     </button>
                                 ))}
                             </div>
+                            <div className="space-y-1.5 pt-1">
+                                <span className="text-[9px] text-zinc-500 block font-mono">OR CUSTOM COVER URL:</span>
+                                <input 
+                                    type="text" 
+                                    value={customImageUrl}
+                                    onChange={e => setCustomImageUrl(e.target.value)}
+                                    placeholder="https://images.unsplash.com/..."
+                                    className="w-full px-4 py-2 bg-white/2 border border-white/8 rounded-xl text-white text-xs focus:outline-none focus:border-signal-orange/40"
+                                />
+                            </div>
                         </div>
 
-                        {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold">{error}</div>}
+                        {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold font-mono">{error}</div>}
 
                         <button
                             type="submit"
@@ -430,11 +526,30 @@ export default function CreatePage() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
-                        className="glass-panel p-6 rounded-3xl border border-white/8 space-y-6"
+                        className="glass-panel p-6 rounded-3xl border border-white/8 space-y-6 shadow-xl"
                     >
+                        {/* Pre-fill Selector */}
+                        {userVehicles.length > 0 && (
+                            <div className="space-y-1.5 p-4 bg-white/2 border border-white/5 rounded-2xl">
+                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-mono block">Pre-fill Specs from Garage</label>
+                                <select
+                                    onChange={e => handleAutofillListing(e.target.value)}
+                                    defaultValue=""
+                                    className="w-full px-3 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white text-xs focus:outline-none"
+                                >
+                                    <option value="" className="text-zinc-500">-- Select from your Garage Collection --</option>
+                                    {userVehicles.map(v => (
+                                        <option key={v.id} value={v.id} className="text-white">
+                                            {v.year} {v.make} {v.model}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Make</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Make</label>
                                 <input
                                     type="text"
                                     value={make}
@@ -445,7 +560,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Model</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Model</label>
                                 <input
                                     type="text"
                                     value={model}
@@ -456,7 +571,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Year</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Year</label>
                                 <input
                                     type="number"
                                     value={year}
@@ -470,7 +585,7 @@ export default function CreatePage() {
 
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Price ($)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Price ($)</label>
                                 <input
                                     type="number"
                                     value={price}
@@ -481,7 +596,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mileage (mi)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Mileage (mi)</label>
                                 <input
                                     type="number"
                                     value={mileage}
@@ -492,7 +607,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Location</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Location</label>
                                 <input
                                     type="text"
                                     value={location}
@@ -506,7 +621,7 @@ export default function CreatePage() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">VIN / Chassis Code</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">VIN / Chassis Code</label>
                                 <input
                                     type="text"
                                     value={vin}
@@ -516,7 +631,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Engine Config</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Engine Config</label>
                                 <input
                                     type="text"
                                     value={engine}
@@ -529,7 +644,7 @@ export default function CreatePage() {
 
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Transmission</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Transmission</label>
                                 <input
                                     type="text"
                                     value={transmission}
@@ -539,7 +654,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Exterior Color</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Exterior Color</label>
                                 <input
                                     type="text"
                                     value={extColor}
@@ -549,7 +664,7 @@ export default function CreatePage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Interior Color</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Interior Color</label>
                                 <input
                                     type="text"
                                     value={intColor}
@@ -561,45 +676,58 @@ export default function CreatePage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Upgraded Modifications (comma separated)</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Upgraded Modifications (comma separated)</label>
                             <input
                                 type="text"
                                 value={listingMods}
                                 onChange={e => setListingMods(e.target.value)}
-                                placeholder="KW V3 Coilovers, rod bearings replaced, carbon intake"
+                                placeholder="KW V3 Coilovers, Brembo brakes, carbon intake"
                                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
                             />
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Narrative Description</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono font-bold">Narrative Description</label>
                             <textarea
                                 value={body}
                                 onChange={e => setBody(e.target.value)}
                                 required
                                 rows={4}
                                 placeholder="Describe vehicle condition, mods, service status..."
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none font-medium"
                             />
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Listing Cover Image</label>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Listing Cover Image</label>
                             <div className="flex gap-2 overflow-x-auto py-1">
                                 {PRESET_IMAGES.map((img, idx) => (
                                     <button
                                         key={idx}
                                         type="button"
-                                        onClick={() => setImageUrl(img)}
-                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img ? 'border-signal-orange' : 'border-transparent'}`}
+                                        onClick={() => {
+                                            setImageUrl(img);
+                                            setCustomImageUrl('');
+                                        }}
+                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange' : 'border-transparent'}`}
                                     >
                                         <img src={img} alt="preset" className="w-full h-full object-cover" />
                                     </button>
                                 ))}
                             </div>
+                            <div className="space-y-1 pt-1">
+                                <span className="text-[9px] text-zinc-500 block font-mono">OR CUSTOM COVER URL:</span>
+                                <input 
+                                    type="text" 
+                                    value={customImageUrl}
+                                    onChange={e => setCustomImageUrl(e.target.value)}
+                                    placeholder="https://images.unsplash.com/..."
+                                    className="w-full px-3 py-2 bg-white/2 border border-white/8 rounded-lg text-white text-xs focus:outline-none"
+                                />
+                            </div>
                         </div>
 
-                        {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold">{error}</div>}
+                        {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold font-mono">{error}</div>}
 
                         <button
                             type="submit"
@@ -611,147 +739,285 @@ export default function CreatePage() {
                     </motion.form>
                 )}
 
-                {/* 4. EVENT FORM */}
+                {/* 4. EVENT FORM (2-Step Wizard) */}
                 {selectedForm === 'event' && (
                     <motion.form
                         onSubmit={handlePublishEvent}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
-                        className="glass-panel p-6 rounded-3xl border border-white/8 space-y-6"
+                        className="glass-panel p-6 rounded-3xl border border-white/8 space-y-6 shadow-xl"
                     >
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Event Title</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                                required
-                                placeholder="e.g. Angeles Crest Canyon Cruise"
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                            />
+                        {/* Wizard Progress Stepper */}
+                        <div className="flex items-center gap-2 pb-3 border-b border-white/5">
+                            <span className="text-[9px] font-mono text-signal-orange font-bold uppercase tracking-widest">Host Convoy</span>
+                            <span className="text-zinc-600 font-mono text-xs">•</span>
+                            <span className="text-xs font-bold text-white font-mono">Step {convoyStep} of 2</span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Starting Point</label>
-                                <input
-                                    type="text"
-                                    value={startPoint}
-                                    onChange={e => setStartPoint(e.target.value)}
-                                    required
-                                    placeholder="Shell Station, La Cañada"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
+                        {convoyStep === 1 ? (
+                            /* ── STEP 1: CONVOY ESSENTIALS ── */
+                            <div className="space-y-5 animate-in fade-in duration-300">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Event Title</label>
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={e => setTitle(e.target.value)}
+                                        required
+                                        placeholder="e.g. Angeles Crest Canyon Cruise"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none font-bold"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">General Location Hub</label>
+                                        <input
+                                            type="text"
+                                            value={location}
+                                            onChange={e => setLocation(e.target.value)}
+                                            required
+                                            placeholder="e.g. LA, California / Paris, FR"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    {/* Date & Time Pickers */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Date</label>
+                                            <input
+                                                type="date"
+                                                value={eventDate}
+                                                onChange={e => setEventDate(e.target.value)}
+                                                required
+                                                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs focus:outline-none font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Meeting Time</label>
+                                            <input
+                                                type="time"
+                                                value={eventTime}
+                                                onChange={e => setEventTime(e.target.value)}
+                                                required
+                                                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs focus:outline-none font-bold"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Event Banner Presets</label>
+                                    <div className="flex gap-2 overflow-x-auto py-1">
+                                        {PRESET_IMAGES.map((img, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                    setImageUrl(img);
+                                                    setCustomImageUrl('');
+                                                }}
+                                                className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
+                                            >
+                                                <img src={img} alt="preset" className="w-full h-full object-cover" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="space-y-1 pt-1">
+                                        <span className="text-[9px] text-zinc-500 block font-mono">OR CUSTOM BANNER IMAGE URL:</span>
+                                        <input 
+                                            type="text" 
+                                            value={customImageUrl}
+                                            onChange={e => setCustomImageUrl(e.target.value)}
+                                            placeholder="https://images.unsplash.com/..."
+                                            className="w-full px-3 py-2.5 bg-white/2 border border-white/8 rounded-lg text-white text-xs focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ending Destination</label>
-                                <input
-                                    type="text"
-                                    value={endPoint}
-                                    onChange={e => setEndPoint(e.target.value)}
-                                    required
-                                    placeholder="Newcomb's Ranch Peak"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
+                        ) : (
+                            /* ── STEP 2: ROUTE, CHECKLIST & RULES ── */
+                            <div className="space-y-5 animate-in fade-in duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Starting Point Address</label>
+                                        <input
+                                            type="text"
+                                            value={startPoint}
+                                            onChange={e => setStartPoint(e.target.value)}
+                                            required
+                                            placeholder="Shell Station, La Cañada"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none font-bold"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Ending Destination</label>
+                                        <input
+                                            type="text"
+                                            value={endPoint}
+                                            onChange={e => setEndPoint(e.target.value)}
+                                            required
+                                            placeholder="Newcomb's Ranch Peak"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none font-bold"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Cruise Style Pills */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Cruise Style</label>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            {['Canyon Run', 'Cars & Coffee', 'Track Day', 'Scenic Tour'].map(opt => (
+                                                <button
+                                                    key={opt}
+                                                    type="button"
+                                                    onClick={() => setCruiseStyle(opt)}
+                                                    className={`py-2 px-1 text-center font-bold text-[9px] rounded-lg border transition-all ${
+                                                        cruiseStyle === opt 
+                                                            ? 'border-signal-orange bg-signal-orange/10 text-white' 
+                                                            : 'border-white/8 bg-white/2 text-zinc-400'
+                                                    }`}
+                                                >
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Pace Intensity Pills */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Pace Intensity</label>
+                                        <div className="grid grid-cols-3 gap-1">
+                                            {[
+                                                { label: 'Chill', color: 'border-emerald-500/20 text-emerald-400 bg-emerald-500/5' },
+                                                { label: 'Spirited', color: 'border-signal-orange/20 text-signal-orange bg-signal-orange/5' },
+                                                { label: 'Hot Laps', color: 'border-red-500/20 text-red-400 bg-red-500/5' }
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.label}
+                                                    type="button"
+                                                    onClick={() => setPace(opt.label)}
+                                                    className={`py-2 text-center font-bold text-[9px] rounded-lg border transition-all ${
+                                                        pace === opt.label 
+                                                            ? 'border-white bg-white text-carbon shadow-lg' 
+                                                            : opt.color
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Checklist of required gear */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Required gear & safety checklist</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            'Walkie-Talkie (Comms)',
+                                            'Toll Pass Active',
+                                            'Performance / Winter Tires',
+                                            'Full Tank of Gas'
+                                        ].map(item => {
+                                            const active = requiredGear.includes(item);
+                                            return (
+                                                <button
+                                                    key={item}
+                                                    type="button"
+                                                    onClick={() => toggleGear(item)}
+                                                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                                                        active 
+                                                            ? 'border-signal-orange bg-signal-orange/5 text-white' 
+                                                            : 'border-white/8 bg-white/2 text-zinc-400 hover:border-white/15'
+                                                    }`}
+                                                >
+                                                    <div className={`h-4 w-4 rounded border flex items-center justify-center ${active ? 'bg-signal-orange border-signal-orange text-white' : 'border-white/20'}`}>
+                                                        {active && <Check className="h-3 w-3" />}
+                                                    </div>
+                                                    {item}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Driver Limit</label>
+                                        <input
+                                            type="number"
+                                            value={driverLimit}
+                                            onChange={e => setDriverLimit(e.target.value)}
+                                            placeholder="e.g. 25"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 col-span-2">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Eligible Cars</label>
+                                        <input
+                                            type="text"
+                                            value={eligibleCars}
+                                            onChange={e => setEligibleCars(e.target.value)}
+                                            placeholder="e.g. All classes / JDM Only"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono font-bold">Event Details & Cruise Rules</label>
+                                    <textarea
+                                        value={body}
+                                        onChange={e => setBody(e.target.value)}
+                                        required
+                                        rows={3}
+                                        placeholder="Rules, speeds, radio frequency PMR channels, rest points, lunch stops..."
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none font-medium"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Tags (comma separated)</label>
+                                    <input
+                                        type="text"
+                                        value={tags}
+                                        onChange={e => setTags(e.target.value)}
+                                        placeholder="CanyonRun, JDM, Porsche, WeekendCruise"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm"
+                                    />
+                                </div>
                             </div>
+                        )}
+
+                        {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold font-mono">{error}</div>}
+
+                        {/* Navigation buttons */}
+                        <div className="flex gap-3 pt-3 border-t border-white/5">
+                            {convoyStep === 2 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setConvoyStep(1)}
+                                    className="px-5 py-3 border border-white/10 hover:border-white/20 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all font-mono"
+                                >
+                                    Back
+                                </button>
+                            )}
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="flex-1 py-3 bg-signal-orange text-white font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-orange-600 transition-all active:scale-[0.98] font-mono"
+                            >
+                                {loading 
+                                    ? 'Processing...' 
+                                    : convoyStep === 1 
+                                        ? 'Next: Route & Checklist →' 
+                                        : 'Publish Convoy Event'}
+                            </button>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">General Location / Hub</label>
-                                <input
-                                    type="text"
-                                    value={location}
-                                    onChange={e => setLocation(e.target.value)}
-                                    required
-                                    placeholder="LA, California"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date & Time</label>
-                                <input
-                                    type="text"
-                                    value={dateTime}
-                                    onChange={e => setDateTime(e.target.value)}
-                                    required
-                                    placeholder="Oct 28 • 10:00 PM"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Limit</label>
-                                <input
-                                    type="number"
-                                    value={driverLimit}
-                                    onChange={e => setDriverLimit(e.target.value)}
-                                    placeholder="e.g. 30"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Eligible Vehicles</label>
-                                <input
-                                    type="text"
-                                    value={eligibleCars}
-                                    onChange={e => setEligibleCars(e.target.value)}
-                                    placeholder="e.g. All welcome / JDM Only"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tags (comma separated)</label>
-                                <input
-                                    type="text"
-                                    value={tags}
-                                    onChange={e => setTags(e.target.value)}
-                                    placeholder="CanyonRun, AllWelcome, Supercar"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Event Description & Safety Rules</label>
-                            <textarea
-                                value={body}
-                                onChange={e => setBody(e.target.value)}
-                                required
-                                rows={4}
-                                placeholder="Detail route, rules, schedules..."
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none"
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Event Cover Photo</label>
-                            <div className="flex gap-2 overflow-x-auto py-1">
-                                {PRESET_IMAGES.map((img, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => setImageUrl(img)}
-                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img ? 'border-signal-orange' : 'border-transparent'}`}
-                                    >
-                                        <img src={img} alt="preset" className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold">{error}</div>}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 bg-signal-orange text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-signal-orange-dim transition-all active:scale-[0.98] disabled:opacity-50"
-                        >
-                            {loading ? 'Creating Event...' : <>Host Event <ArrowRight className="h-4 w-4" /></>}
-                        </button>
                     </motion.form>
                 )}
             </AnimatePresence>

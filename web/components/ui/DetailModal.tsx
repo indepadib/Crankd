@@ -16,7 +16,8 @@ import {
     Zap,
     GitCommit,
     CheckCircle2,
-    Car
+    Car,
+    Check
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -265,7 +266,28 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                             <div className="space-y-6">
                                 {/* Route specifications */}
                                 <div>
-                                    <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-3 font-mono">Convoy Route Info</h3>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 font-mono">Convoy Route Info</h3>
+                                        <div className="flex gap-2">
+                                            {parsedDetails?.cruiseStyle && (
+                                                <span className="px-2 py-0.5 bg-signal-orange/10 border border-signal-orange/20 text-signal-orange text-[9px] font-black rounded-lg uppercase tracking-wide">
+                                                    {parsedDetails.cruiseStyle}
+                                                </span>
+                                            )}
+                                            {parsedDetails?.pace && (
+                                                <span className={`px-2 py-0.5 border text-[9px] font-black rounded-lg uppercase tracking-wide ${
+                                                    parsedDetails.pace === 'Chill' 
+                                                        ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/5' 
+                                                        : parsedDetails.pace === 'Spirited' 
+                                                            ? 'border-signal-orange/20 text-signal-orange bg-signal-orange/5' 
+                                                            : 'border-red-500/20 text-red-400 bg-red-500/5'
+                                                }`}>
+                                                    {parsedDetails.pace} Pace
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
                                     <div className="grid grid-cols-2 gap-4">
                                         <SpecField label="Starting Point" value={parsedDetails?.startPoint || 'Local Hub'} icon={MapPin} />
                                         <SpecField label="Destination" value={parsedDetails?.endPoint || 'Canyon Summit'} icon={CheckCircle2} />
@@ -274,6 +296,25 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     </div>
                                 </div>
 
+                                {/* Embedded Google Maps Route Iframe */}
+                                {parsedDetails?.startPoint && parsedDetails?.endPoint && (
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">Telemetry Route Map</h4>
+                                        <div className="w-full h-[220px] rounded-2xl overflow-hidden border border-white/10 shadow-lg relative bg-[#0a0a0c]">
+                                            <iframe 
+                                                width="100%" 
+                                                height="100%" 
+                                                className="opacity-90 grayscale contrast-125" 
+                                                frameBorder="0" 
+                                                scrolling="no" 
+                                                marginHeight={0} 
+                                                marginWidth={0} 
+                                                src={`https://maps.google.com/maps?q=${encodeURIComponent(`${parsedDetails.startPoint} to ${parsedDetails.endPoint}`)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Join Banner */}
                                 <div className="p-5 bg-white/2 border border-white/5 rounded-2xl flex items-center justify-between gap-4">
                                     <div className="space-y-1">
@@ -281,7 +322,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                             <Users className="h-4 w-4 text-signal-orange" />
                                             {rsvps.length} Drivers RSVP'd
                                         </div>
-                                        <p className="text-xs text-zinc-500">
+                                        <p className="text-xs text-zinc-500 font-mono">
                                             Max driver limit: {parsedDetails?.driverLimit || 'Unlimited'}
                                         </p>
                                     </div>
@@ -297,6 +338,21 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                         {isJoined ? 'Leave Convoy' : 'Join Convoy'}
                                     </button>
                                 </div>
+
+                                {/* Checklist of required gear */}
+                                {parsedDetails?.requiredGear && parsedDetails.requiredGear.length > 0 && (
+                                    <div className="space-y-2 pt-2">
+                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono block">Required Gear Checklist</h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {parsedDetails.requiredGear.map((gear: string, idx: number) => (
+                                                <div key={idx} className="flex items-center gap-2 p-2.5 bg-white/2 border border-white/5 rounded-xl text-xs font-bold text-white">
+                                                    <Check className="h-3.5 w-3.5 text-signal-orange shrink-0" />
+                                                    {gear}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Driver List */}
                                 <div className="space-y-3">
@@ -316,7 +372,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                 {/* Description */}
                                 <div className="pt-4 border-t border-white/5 space-y-2">
                                     <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Drive Details</h4>
-                                    <p className="text-sm text-zinc-300 leading-relaxed">
+                                    <p className="text-sm text-zinc-300 leading-relaxed font-medium">
                                         {descriptionText || 'No drive specifics listed.'}
                                     </p>
                                 </div>

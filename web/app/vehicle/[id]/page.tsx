@@ -111,20 +111,34 @@ export default function VehicleProfilePage() {
                         };
                     });
 
+                    let activeSpecs: any = null;
+                    if (typeof window !== 'undefined') {
+                        const saved = localStorage.getItem(`vehicle-specs-${data.id}`);
+                        if (saved) {
+                            try {
+                                activeSpecs = JSON.parse(saved);
+                            } catch (e) {}
+                        }
+                    }
+
                     setVehicle({
                         id: data.id,
-                        vin: data.vin || 'WBAXXXXXXXXXXXXXX',
+                        vin: activeSpecs?.vin || data.vin || 'WBAXXXXXXXXXXXXXX',
                         year: data.year,
                         make: data.make,
                         model: data.model,
-                        trim: data.trim || 'OEM Spec',
-                        health_score: 95, // Simulated score based on record count
+                        trim: activeSpecs?.trim || data.trim || 'OEM Spec',
+                        health_score: 95,
                         image_url: data.image_url || 'https://images.unsplash.com/photo-1605515298946-d062f2e9da53?q=80&w=2600&auto=format&fit=crop',
                         specs: {
-                            engine: 'OEM Configured',
-                            power: 'N/A HP',
-                            weight: 'OEM Curb Weight',
-                            drivetrain: 'N/A'
+                            engine: activeSpecs?.engine || 'OEM Configured',
+                            power: activeSpecs?.power ? `${activeSpecs.power} HP` : 'N/A HP',
+                            weight: activeSpecs?.weight ? `${activeSpecs.weight} kg` : 'OEM Curb Weight',
+                            drivetrain: activeSpecs?.drivetrain || 'N/A',
+                            transmission: activeSpecs?.transmission || 'Manual',
+                            stage: activeSpecs?.stage || 'Stock',
+                            chassisCode: activeSpecs?.chassisCode || 'N/A',
+                            color: activeSpecs?.color || 'OEM Spec'
                         },
                         owner: {
                             name: data.profiles?.username || 'Chassis Owner',
@@ -244,15 +258,19 @@ export default function VehicleProfilePage() {
                         viewport={{ once: true }}
                         className="glass-panel p-6 rounded-2xl border border-white/5"
                     >
-                        <h3 className="text-white font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+                        <h3 className="text-white font-bold uppercase tracking-wider mb-5 flex items-center gap-2 font-mono">
                             <Activity className="h-5 w-5 text-signal-orange" />
-                            Build Specs
+                            Technical Specs Ledger
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             <SpecItem label="Engine" value={vehicle.specs.engine} icon={Zap} />
-                            <SpecItem label="Power" value={vehicle.specs.power} icon={Gauge} />
+                            <SpecItem label="Power Output" value={vehicle.specs.power} icon={Gauge} />
+                            <SpecItem label="Gearbox" value={vehicle.specs.transmission || 'Manual'} icon={GitCommit} />
+                            <SpecItem label="Drivetrain" value={vehicle.specs.drivetrain} icon={Activity} />
+                            <SpecItem label="Tuning Stage" value={vehicle.specs.stage || 'Stock'} icon={Shield} />
+                            <SpecItem label="Chassis" value={vehicle.specs.chassisCode || 'N/A'} icon={Calendar} />
                             <SpecItem label="Weight" value={vehicle.specs.weight} icon={Scale} />
-                            <SpecItem label="Drivetrain" value={vehicle.specs.drivetrain} icon={GitCommit} />
+                            <SpecItem label="Paint Color" value={vehicle.specs.color || 'OEM Spec'} icon={Shield} />
                         </div>
                     </motion.div>
 
