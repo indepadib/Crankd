@@ -22,6 +22,12 @@ CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING
 DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.profiles;
 CREATE POLICY "Enable insert for authenticated users" ON public.profiles FOR INSERT WITH CHECK (true);
 
+
+-- Alter profiles to support bio and preferences
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS measurement_unit TEXT DEFAULT 'mi';
+
 -- Trigger to handle new user signup with automatic username duplicate resolving
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger

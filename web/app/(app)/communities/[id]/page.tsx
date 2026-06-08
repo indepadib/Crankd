@@ -81,7 +81,7 @@ export default function CommunityDetailPage() {
                     id: found.id,
                     name: found.name,
                     description: found.description || 'No description provided.',
-                    banner: found.banner || found.image_url || 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?q=80&w=2600&auto=format&fit=crop',
+                    banner: found.banner || 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?q=80&w=2600&auto=format&fit=crop',
                     members: found.members || 100,
                     online: found.active || '10',
                     category: found.category,
