@@ -162,6 +162,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
 
         setCommentText('');
         setIsSubmittingComment(false);
+        if (onActionSuccess) onActionSuccess();
     };
 
     const handleToggleRSVP = () => {

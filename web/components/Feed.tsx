@@ -1,7 +1,21 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Heart, MessageCircle, Share2, MapPin, Wrench, Calendar, ChevronRight, Sparkles, Sliders, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+    Heart, 
+    MessageCircle, 
+    Share2, 
+    MapPin, 
+    Wrench, 
+    Calendar, 
+    ChevronRight, 
+    Sparkles, 
+    Sliders, 
+    X, 
+    Check, 
+    Clock,
+    Plus
+} from 'lucide-react';
 import { Post } from '@/types'; // Use shared type
 import { VehicleCard } from './VehicleCard';
 import { DiscoverView } from './DiscoverView';
@@ -11,6 +25,8 @@ import { clsx } from 'clsx';
 import { useFeed } from '@/hooks/useFeed';
 import { useAuth } from '@/context/AuthProvider';
 import { DetailModal } from './ui/DetailModal';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 function FeedTuner() {
     const [dismissed, setDismissed] = useState(false);
@@ -21,7 +37,7 @@ function FeedTuner() {
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
-            className="col-span-1 aspect-[4/2] md:aspect-auto md:h-full bg-gradient-to-br from-carbon to-black rounded-3xl border border-white/5 p-6 relative overflow-hidden group"
+            className="w-full bg-gradient-to-br from-carbon to-black rounded-3xl border border-white/5 p-6 relative overflow-hidden group"
         >
             <div className="absolute top-0 right-0 p-4">
                 <button onClick={() => setDismissed(true)} className="text-white/30 hover:text-white transition-colors">
@@ -39,9 +55,9 @@ function FeedTuner() {
                     <p className="text-sm text-text-dim">Our algorithm adapts to your garage.</p>
                 </div>
 
-                <div className="space-y-2 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
                     {['More Track Builds', 'Less Stance', 'Euro Parts'].map(opt => (
-                        <button key={opt} className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-signal-orange/30 text-sm text-white transition-all flex items-center justify-between group/btn">
+                        <button key={opt} className="text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-signal-orange/30 text-sm text-white transition-all flex items-center justify-between group/btn">
                             {opt}
                             <Sliders className="h-3 w-3 text-white/30 group-hover/btn:text-signal-orange transition-colors" />
                         </button>
@@ -58,21 +74,87 @@ function FeedTuner() {
 
 function FeedItem({ 
     post, 
+    layoutType,
     onView, 
     onOpenDetails 
 }: { 
     post: Post; 
+    layoutType: 'social' | 'grid';
     onView: (id: string, duration: number) => void;
     onOpenDetails: () => void;
 }) {
-    const isLarge = post.cohort_level >= 2;
+    const { user } = useAuth();
+    const isLarge = post.cohort_level >= 2 && layoutType === 'grid';
+    
+    // States
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [flames, setFlames] = useState<{ id: number; x: number; y: number }[]>([]);
-    const startTime = useRef<number>(0);
+    const [showDoubleTapFlame, setShowDoubleTapFlame] = useState(false);
+    const [comments, setComments] = useState<any[]>([]);
+    const [commentText, setCommentText] = useState('');
+    const [showComments, setShowComments] = useState(false);
+    const [rsvps, setRsvps] = useState<string[]>([]);
+    const [isJoined, setIsJoined] = useState(false);
 
-    const handleLike = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent opening the detail card modal
+    const startTime = useRef<number>(0);
+    const lastTap = useRef<number>(0);
+
+    // Load RSVPs & Comments
+    useEffect(() => {
+        if (post.content_type === 'convoy') {
+            const localRsvpsKey = `rsvps-${post.id}`;
+            const savedRsvps = localStorage.getItem(localRsvpsKey);
+            const parsedRsvps = savedRsvps ? JSON.parse(savedRsvps) : ['@driver_one', '@canyon_blaster', '@m3_guy'];
+            setRsvps(parsedRsvps);
+
+            if (user?.email) {
+                const username = user.email.split('@')[0];
+                setIsJoined(parsedRsvps.includes(`@${username}`));
+            }
+        }
+
+        const loadPostComments = async () => {
+            const localCommentsKey = `comments-${post.id}`;
+            const savedComments = localStorage.getItem(localCommentsKey);
+            const parsedLocal = savedComments ? JSON.parse(savedComments) : [];
+
+            let dbComments: any[] = [];
+            try {
+                const { data: dbData, error } = await supabase
+                    .from('post_comments')
+                    .select('*')
+                    .eq('post_id', post.id)
+                    .order('created_at', { ascending: false });
+
+                if (!error && dbData) {
+                    dbComments = dbData.map(c => ({
+                        id: c.id,
+                        author: c.author_username.startsWith('@') ? c.author_username : `@${c.author_username}`,
+                        text: c.comment_text,
+                        created_at: c.created_at
+                    }));
+                }
+            } catch (err) {}
+
+            const combined = [...parsedLocal, ...dbComments];
+            const uniqueComments = combined.reduce((acc: any[], current) => {
+                const x = acc.find(item => item.id === current.id);
+                if (!x) {
+                    return acc.concat([current]);
+                } else {
+                    return acc;
+                }
+            }, []);
+
+            setComments(uniqueComments);
+        };
+
+        loadPostComments();
+    }, [post.id, post.content_type, user]);
+
+    const handleLike = (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         if (!liked) {
             setLiked(true);
             setLikeCount(prev => prev + 1);
@@ -90,24 +172,88 @@ function FeedItem({
         }
     };
 
-    const handleCommentClick = (e: React.MouseEvent) => {
+    const handleImageClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onOpenDetails();
+        const now = Date.now();
+        const DOUBLE_PRESS_DELAY = 300;
+        if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+            // Trigger Double-Tap Rev
+            if (!liked) {
+                setLiked(true);
+                setLikeCount(prev => prev + 1);
+            }
+            // Trigger flame animation
+            const newFlames = Array.from({ length: 12 }).map((_, i) => ({
+                id: Date.now() + i,
+                x: Math.random() * 120 - 60,
+                y: -Math.random() * 120 - 60
+            }));
+            setFlames(newFlames);
+            setTimeout(() => setFlames([]), 1000);
+
+            // TikTok style center flash
+            setShowDoubleTapFlame(true);
+            setTimeout(() => setShowDoubleTapFlame(false), 800);
+        } else {
+            // Wait for potential second tap; if not, open details drawer
+            setTimeout(() => {
+                const diff = Date.now() - lastTap.current;
+                if (diff >= DOUBLE_PRESS_DELAY) {
+                    onOpenDetails();
+                }
+            }, DOUBLE_PRESS_DELAY);
+        }
+        lastTap.current = now;
     };
 
-    const handleShareClick = (e: React.MouseEvent) => {
+    const handleToggleRSVP = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Fallback share simulation
-        navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
-        alert('Copied link to clipboard!');
-    };
-
-    const handleCardClick = (e: React.MouseEvent) => {
-        // Prevent modal open if they clicked on action buttons
-        if ((e.target as HTMLElement).closest('.action-button')) {
+        if (!user) {
+            alert('You must be logged in to join a convoy.');
             return;
         }
-        onOpenDetails();
+
+        const username = `@${user.email?.split('@')[0] || 'driver'}`;
+        const localRsvpsKey = `rsvps-${post.id}`;
+
+        let updated: string[];
+        if (isJoined) {
+            updated = rsvps.filter(u => u !== username);
+            setIsJoined(false);
+        } else {
+            updated = [...rsvps, username];
+            setIsJoined(true);
+        }
+
+        setRsvps(updated);
+        localStorage.setItem(localRsvpsKey, JSON.stringify(updated));
+    };
+
+    const handleSendComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!commentText.trim() || !user) return;
+
+        const username = user.email ? `@${user.email.split('@')[0]}` : '@Enthusiast';
+        const newComment = {
+            id: `c-${Date.now()}`,
+            author: username,
+            text: commentText,
+            created_at: new Date().toISOString()
+        };
+
+        const updatedComments = [newComment, ...comments];
+        setComments(updatedComments);
+        localStorage.setItem(`comments-${post.id}`, JSON.stringify(updatedComments));
+
+        try {
+            await supabase.from('post_comments').insert({
+                post_id: post.id,
+                author_username: username.replace('@', ''),
+                comment_text: commentText
+            });
+        } catch (err) {}
+
+        setCommentText('');
     };
 
     const getImage = () => {
@@ -116,21 +262,15 @@ function FeedItem({
         return null;
     };
 
-    // Parse location / description from rich JSON block if it exists
     let locationText = 'Local Meet';
     let bodyText = post.body || '';
-    if (post.content_type === 'convoy' && post.body?.startsWith('{')) {
+    let parsedConvoyDetails: any = null;
+
+    if (post.body?.startsWith('{')) {
         try {
-            const parsed = JSON.parse(post.body);
-            locationText = parsed.location || 'Local Meet';
-            bodyText = parsed.text || '';
-        } catch (e) {
-            bodyText = post.body || '';
-        }
-    } else if (post.body?.startsWith('{')) {
-        try {
-            const parsed = JSON.parse(post.body);
-            bodyText = parsed.text || '';
+            parsedConvoyDetails = JSON.parse(post.body);
+            locationText = parsedConvoyDetails.location || 'Local Meet';
+            bodyText = parsedConvoyDetails.text || '';
         } catch (e) {
             bodyText = post.body || '';
         }
@@ -139,9 +279,121 @@ function FeedItem({
     const matchScore = post.tags?.includes('BMW') ? 99 : Math.floor(Math.random() * 30 + 70);
     const matchReason = post.tags?.[0] ? `Matches ${post.tags[0]}` : 'Trending';
 
+    // ────────────────────────────────────────────────────────
+    // 1. CLASSIC GRID CARD VIEW
+    // ────────────────────────────────────────────────────────
+    if (layoutType === 'grid') {
+        return (
+            <motion.article
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                onViewportEnter={() => { startTime.current = Date.now(); }}
+                onViewportLeave={() => {
+                    const duration = (Date.now() - startTime.current) / 1000;
+                    onView(post.id, duration);
+                }}
+                onClick={onOpenDetails}
+                transition={{ duration: 0.4 }}
+                className={clsx(
+                    "group relative overflow-hidden rounded-3xl bg-steel border border-white/5 hover:border-white/10 hover:shadow-2xl transition-all duration-300 cursor-pointer",
+                    isLarge ? 'md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-video' : 'col-span-1 aspect-square md:aspect-[4/5]'
+                )}
+            >
+                {getImage() ? (
+                    <div className="absolute inset-0">
+                        <img
+                            src={getImage()!}
+                            alt={post.title || 'Feed Image'}
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-103"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent opacity-90" />
+                    </div>
+                ) : post.content_type === 'convoy' ? (
+                    <div className="absolute inset-0 bg-signal-orange/10">
+                        <div className="absolute inset-0 opacity-20 bg-[url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/2000px-World_map_blank_without_borders.svg.png')] bg-cover bg-center grayscale mix-blend-overlay"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-carbon to-transparent" />
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-steel-light to-steel" />
+                )}
+
+                <div className="absolute top-4 right-4 z-10">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] font-medium text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Sparkles className="h-3 w-3 text-signal-orange" />
+                        <span className="text-white font-bold">{matchScore}%</span>
+                        <span className="text-white/60">{matchReason}</span>
+                    </div>
+                </div>
+
+                <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-xs font-bold text-white border border-white/10 overflow-hidden">
+                            {post.author?.avatar_url ? (
+                                <img src={post.author.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                post.author?.username?.[0] || 'D'
+                            )}
+                        </div>
+                        <span className="text-sm font-bold text-white drop-shadow-md">
+                            {post.author?.username ? `@${post.author.username}` : '@Driver'}
+                        </span>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            {post.title && (
+                                <h3 className={clsx("font-black uppercase tracking-tighter text-white drop-shadow-lg leading-tight italic", isLarge ? 'text-4xl' : 'text-2xl')}>
+                                    {post.title}
+                                </h3>
+                            )}
+                            {bodyText && <p className="text-white/70 text-sm line-clamp-2">{bodyText}</p>}
+                        </div>
+
+                        {post.content_type === 'maintenance_log' && post.log && (
+                            <div className="bg-carbon/50 backdrop-blur-md rounded-xl p-4 border border-white/10">
+                                <div className="flex items-center gap-3 mb-2 text-signal-orange">
+                                    <Wrench className="h-5 w-5" />
+                                    <span className="font-bold text-sm uppercase">Maintenance</span>
+                                </div>
+                                <div className="text-white font-bold text-lg">{post.log.title}</div>
+                            </div>
+                        )}
+
+                        {post.content_type === 'convoy' && (
+                            <div className="bg-carbon/80 backdrop-blur-md rounded-xl p-4 border border-signal-orange/30">
+                                <div className="flex items-center gap-3 mb-2 text-signal-orange">
+                                    <MapPin className="h-5 w-5" />
+                                    <span className="font-bold text-sm uppercase">Convoy Invite</span>
+                                </div>
+                                <div className="text-white font-black text-lg truncate uppercase italic">{post.title}</div>
+                            </div>
+                        )}
+
+                        {post.content_type !== 'convoy' && (
+                            <div className="flex items-center gap-6 pt-2">
+                                <button onClick={handleLike} className="flex items-center gap-2 action-button text-white/50 hover:text-signal-orange transition-colors">
+                                    <Heart className={clsx("h-5 w-5", liked && "fill-signal-orange text-signal-orange")} />
+                                    <span className="text-xs font-mono font-bold">{likeCount}</span>
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); onOpenDetails(); }} className="flex items-center gap-2 text-white/50 hover:text-white transition-colors">
+                                    <MessageCircle className="h-5 w-5" />
+                                    <span className="text-xs font-mono font-bold">{post.comment_count || 0}</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </motion.article>
+        );
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 2. HIGH-RETENTION IMMERSIVE SOCIAL TIMELINE CARD
+    // ────────────────────────────────────────────────────────
     return (
         <motion.article
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             onViewportEnter={() => { startTime.current = Date.now(); }}
@@ -149,170 +401,309 @@ function FeedItem({
                 const duration = (Date.now() - startTime.current) / 1000;
                 onView(post.id, duration);
             }}
-            onClick={handleCardClick}
-            transition={{ duration: 0.5 }}
-            className={clsx(
-                "group relative overflow-hidden rounded-3xl bg-steel border border-white/5 hover:border-white/10 hover:shadow-2xl transition-all duration-300 cursor-pointer",
-                isLarge ? 'md:col-span-2 md:row-span-2 aspect-[4/3] md:aspect-video' : 'col-span-1 aspect-square md:aspect-[4/5]'
-            )}
+            transition={{ duration: 0.4 }}
+            className="w-full bg-[#0f0f12]/95 border border-white/5 rounded-3xl overflow-hidden shadow-xl hover:border-white/10 transition-all duration-300"
         >
-            {/* Background Image / Content */}
-            {getImage() ? (
-                <div className="absolute inset-0">
-                    <img
-                        src={getImage()!}
-                        alt={post.title || 'Feed Image'}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-103"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent opacity-90" />
-                </div>
-            ) : post.content_type === 'convoy' ? (
-                <div className="absolute inset-0 bg-signal-orange/10">
-                    <div className="absolute inset-0 opacity-20 bg-[url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/2000px-World_map_blank_without_borders.svg.png')] bg-cover bg-center grayscale mix-blend-overlay"></div>
-                    <div className="absolute inset-0 bg-gradient-to-br from-carbon to-transparent" />
-                </div>
-            ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-steel-light to-steel" />
-            )}
-
-            {/* AI Context Chip - "Sober AI" */}
-            <div className="absolute top-4 right-4 z-10">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] font-medium text-white shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <Sparkles className="h-3 w-3 text-signal-orange" />
-                    <span className="text-white/80">Matched:</span>
-                    <span className="text-white font-bold">{matchScore}%</span>
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                    <span className="text-white/80">{matchReason}</span>
-                </div>
-            </div>
-
-            {/* Content Overlay */}
-            <div className="absolute inset-0 p-6 flex flex-col justify-between">
-                {/* User Header */}
+            {/* 2.1 Header: User context info */}
+            <div className="p-5 flex items-center justify-between border-b border-white/5 bg-white/1">
                 <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-xs font-bold text-white border border-white/10 overflow-hidden">
+                    <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm font-black text-white overflow-hidden relative">
                         {post.author?.avatar_url ? (
                             <img src={post.author.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                         ) : (
-                            post.author?.username?.[0] || 'D'
+                            post.author?.username?.[0]?.toUpperCase() || 'D'
                         )}
+                        <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-[#0e0e11] animate-pulse" />
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white drop-shadow-md">
-                            {post.author?.username ? `@${post.author.username}` : '@Driver'}
-                        </span>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-white hover:text-signal-orange transition-colors cursor-pointer">
+                                {post.author?.username ? `@${post.author.username}` : '@Driver'}
+                            </span>
+                            <span className="text-zinc-600 font-mono text-xs">•</span>
+                            <span className="text-[10px] text-text-dim font-mono">{new Date(post.created_at || Date.now()).toLocaleDateString()}</span>
+                        </div>
+                        {post.vehicle ? (
+                            <Link href={`/vehicle/${post.vehicle.id}`} className="text-[10px] font-black text-signal-orange hover:underline font-mono uppercase tracking-tight flex items-center gap-1 mt-0.5">
+                                🚗 {post.vehicle.year} {post.vehicle.make} {post.vehicle.model}
+                            </Link>
+                        ) : (
+                            <span className="text-[10px] text-zinc-500 font-mono">Enthusiast</span>
+                        )}
                     </div>
                 </div>
 
-                {/* Body Details */}
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        {post.title && (
-                            <h3 className={`font-black uppercase tracking-tighter text-white drop-shadow-lg leading-tight ${isLarge ? 'text-4xl' : 'text-2xl'}`}>
-                                {post.title}
-                            </h3>
-                        )}
-
-                        {bodyText && (
-                            <p className="text-white/70 text-sm line-clamp-2">{bodyText}</p>
-                        )}
-
-                        {post.content_type === 'maintenance_log' && post.log && (
-                            <div className="bg-carbon/50 backdrop-blur-md rounded-xl p-4 border border-white/10">
-                                <div className="flex items-center gap-3 mb-2 text-signal-orange">
-                                    <Wrench className="h-5 w-5" />
-                                    <span className="font-bold text-sm uppercase">Maintenance Record</span>
-                                </div>
-                                <div className="text-white font-bold text-lg">{post.log.title}</div>
-                                <div className="text-white/50 text-sm">{post.log.occurred_at} • {post.log.cost_currency} {post.log.cost_amount}</div>
-                            </div>
-                        )}
-
-                        {post.content_type === 'convoy' && (
-                            <div className="bg-carbon/80 backdrop-blur-md rounded-xl p-4 border border-signal-orange/30 group-hover:border-signal-orange transition-colors">
-                                <div className="flex items-center gap-3 mb-2 text-signal-orange">
-                                    <MapPin className="h-5 w-5" />
-                                    <span className="font-bold text-sm uppercase">Convoy Invite</span>
-                                </div>
-                                <h4 className="font-black text-xl text-white uppercase italic truncate">{post.title}</h4>
-                                <div className="mt-2 text-white/70 text-sm flex items-center gap-2">
-                                    <Calendar className="h-4 w-4 text-signal-orange" />
-                                    {locationText}
-                                </div>
-                                <div className="mt-4">
-                                    <button 
-                                        onClick={handleCommentClick}
-                                        className="w-full py-2 bg-signal-orange text-white font-bold rounded-lg text-sm hover:bg-orange-600 transition-colors action-button"
-                                    >
-                                        View Details / RSVP
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Social Stats Row */}
-                    {post.content_type !== 'convoy' && (
-                        <div className="flex items-center gap-6 pt-2 relative">
-                            {/* Give Gas / Rev button with micro animations & screen shake */}
-                            <button
-                                onClick={handleLike}
-                                className="flex items-center gap-2 group/btn relative action-button"
-                            >
-                                <motion.div
-                                    whileTap={{ scale: 0.7 }}
-                                    animate={liked ? { scale: [1, 1.25, 1], rotate: [0, -10, 10, 0] } : {}}
-                                    transition={{ type: "spring", stiffness: 450, damping: 12 }}
-                                    className="relative"
-                                >
-                                    <Heart className={clsx("h-5 w-5 transition-colors", liked ? "fill-signal-orange text-signal-orange drop-shadow-[0_0_10px_#f97316]" : "text-white group-hover/btn:text-signal-orange")} />
-                                    
-                                    {/* Flying Flames particles */}
-                                    <AnimatePresence>
-                                        {flames.map(f => (
-                                            <motion.span
-                                                key={f.id}
-                                                initial={{ opacity: 1, scale: 0.8, y: 0, x: 0 }}
-                                                animate={{ opacity: 0, scale: 1.6, y: f.y, x: f.x, rotate: f.x * 2 }}
-                                                exit={{ opacity: 0 }}
-                                                transition={{ duration: 0.7, ease: 'easeOut' }}
-                                                className="absolute text-base pointer-events-none z-30"
-                                                style={{ left: '0px', top: '-10px' }}
-                                            >
-                                                🔥
-                                            </motion.span>
-                                        ))}
-                                    </AnimatePresence>
-                                </motion.div>
-                                <span className={clsx("text-xs font-mono font-bold transition-all", liked ? "text-signal-orange" : "text-white/50")}>
-                                    {liked ? 'REVVING' : 'REV'} ({likeCount})
-                                </span>
-                            </button>
-
-                            <button 
-                                onClick={handleCommentClick}
-                                className="flex items-center gap-2 group/btn action-button"
-                            >
-                                <MessageCircle className="h-5 w-5 text-white/50 group-hover/btn:text-white transition-colors" />
-                                <span className="text-xs font-mono font-bold text-white/50">{post.comment_count || 0}</span>
-                            </button>
-
-                            <button 
-                                onClick={handleShareClick}
-                                className="flex items-center gap-2 group/btn ml-auto action-button"
-                            >
-                                <Share2 className="h-5 w-5 text-white/50 group-hover/btn:text-white transition-colors" />
-                            </button>
-                        </div>
-                    )}
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/2 border border-white/5 rounded-lg text-[10px] font-mono font-bold text-signal-orange/80">
+                    <Sparkles className="h-3 w-3" /> {matchScore}% Match
                 </div>
             </div>
+
+            {/* 2.2 Story Content */}
+            <div className="p-5 pb-4 space-y-3">
+                {post.title && (
+                    <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white font-black">
+                        {post.title}
+                    </h3>
+                )}
+                {bodyText && <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{bodyText}</p>}
+            </div>
+
+            {/* 2.3 Media Upload with double tap to rev */}
+            {getImage() && (
+                <div 
+                    onClick={handleImageClick}
+                    className="relative w-full aspect-video md:aspect-[16/10] overflow-hidden bg-black/20 border-y border-white/5 cursor-pointer group/image"
+                >
+                    <img
+                        src={getImage()!}
+                        alt={post.title || 'Feed Media'}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
+                    />
+
+                    {/* Shimmer Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000 ease-out pointer-events-none" />
+
+                    {/* Direct double tap flame overlay */}
+                    <AnimatePresence>
+                        {showDoubleTapFlame && (
+                            <motion.div
+                                initial={{ scale: 0.3, opacity: 0 }}
+                                animate={{ scale: [0.3, 1.2, 1], opacity: [0, 1, 0.8] }}
+                                exit={{ scale: 1.5, opacity: 0 }}
+                                transition={{ duration: 0.5, ease: 'easeOut' }}
+                                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                            >
+                                <div className="h-28 w-28 rounded-full bg-signal-orange/10 border border-signal-orange/30 backdrop-blur-md flex items-center justify-center shadow-[0_0_50px_rgba(249,115,22,0.3)]">
+                                    <span className="text-6xl animate-bounce">🔥</span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* 2.4 Blueprint / Convoy Info Blocks */}
+            <div className="px-5 pb-2">
+                {post.content_type === 'maintenance_log' && (
+                    <div className="bg-[#0b0c10] border border-cyan-500/20 rounded-2xl p-5 relative overflow-hidden group shadow-[0_0_15px_rgba(6,182,212,0.02)] mt-2">
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                            style={{
+                                backgroundImage: 'linear-gradient(to right, #06b6d4 1px, transparent 1px), linear-gradient(to bottom, #06b6d4 1px, transparent 1px)',
+                                backgroundSize: '15px 15px'
+                            }}
+                        />
+                        <div className="relative z-10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-cyan-400">
+                                    <Wrench className="h-4 w-4" />
+                                    <span className="font-mono text-xs font-black uppercase tracking-widest">Verified Provenance Log</span>
+                                </div>
+                                <span className="text-xs font-mono font-bold bg-cyan-950/40 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/30">
+                                    {post.log?.cost_amount ? `$${post.log.cost_amount.toLocaleString()}` : 'Free'}
+                                </span>
+                            </div>
+                            <h4 className="text-lg font-black text-white uppercase italic tracking-tight">{post.log?.title || post.title}</h4>
+                            {post.log?.odometer_reading && (
+                                <span className="inline-block text-[9px] font-black font-mono text-cyan-400/80 bg-cyan-950/20 px-2 py-0.5 rounded border border-cyan-500/10 uppercase">
+                                    Odometer: {post.log.odometer_reading.toLocaleString()} mi
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {post.content_type === 'convoy' && (
+                    <div className="bg-[#0f0e0c] border border-signal-orange/20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(249,115,22,0.03)] flex flex-col mt-2">
+                        <div className="p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-signal-orange">
+                                    <MapPin className="h-4 w-4" />
+                                    <span className="font-mono text-xs font-black uppercase tracking-widest">Convoy Briefing</span>
+                                </div>
+                                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/20 px-2.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                                    {rsvps.length} Drivers RSVP'd
+                                </span>
+                            </div>
+                            
+                            {parsedConvoyDetails?.startPoint && (
+                                <div className="p-3 bg-white/2 border border-white/5 rounded-xl space-y-2">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <div className="h-2 w-2 rounded-full bg-signal-orange" />
+                                        <span className="text-white/60 font-mono text-[10px] uppercase">Start:</span>
+                                        <span className="text-white font-bold truncate">{parsedConvoyDetails.startPoint}</span>
+                                    </div>
+                                    <div className="w-0.5 h-3 bg-dashed border-l border-white/20 ml-1" />
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                                        <span className="text-white/60 font-mono text-[10px] uppercase">End:</span>
+                                        <span className="text-white font-bold truncate">{parsedConvoyDetails.endPoint}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {parsedConvoyDetails?.startPoint && parsedConvoyDetails?.endPoint && (
+                                <div className="w-full aspect-[21/9] rounded-xl overflow-hidden border border-white/5 relative bg-[#0a0a0a]">
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) grayscale(1) contrast(1.2)' }}
+                                        loading="lazy"
+                                        allowFullScreen
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(parsedConvoyDetails.startPoint)}+to+${encodeURIComponent(parsedConvoyDetails.endPoint)}&t=&z=12&ie=UTF8&iwloc=&output=embed`}
+                                    />
+                                    <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-xl shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]" />
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
+                                <div className="p-2 bg-white/2 border border-white/5 rounded-lg text-text-dim">
+                                    Style: <span className="text-white">{parsedConvoyDetails?.cruiseStyle || 'Canyon Run'}</span>
+                                </div>
+                                <div className="p-2 bg-white/2 border border-white/5 rounded-lg text-text-dim">
+                                    Pace: <span className="text-white">{parsedConvoyDetails?.pace || 'Spirited'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-[#141311] border-t border-white/5 flex gap-3 items-center justify-between">
+                            <div className="text-[10px] font-mono text-zinc-500 uppercase flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5 text-signal-orange" />
+                                {parsedConvoyDetails?.dateTime || 'Oct 28 • 10:00 PM'}
+                            </div>
+                            <button
+                                onClick={handleToggleRSVP}
+                                className={clsx(
+                                    "px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl border transition-all duration-300 flex items-center gap-1.5 active:scale-95",
+                                    isJoined
+                                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+                                        : "bg-signal-orange border-signal-orange text-white hover:bg-orange-600 shadow-lg shadow-orange-600/10"
+                                )}
+                            >
+                                {isJoined ? (
+                                    <>
+                                        <Check className="h-3.5 w-3.5" /> RSVP Active
+                                    </>
+                                ) : (
+                                    'Join Convoy'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* 2.5 Action Bar */}
+            <div className="p-4 border-t border-white/5 flex items-center gap-6 bg-white/[0.01]">
+                <button
+                    onClick={handleLike}
+                    className="flex items-center gap-2 group/btn relative action-button text-white/50 hover:text-signal-orange transition-colors"
+                >
+                    <motion.div
+                        whileTap={{ scale: 0.7 }}
+                        animate={liked ? { scale: [1, 1.25, 1], rotate: [0, -10, 10, 0] } : {}}
+                        transition={{ type: "spring", stiffness: 450, damping: 12 }}
+                        className="relative"
+                    >
+                        <Heart className={clsx("h-5 w-5 transition-colors", liked ? "fill-signal-orange text-signal-orange drop-shadow-[0_0_10px_#f97316]" : "text-white group-hover/btn:text-signal-orange")} />
+                        
+                        {/* Flying Flames particles */}
+                        <AnimatePresence>
+                            {flames.map(f => (
+                                <motion.span
+                                    key={f.id}
+                                    initial={{ opacity: 1, scale: 0.8, y: 0, x: 0 }}
+                                    animate={{ opacity: 0, scale: 1.6, y: f.y, x: f.x, rotate: f.x * 2 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.7, ease: 'easeOut' }}
+                                    className="absolute text-base pointer-events-none z-30"
+                                    style={{ left: '0px', top: '-10px' }}
+                                >
+                                    🔥
+                                </motion.span>
+                            ))}
+                        </AnimatePresence>
+                    </motion.div>
+                    <span className={clsx("text-xs font-mono font-bold transition-all", liked ? "text-signal-orange" : "text-white/50")}>
+                        REV ({likeCount})
+                    </span>
+                </button>
+
+                <button 
+                    onClick={() => setShowComments(!showComments)}
+                    className={clsx(
+                        "flex items-center gap-2 group/btn transition-colors text-white/50 hover:text-white",
+                        showComments && "text-white"
+                    )}
+                >
+                    <MessageCircle className="h-5 w-5" />
+                    <span className="text-xs font-mono font-bold">{comments.length}</span>
+                </button>
+
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+                        alert('Copied link to clipboard!');
+                    }}
+                    className="flex items-center gap-2 group/btn ml-auto text-white/50 hover:text-white transition-colors"
+                >
+                    <Share2 className="h-5 w-5" />
+                </button>
+            </div>
+
+            {/* 2.6 Collapsible Inline Comments Section */}
+            <AnimatePresence>
+                {showComments && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden border-t border-white/5 bg-black/20 p-4 space-y-4"
+                    >
+                        <div className="space-y-3 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                            {comments.length === 0 ? (
+                                <p className="text-xs text-zinc-600 font-mono uppercase py-2">No comments yet. Rev the engine or write one!</p>
+                            ) : (
+                                comments.map(c => (
+                                    <div key={c.id} className="text-xs space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-white">{c.author}</span>
+                                            <span className="text-[9px] text-zinc-500 font-mono">
+                                                {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <p className="text-text-dim pl-2 border-l border-white/5 leading-relaxed">{c.text}</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <form onSubmit={handleSendComment} className="flex gap-2">
+                            <input
+                                type="text"
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                placeholder="Add to the conversation..."
+                                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-text-muted focus:outline-none focus:border-signal-orange/40 transition-all font-semibold"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!commentText.trim()}
+                                className="px-3 bg-white/5 border border-white/10 hover:border-signal-orange/40 hover:bg-signal-orange/5 text-white disabled:opacity-50 text-xs font-bold rounded-xl transition-all uppercase tracking-wider font-mono"
+                            >
+                                Post
+                            </button>
+                        </form>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.article>
     );
 }
 
 export function Feed() {
     const [view, setView] = useState<'following' | 'discover'>('discover');
+    const [layoutType, setLayoutType] = useState<'social' | 'grid'>('social');
     const { user } = useAuth();
     const { posts, loading, logView } = useFeed(user?.id);
 
@@ -322,9 +713,9 @@ export function Feed() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto pb-12">
             {/* Header / Filter */}
-            <header className="flex items-end justify-between mb-8 pb-4 border-b border-white/5">
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 pb-4 border-b border-white/5">
                 <div>
                     <h1 className="text-4xl font-black tracking-tighter text-white uppercase mb-2 italic">
                         {view === 'following' ? 'Driver Feed' : 'Discover'}
@@ -333,21 +724,47 @@ export function Feed() {
                         {view === 'following' ? 'Command center for your garage.' : 'Trending stories and builds from the streets.'}
                     </p>
                 </div>
-                <div className="flex gap-4 relative">
-                    <button
-                        onClick={() => setView('following')}
-                        className={`text-sm font-bold pb-2 transition-colors relative ${view === 'following' ? 'text-white' : 'text-text-dim hover:text-white'}`}
-                    >
-                        Following
-                        {view === 'following' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
-                    </button>
-                    <button
-                        onClick={() => setView('discover')}
-                        className={`text-sm font-bold pb-2 transition-colors relative ${view === 'discover' ? 'text-white' : 'text-text-dim hover:text-white'}`}
-                    >
-                        Discover
-                        {view === 'discover' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
-                    </button>
+                
+                <div className="flex items-center gap-4 justify-between sm:justify-end">
+                    {view === 'following' && (
+                        <div className="flex rounded-lg bg-black/40 p-1 border border-white/5 select-none shrink-0">
+                            <button
+                                onClick={() => setLayoutType('social')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-md text-[10px] font-bold transition-all uppercase font-mono",
+                                    layoutType === 'social' ? "bg-signal-orange text-white" : "text-text-dim hover:text-white"
+                                )}
+                            >
+                                Timeline
+                            </button>
+                            <button
+                                onClick={() => setLayoutType('grid')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-md text-[10px] font-bold transition-all uppercase font-mono",
+                                    layoutType === 'grid' ? "bg-signal-orange text-white" : "text-text-dim hover:text-white"
+                                )}
+                            >
+                                Grid
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="flex gap-4 relative">
+                        <button
+                            onClick={() => setView('following')}
+                            className={`text-sm font-bold pb-2 transition-colors relative ${view === 'following' ? 'text-white' : 'text-text-dim hover:text-white'}`}
+                        >
+                            Following
+                            {view === 'following' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
+                        </button>
+                        <button
+                            onClick={() => setView('discover')}
+                            className={`text-sm font-bold pb-2 transition-colors relative ${view === 'discover' ? 'text-white' : 'text-text-dim hover:text-white'}`}
+                        >
+                            Discover
+                            {view === 'discover' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -355,31 +772,42 @@ export function Feed() {
             {view === 'following' ? (
                 <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Main Feed */}
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-min">
+                    <div className={clsx(
+                        "flex-1 w-full",
+                        layoutType === 'social'
+                            ? "max-w-2xl mx-auto flex flex-col gap-8"
+                            : "grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-min"
+                    )}>
                         {loading && posts.length === 0 ? (
-                            <div className="col-span-full py-20 text-center text-white/50">Scanning frequencies...</div>
+                            <div className="col-span-full py-20 text-center text-white/50 font-mono uppercase tracking-widest animate-pulse">Scanning frequencies...</div>
                         ) : (
-                            posts.map((post, idx) => (
-                                <React.Fragment key={post.id}>
-                                    {idx === 1 && <FeedTuner key="tuner" />}
-                                    <FeedItem 
-                                        post={post} 
-                                        onView={logView} 
-                                        onOpenDetails={() => {
-                                            setSelectedItem(post);
-                                            setModalType(post.content_type === 'convoy' ? 'convoy' : 'post');
-                                            setIsModalOpen(true);
-                                        }}
-                                    />
-                                </React.Fragment>
-                            ))
+                            <>
+                                {layoutType === 'social' && <FeedTuner />}
+                                {posts.map((post, idx) => (
+                                    <React.Fragment key={post.id}>
+                                        {layoutType === 'grid' && idx === 1 && <FeedTuner key="tuner" />}
+                                        <FeedItem 
+                                            post={post} 
+                                            layoutType={layoutType}
+                                            onView={logView} 
+                                            onOpenDetails={() => {
+                                                setSelectedItem(post);
+                                                setModalType(post.content_type === 'convoy' ? 'convoy' : 'post');
+                                                setIsModalOpen(true);
+                                            }}
+                                        />
+                                    </React.Fragment>
+                                ))}
+                            </>
                         )}
                     </div>
 
                     {/* Dashboard Sidebar (Desktop) */}
-                    <div className="hidden lg:block w-80 shrink-0">
-                        <DashboardSidebar />
-                    </div>
+                    {layoutType === 'grid' && (
+                        <div className="hidden lg:block w-80 shrink-0">
+                            <DashboardSidebar />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <DiscoverView />
