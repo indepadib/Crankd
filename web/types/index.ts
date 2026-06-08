@@ -44,6 +44,7 @@ export interface Post {
 
     title?: string;
     body?: string;
+    image_url?: string;
 
     view_count: number;
     like_count: number;
