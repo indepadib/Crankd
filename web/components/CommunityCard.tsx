@@ -25,6 +25,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
                     src={community.image}
                     alt={community.name}
                     fill
+                    unoptimized
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent opacity-90 group-hover:opacity-80 transition-opacity duration-500" />

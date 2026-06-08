@@ -63,6 +63,7 @@ export default function ConvoysPage() {
 
     const fetchEvents = async () => {
         setLoading(true);
+        let dbEvents: any[] = [];
         try {
             const { data, error } = await supabase
                 .from('posts')
@@ -70,73 +71,99 @@ export default function ConvoysPage() {
                 .eq('content_type', 'convoy')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                const parsed = data.map(post => {
-                    // Parse body to retrieve meeting location and description
-                    let location = 'Local Meet';
-                    if (post.body && post.body.startsWith('Location: ')) {
-                        const parts = post.body.split('. Description: ');
-                        if (parts.length >= 2) {
-                            location = parts[0].replace('Location: ', '');
-                        } else {
-                            const parts2 = post.body.split('Location: ');
-                            if (parts2[1]) {
-                                location = parts2[1];
-                            }
-                        }
-                    } else if (post.body && post.body.startsWith('{')) {
-                        try {
-                            const parsedJson = JSON.parse(post.body);
-                            location = parsedJson.location || 'Local Meet';
-                        } catch (e) {
-                            location = 'Local Meet';
-                        }
-                    }
-
-                    // Determine event type based on tags or title
-                    let type: 'meet' | 'drive' | 'track' = 'drive';
-                    const lowerTitle = (post.title || '').toLowerCase();
-                    const tags = post.tags || [];
-                    const hasTrack = tags.some((t: string) => t.toLowerCase().includes('track')) || lowerTitle.includes('track');
-                    const hasMeet = tags.some((t: string) => t.toLowerCase().includes('meet') || t.toLowerCase().includes('coffee')) || lowerTitle.includes('meet') || lowerTitle.includes('coffee');
-                    
-                    if (hasTrack) {
-                        type = 'track';
-                    } else if (hasMeet) {
-                        type = 'meet';
-                    }
-
-                    // Format created_at date
-                    const createdDate = new Date(post.created_at);
-                    const month = createdDate.toLocaleString('default', { month: 'short' });
-                    const day = createdDate.getDate();
-                    const dateStr = `${month} ${day}`;
-                    const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                    return {
-                        id: post.id,
-                        title: post.title || 'Untitled Convoy',
-                        date: dateStr,
-                        time: timeStr,
-                        location: location,
-                        image: post.image_url || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
-                        attendees: post.like_count ? post.like_count + 1 : 8,
-                        type: type,
-                        body: post.body
-                    };
-                });
-                setEvents(parsed);
-            } else {
-                setEvents(EVENTS);
+            if (!error && data) {
+                dbEvents = data;
             }
         } catch (err) {
-            console.warn('[Convoys] Fetch failed, using mock events:', err);
-            setEvents(EVENTS);
-        } finally {
-            setLoading(false);
+            console.warn('[Convoys] Fetch failed:', err);
         }
+
+        // Retrieve local posts
+        const savedLocal = localStorage.getItem('local-posts');
+        const localList = savedLocal ? JSON.parse(savedLocal) : [];
+        const localConvoys = localList.filter((p: any) => p.content_type === 'convoy');
+
+        const combined = [
+            ...localConvoys,
+            ...dbEvents
+        ];
+
+        // If combined is empty, default to mock EVENTS
+        const toParse = combined.length > 0 ? combined : EVENTS;
+
+        const parsed = toParse.map(post => {
+            // If it's already in the final event format (like mock events), return as is
+            if (post.type && (post.type === 'meet' || post.type === 'drive' || post.type === 'track') && !post.content_type) {
+                return post;
+            }
+
+            // Parse body to retrieve meeting location and description
+            let location = 'Local Meet';
+            if (post.body && post.body.startsWith('Location: ')) {
+                const parts = post.body.split('. Description: ');
+                if (parts.length >= 2) {
+                    location = parts[0].replace('Location: ', '');
+                } else {
+                    const parts2 = post.body.split('Location: ');
+                    if (parts2[1]) {
+                        location = parts2[1];
+                    }
+                }
+            } else if (post.body && post.body.startsWith('{')) {
+                try {
+                    const parsedJson = JSON.parse(post.body);
+                    location = parsedJson.location || 'Local Meet';
+                } catch (e) {
+                    location = 'Local Meet';
+                }
+            }
+
+            // Determine event type based on tags or title
+            let type: 'meet' | 'drive' | 'track' = 'drive';
+            const lowerTitle = (post.title || '').toLowerCase();
+            const tags = post.tags || [];
+            const hasTrack = tags.some((t: string) => t.toLowerCase().includes('track')) || lowerTitle.includes('track');
+            const hasMeet = tags.some((t: string) => t.toLowerCase().includes('meet') || t.toLowerCase().includes('coffee')) || lowerTitle.includes('meet') || lowerTitle.includes('coffee');
+            
+            if (hasTrack) {
+                type = 'track';
+            } else if (hasMeet) {
+                type = 'meet';
+            }
+
+            // Format created_at date
+            const createdDate = new Date(post.created_at || Date.now());
+            const month = createdDate.toLocaleString('default', { month: 'short' });
+            const day = createdDate.getDate();
+            const dateStr = `${month} ${day}`;
+            const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            return {
+                id: post.id,
+                title: post.title || 'Untitled Convoy',
+                date: dateStr,
+                time: timeStr,
+                location: location,
+                image: post.image_url || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
+                attendees: post.like_count ? post.like_count + 1 : 8,
+                type: type,
+                body: post.body,
+                author: post.profiles || post.author
+            };
+        });
+
+        // Filter out duplicate IDs
+        const uniqueEvents = parsed.reduce((acc: any[], current) => {
+            const x = acc.find(item => item.id === current.id);
+            if (!x) {
+                return acc.concat([current]);
+            } else {
+                return acc;
+            }
+        }, []);
+
+        setEvents(uniqueEvents);
+        setLoading(false);
     };
 
     useEffect(() => {

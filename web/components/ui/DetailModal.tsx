@@ -74,18 +74,49 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         setCommentText('');
         setIsJoined(false);
 
-        // Load Comments from localStorage (as robust fallback) or Supabase
-        const localCommentsKey = `comments-${data.id}`;
-        const savedComments = localStorage.getItem(localCommentsKey);
-        const parsedLocal = savedComments ? JSON.parse(savedComments) : [];
+        const loadComments = async () => {
+            const localCommentsKey = `comments-${data.id}`;
+            const savedComments = localStorage.getItem(localCommentsKey);
+            const parsedLocal = savedComments ? JSON.parse(savedComments) : [];
 
-        // Mock initial comments for visual richness
-        const defaultComments = [
-            { id: 'mock-c1', author: '@ApexPredator', text: 'This spec is absolutely stunning. Worth every penny!', created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-            { id: 'mock-c2', author: '@BoostedF80', text: 'Rod bearings done? That is a huge relief for E46 owners.', created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
-        ];
+            let dbComments: any[] = [];
+            try {
+                const { data: dbData, error } = await supabase
+                    .from('post_comments')
+                    .select('*')
+                    .eq('post_id', data.id)
+                    .order('created_at', { ascending: false });
 
-        setComments(parsedLocal.length > 0 ? parsedLocal : defaultComments);
+                if (!error && dbData) {
+                    dbComments = dbData.map(c => ({
+                        id: c.id,
+                        author: c.author_username.startsWith('@') ? c.author_username : `@${c.author_username}`,
+                        text: c.comment_text,
+                        created_at: c.created_at
+                    }));
+                }
+            } catch (err) {
+                console.warn('[DetailModal] Failed to fetch comments from DB:', err);
+            }
+
+            const combined = [...parsedLocal, ...dbComments];
+            const uniqueComments = combined.reduce((acc: any[], current) => {
+                const x = acc.find(item => item.id === current.id);
+                if (!x) {
+                    return acc.concat([current]);
+                } else {
+                    return acc;
+                }
+            }, []);
+
+            const defaultComments = [
+                { id: 'mock-c1', author: '@ApexPredator', text: 'This spec is absolutely stunning. Worth every penny!', created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+                { id: 'mock-c2', author: '@BoostedF80', text: 'Rod bearings done? That is a huge relief for E46 owners.', created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
+            ];
+
+            setComments(uniqueComments.length > 0 ? uniqueComments : defaultComments);
+        };
+        loadComments();
 
         // Load RSVPs for Convoys
         if (type === 'convoy') {

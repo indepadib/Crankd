@@ -19,6 +19,7 @@ export function VehicleCard({ vehicle }: Props) {
                             src={vehicle.image_url}
                             alt={`${vehicle.make} ${vehicle.model}`}
                             fill
+                            unoptimized
                             className="object-cover transition-opacity duration-300 group-hover:opacity-90"
                         />
                     ) : (

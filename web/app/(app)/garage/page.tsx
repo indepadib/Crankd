@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import Link from 'next/link';
 
 const PRESET_VEHICLE_IMAGES = [
@@ -32,33 +33,6 @@ const PRESET_VEHICLE_IMAGES = [
     { name: 'JDM Supra', url: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600&q=80' },
     { name: 'GT-R R35', url: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80' },
     { name: '488 Pista', url: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&q=80' }
-];
-
-const MOCK_VEHICLES = [
-    {
-        id: 'mock-1',
-        make: 'BMW',
-        model: 'M3 Competition',
-        year: 2019,
-        health_score: 98,
-        color: 'Individual Frozen Black',
-        image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80',
-        logs: 14,
-        mods: 8,
-        verified: true,
-    },
-    {
-        id: 'mock-2',
-        make: 'Porsche',
-        model: '911 GT3',
-        year: 2022,
-        health_score: 100,
-        color: 'Guards Red',
-        image_url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80',
-        logs: 6,
-        mods: 2,
-        verified: true,
-    },
 ];
 
 export default function GaragePage() {
@@ -113,6 +87,8 @@ export default function GaragePage() {
 
     const loadActiveLogs = useCallback(async (vehicleId: string) => {
         if (!vehicleId) return;
+        
+        let dbLogs: any[] = [];
         try {
             const { data, error } = await supabase
                 .from('maintenance_logs')
@@ -120,20 +96,23 @@ export default function GaragePage() {
                 .eq('vehicle_id', vehicleId)
                 .order('occurred_at', { ascending: false });
 
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                setActiveLogs(data);
-            } else {
-                // Default fallback logs for look & feel
-                setActiveLogs([
-                    { id: 'm-1', occurred_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString(), title: 'Oil Change & Filter (Vidange)', cost_amount: 120, service_type: 'maintenance', description: 'Used Motul 5W40 and OEM Filter. Self-serviced in garage.' },
-                    { id: 'm-2', occurred_at: new Date(Date.now() - 3600000 * 24 * 35).toISOString(), title: 'Brembo Brake Upgrade', cost_amount: 1850, service_type: 'modification', description: 'Installed Front Brembo 6-Pot Calipers & Slotted Rotors. [Attached: invoice_brembo.pdf]' },
-                    { id: 'm-3', occurred_at: new Date(Date.now() - 3600000 * 24 * 90).toISOString(), title: 'Changement d\'amortisseurs', cost_amount: 1400, service_type: 'repair', description: 'Replaced leaky front shocks with Bilstein B8 dampers.' }
-                ]);
+            if (!error && data) {
+                dbLogs = data;
             }
         } catch (e) {
-            console.warn('[Garage] Failed to fetch logs, falling back:', e);
+            console.warn('[Garage] Failed to fetch logs from DB, fallback to local:', e);
+        }
+
+        // Fetch local logs
+        const savedLocal = localStorage.getItem(`local-logs-${vehicleId}`);
+        const localList = savedLocal ? JSON.parse(savedLocal) : [];
+
+        const combined = [...localList, ...dbLogs];
+
+        if (combined.length > 0) {
+            setActiveLogs(combined);
+        } else {
+            // Default mock logs for display
             setActiveLogs([
                 { id: 'm-1', occurred_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString(), title: 'Oil Change & Filter (Vidange)', cost_amount: 120, service_type: 'maintenance', description: 'Used Motul 5W40 and OEM Filter. Self-serviced in garage.' },
                 { id: 'm-2', occurred_at: new Date(Date.now() - 3600000 * 24 * 35).toISOString(), title: 'Brembo Brake Upgrade', cost_amount: 1850, service_type: 'modification', description: 'Installed Front Brembo 6-Pot Calipers & Slotted Rotors. [Attached: invoice_brembo.pdf]' },
@@ -145,6 +124,8 @@ export default function GaragePage() {
     const loadVehicles = useCallback(async () => {
         if (!user) return;
         setLoading(true);
+        
+        let dbVehicles: any[] = [];
         try {
             const { data, error } = await supabase
                 .from('vehicles')
@@ -152,29 +133,37 @@ export default function GaragePage() {
                 .eq('owner_id', user.id)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                const parsed = data.map(v => ({
-                    ...v,
-                    health_score: 98,
-                    logs: 0,
-                    mods: 0,
-                    verified: false
-                }));
-                setVehicles(parsed);
-                setActiveVehicle(parsed[0]);
-            } else {
-                setVehicles(MOCK_VEHICLES);
-                setActiveVehicle(MOCK_VEHICLES[0]);
+            if (!error && data) {
+                dbVehicles = data;
             }
         } catch (err) {
-            console.warn('[Garage] Fetch failed, using mock data:', err);
+            console.warn('[Garage] DB fetch failed, using local + mock:', err);
+        }
+
+        // Fetch local vehicles
+        const localSaved = localStorage.getItem('local-vehicles');
+        const localList = localSaved ? JSON.parse(localSaved) : [];
+
+        const combined = [
+            ...localList.filter((v: any) => v.owner_id === user.id),
+            ...dbVehicles
+        ];
+
+        if (combined.length > 0) {
+            const parsed = combined.map(v => ({
+                ...v,
+                health_score: 98,
+                logs: 0,
+                mods: 0,
+                verified: v.id.startsWith('local-') ? false : true
+            }));
+            setVehicles(parsed);
+            setActiveVehicle(parsed[0]);
+        } else {
             setVehicles(MOCK_VEHICLES);
             setActiveVehicle(MOCK_VEHICLES[0]);
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     }, [user]);
 
     useEffect(() => {
@@ -200,6 +189,17 @@ export default function GaragePage() {
         setModalError(null);
 
         const finalImage = customImage.trim() || selectedImage;
+        let newId = `local-v-${Date.now()}`;
+
+        const localVehicle = {
+            id: newId,
+            owner_id: user.id,
+            make,
+            model,
+            year: parseInt(year),
+            image_url: finalImage,
+            created_at: new Date().toISOString()
+        };
 
         try {
             const { data, error } = await supabase.from('vehicles').insert({
@@ -213,53 +213,57 @@ export default function GaragePage() {
             if (error) throw error;
 
             if (data && data[0]) {
-                const newId = data[0].id;
-                // Store rich metadata specs in localStorage registry
-                const richSpecs = {
-                    vin: vin || 'WBAXXXXXXXXXXXXXX',
-                    trim: trim || 'OEM Spec',
-                    color: color || 'OEM Color',
-                    engine: engine || 'Naturally Aspirated',
-                    power: power || 'N/A',
-                    torque: torque || 'N/A',
-                    weight: weight || 'N/A',
-                    drivetrain: drivetrain || 'RWD',
-                    transmission: transmission || 'Manual',
-                    stage: stage || 'Stock',
-                    chassisCode: chassisCode || 'N/A',
-                    interiorColor: interiorColor || 'N/A',
-                    mileage: mileage || 'N/A'
-                };
-                localStorage.setItem(`vehicle-specs-${newId}`, JSON.stringify(richSpecs));
+                newId = data[0].id;
             }
-
-            // Close and reset
-            setShowModal(false);
-            setWizardStep(1);
-            setMake('');
-            setModel('');
-            setYear('');
-            setVin('');
-            setTrim('');
-            setColor('');
-            setEngine('');
-            setPower('');
-            setTorque('');
-            setWeight('');
-            setDrivetrain('RWD');
-            setTransmission('Manual');
-            setStage('Stock');
-            setChassisCode('');
-            setInteriorColor('');
-            setMileage('');
-            setCustomImage('');
-            
-            await loadVehicles();
         } catch (err: any) {
-            setModalError(err.message || 'Error inserting vehicle.');
-        } finally {
-            setModalLoading(false);
+            console.warn('[Garage] Database insert failed, using local storage fallback:', err.message);
+            // Save to local storage
+            const localSaved = localStorage.getItem('local-vehicles');
+            const localList = localSaved ? JSON.parse(localSaved) : [];
+            localStorage.setItem('local-vehicles', JSON.stringify([localVehicle, ...localList]));
         }
+
+        // Store specs in localStorage registry (works for both local and DB items)
+        const richSpecs = {
+            vin: vin || 'WBAXXXXXXXXXXXXXX',
+            trim: trim || 'OEM Spec',
+            color: color || 'OEM Color',
+            engine: engine || 'Naturally Aspirated',
+            power: power || 'N/A',
+            torque: torque || 'N/A',
+            weight: weight || 'N/A',
+            drivetrain: drivetrain || 'RWD',
+            transmission: transmission || 'Manual',
+            stage: stage || 'Stock',
+            chassisCode: chassisCode || 'N/A',
+            interiorColor: interiorColor || 'N/A',
+            mileage: mileage || 'N/A'
+        };
+        localStorage.setItem(`vehicle-specs-${newId}`, JSON.stringify(richSpecs));
+
+        // Close and reset
+        setShowModal(false);
+        setWizardStep(1);
+        setMake('');
+        setModel('');
+        setYear('');
+        setVin('');
+        setTrim('');
+        setColor('');
+        setEngine('');
+        setPower('');
+        setTorque('');
+        setWeight('');
+        setDrivetrain('RWD');
+        setTransmission('Manual');
+        setStage('Stock');
+        setChassisCode('');
+        setInteriorColor('');
+        setMileage('');
+        setCustomImage('');
+        setModalLoading(false);
+        
+        await loadVehicles();
     };
 
     const handleAddLog = async (e: React.FormEvent) => {
@@ -269,10 +273,23 @@ export default function GaragePage() {
         setLogLoading(true);
         setLogError(null);
 
-        try {
-            const attachmentInfo = attachedFile ? ` [Attached Invoice: ${attachedFile.name}]` : '';
-            const fullDescription = `${logDescription}${attachmentInfo}`;
+        const attachmentInfo = attachedFile ? ` [Attached Invoice: ${attachedFile.name}]` : '';
+        const fullDescription = `${logDescription}${attachmentInfo}`;
 
+        const localLog = {
+            id: `local-log-${Date.now()}`,
+            vehicle_id: activeVehicle.id,
+            performed_by_user_id: user.id,
+            occurred_at: new Date(logDate).toISOString(),
+            service_type: logType,
+            title: logTitle,
+            description: fullDescription,
+            cost_amount: logCost ? parseFloat(logCost) : null,
+            odometer_reading: logOdometer ? parseInt(logOdometer) : null,
+            is_verified: false
+        };
+
+        try {
             const { error } = await supabase.from('maintenance_logs').insert({
                 vehicle_id: activeVehicle.id,
                 performed_by_user_id: user.id,
@@ -286,23 +303,26 @@ export default function GaragePage() {
             });
 
             if (error) throw error;
-
-            // Reset & Close
-            setShowLogModal(false);
-            setLogTitle('');
-            setLogType('maintenance');
-            setLogDate(new Date().toISOString().split('T')[0]);
-            setLogCost('');
-            setLogOdometer('');
-            setLogDescription('');
-            setAttachedFile(null);
-
-            await loadActiveLogs(activeVehicle.id);
         } catch (err: any) {
-            setLogError(err.message || 'Error saving log.');
-        } finally {
-            setLogLoading(false);
+            console.warn('[Logs] Database insert failed, using local storage fallback:', err.message);
+            // Save to local storage
+            const savedLocal = localStorage.getItem(`local-logs-${activeVehicle.id}`);
+            const localList = savedLocal ? JSON.parse(savedLocal) : [];
+            localStorage.setItem(`local-logs-${activeVehicle.id}`, JSON.stringify([localLog, ...localList]));
         }
+
+        // Reset & Close
+        setShowLogModal(false);
+        setLogTitle('');
+        setLogType('maintenance');
+        setLogDate(new Date().toISOString().split('T')[0]);
+        setLogCost('');
+        setLogOdometer('');
+        setLogDescription('');
+        setAttachedFile(null);
+        setLogLoading(false);
+
+        await loadActiveLogs(activeVehicle.id);
     };
 
     const handleFileSimulation = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -822,35 +842,33 @@ export default function GaragePage() {
                                             </div>
                                         </div>
 
-                                        {/* Cover Image Selector */}
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-mono">Cover Image Presets</label>
-                                            <div className="flex gap-2 overflow-x-auto py-1">
-                                                {PRESET_VEHICLE_IMAGES.map((img, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedImage(img.url);
-                                                            setCustomImage('');
-                                                        }}
-                                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
-                                                            selectedImage === img.url && !customImage ? 'border-signal-orange scale-105 shadow-md shadow-orange-500/10' : 'border-transparent'
-                                                        }`}
-                                                    >
-                                                        <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] text-zinc-600 font-semibold block font-mono">OR CUSTOM COVER URL:</span>
-                                                <input 
-                                                    type="text" 
-                                                    value={customImage}
-                                                    onChange={e => setCustomImage(e.target.value)}
-                                                    placeholder="https://images.unsplash.com/your-car..."
-                                                    className="w-full px-3 py-2 bg-white/2 border border-white/8 rounded-lg text-white placeholder-text-muted text-xs focus:outline-none"
-                                                />
+                                        {/* ImageUpload & Presets Selector */}
+                                        <div className="space-y-4">
+                                            <ImageUpload 
+                                                value={customImage} 
+                                                onChange={setCustomImage} 
+                                                label="Upload custom cover photo" 
+                                            />
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from presets</label>
+                                                <div className="flex gap-2 overflow-x-auto py-1">
+                                                    {PRESET_VEHICLE_IMAGES.map((img, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedImage(img.url);
+                                                                setCustomImage('');
+                                                            }}
+                                                            className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
+                                                                selectedImage === img.url && !customImage ? 'border-signal-orange scale-102 shadow-md shadow-orange-500/10' : 'border-transparent'
+                                                            }`}
+                                                        >
+                                                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -892,7 +910,7 @@ export default function GaragePage() {
                 )}
             </AnimatePresence>
 
-            {/* ── ADD PROVENANCE LOG MODAL (Interactive Repairs/Upgrade Recorder) ── */}
+            {/* ── ADD PROVENANCE LOG MODAL ── */}
             <AnimatePresence>
                 {showLogModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -924,7 +942,7 @@ export default function GaragePage() {
                                 
                                 {/* Quick Suggestions Tag Wall */}
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-mono block">Quick Sugggestions</label>
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-mono block">Quick Suggestions</label>
                                     <div className="flex flex-wrap gap-1.5">
                                         {SUGGESTIONS.map(sugg => (
                                             <button
@@ -943,7 +961,7 @@ export default function GaragePage() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-mono">Log Title (Reparation / Upgrade / Maintenance)</label>
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-mono">Log Title</label>
                                     <input 
                                         type="text" 
                                         value={logTitle}
@@ -1020,7 +1038,7 @@ export default function GaragePage() {
                                         onChange={e => setLogDescription(e.target.value)}
                                         rows={3}
                                         placeholder="Specific parts installed, brand names, service center location, oils used..."
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none resize-none font-medium"
                                     />
                                 </div>
 

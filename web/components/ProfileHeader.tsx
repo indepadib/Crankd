@@ -29,6 +29,7 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
                     src={user.banner}
                     alt="Cover"
                     fill
+                    unoptimized
                     className="object-cover"
                     priority
                 />
@@ -45,6 +46,7 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
                                 src={user.avatar}
                                 alt={user.name}
                                 fill
+                                unoptimized
                                 className="object-cover"
                             />
                         ) : (

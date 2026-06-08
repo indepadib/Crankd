@@ -42,7 +42,7 @@ const MOCK_POSTS: Post[] = [
         author_id: 'u3',
         content_type: 'convoy',
         title: 'MIDNIGHT CANYON RUN — DUBAI',
-        body: '',
+        body: '{"startPoint":"Marina Mall","endPoint":"Jebel Jais Peak","dateTime":"Oct 28 • 10:00 PM","location":"Dubai","cruiseStyle":"Canyon Run","pace":"Spirited","requiredGear":["Walkie-Talkie (Comms)","Full Tank of Gas"],"text":"Angeles Crest styling canyon route. Meeting at Marina Mall parking lot. Safety briefing at 9:45 PM. Dynamic elevation and sweeps."}',
         view_count: 3200,
         like_count: 672,
         comment_count: 44,
@@ -94,31 +94,46 @@ export function useFeed(userId?: string) {
     const fetchFeed = useCallback(async () => {
         setLoading(true);
         setError(null);
+
+        let dbPosts: Post[] = [];
         try {
             const { data, error } = await supabase
                 .rpc('get_personalized_feed', {
                     p_user_id: userId || '00000000-0000-0000-0000-000000000000',
-                    p_limit: 10,
+                    p_limit: 20,
                     p_offset: 0
                 });
 
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                setPosts(data as unknown as Post[]);
-            } else {
-                // Fall back to mock data if nothing comes back
-                console.log('[Feed] No data from Supabase — using mock posts');
-                setPosts(MOCK_POSTS);
+            if (!error && data) {
+                dbPosts = data as unknown as Post[];
             }
         } catch (err: any) {
-            console.warn('[Feed] Supabase RPC failed, using mock data:', err?.message);
-            // Always show something — never leave feed empty
-            setPosts(MOCK_POSTS);
-            setError(null); // Don't surface error to user
-        } finally {
-            setLoading(false);
+            console.warn('[Feed] RPC query failed, using offline fallback:', err?.message);
         }
+
+        // Fetch local posts
+        const savedLocal = localStorage.getItem('local-posts');
+        const localList = savedLocal ? JSON.parse(savedLocal) : [];
+
+        // Combine: Local Posts -> DB Posts -> Mock Posts
+        const combined = [
+            ...localList,
+            ...dbPosts,
+            ...MOCK_POSTS
+        ];
+
+        // Filter out duplicate IDs
+        const uniquePosts = combined.reduce((acc: Post[], current) => {
+            const x = acc.find(item => item.id === current.id);
+            if (!x) {
+                return acc.concat([current]);
+            } else {
+                return acc;
+            }
+        }, []);
+
+        setPosts(uniquePosts);
+        setLoading(false);
     }, [userId]);
 
     const logView = useCallback(async (postId: string, durationSeconds: number) => {
@@ -131,7 +146,7 @@ export function useFeed(userId?: string) {
                 duration_seconds: durationSeconds
             });
         } catch (e) {
-            // Silent fail — non-critical
+            // Silent fail
         }
     }, [userId]);
 

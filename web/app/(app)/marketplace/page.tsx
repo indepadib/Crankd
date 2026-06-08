@@ -27,6 +27,7 @@ export default function MarketplacePage() {
     useEffect(() => {
         const fetchListings = async () => {
             setLoading(true);
+            let dbListings: any[] = [];
             try {
                 // Fetch listings and join profiles to get the seller's username
                 const { data, error } = await supabase
@@ -34,25 +35,45 @@ export default function MarketplacePage() {
                     .select('*, profiles:seller_id(username)')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const parsed = data.map(l => ({
+                if (!error && data) {
+                    dbListings = data.map(l => ({
                         ...l,
                         image_url: l.images?.[0] || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80',
                         seller_username: l.profiles?.username ? `@${l.profiles.username}` : '@Anonymous',
                         verified: false
                     }));
-                    setListings(parsed);
-                } else {
-                    setListings(MOCK_LISTINGS);
                 }
             } catch (err) {
-                console.warn('[Marketplace] Fetch failed, using mock listings:', err);
-                setListings(MOCK_LISTINGS);
-            } finally {
-                setLoading(false);
+                console.warn('[Marketplace] DB fetch failed, using local storage fallback:', err);
             }
+
+            // Retrieve local listings
+            const savedLocal = localStorage.getItem('local-listings');
+            const localList = savedLocal ? JSON.parse(savedLocal) : [];
+            const parsedLocal = localList.map((l: any) => ({
+                ...l,
+                image_url: l.images?.[0] || l.image_url || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80',
+                seller_username: l.author?.username || l.seller_username || '@Anonymous',
+                verified: false
+            }));
+
+            const combined = [...parsedLocal, ...dbListings];
+
+            // If combined is empty, default to MOCK_LISTINGS
+            const uniqueListings = combined.length > 0 ? combined : MOCK_LISTINGS;
+
+            // Filter out duplicate IDs
+            const deduped = uniqueListings.reduce((acc: any[], current) => {
+                const x = acc.find(item => item.id === current.id);
+                if (!x) {
+                    return acc.concat([current]);
+                } else {
+                    return acc;
+                }
+            }, []);
+
+            setListings(deduped);
+            setLoading(false);
         };
 
         fetchListings();

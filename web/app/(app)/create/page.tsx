@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { 
     Image as ImageIcon, 
     Car, 
@@ -108,15 +109,25 @@ export default function CreatePage() {
     useEffect(() => {
         const fetchUserVehicles = async () => {
             if (!user) return;
+            
+            let dbVehicles: any[] = [];
             try {
                 const { data } = await supabase
                     .from('vehicles')
                     .select('*')
                     .eq('owner_id', user.id);
-                if (data) {
-                    setUserVehicles(data);
-                }
+                if (data) dbVehicles = data;
             } catch (e) {}
+
+            // Load local vehicles
+            const localSaved = localStorage.getItem('local-vehicles');
+            const localList = localSaved ? JSON.parse(localSaved) : [];
+
+            const combined = [
+                ...localList.filter((v: any) => v.owner_id === user.id),
+                ...dbVehicles
+            ];
+            setUserVehicles(combined);
         };
         fetchUserVehicles();
     }, [user]);
@@ -129,6 +140,7 @@ export default function CreatePage() {
         setMake(selected.make || '');
         setModel(selected.model || '');
         setYear((selected.year || '').toString());
+        
         const img = selected.image_url || selected.image || PRESET_IMAGES[0];
         if (PRESET_IMAGES.includes(img)) {
             setImageUrl(img);
@@ -174,6 +186,21 @@ export default function CreatePage() {
             text: body
         });
 
+        const localPost = {
+            id: `local-post-${Date.now()}`,
+            author_id: user.id,
+            title,
+            body: richBody,
+            image_url: finalImg,
+            content_type: 'media',
+            tags: cleanTags.length > 0 ? cleanTags : ['Build'],
+            created_at: new Date().toISOString(),
+            like_count: 0,
+            view_count: 0,
+            comment_count: 0,
+            author: { id: user.id, username: `@${user.email.split('@')[0]}`, avatar_url: '' }
+        };
+
         try {
             const { error } = await supabase.from('posts').insert({
                 author_id: user.id,
@@ -185,11 +212,14 @@ export default function CreatePage() {
             });
 
             if (error) throw error;
-            router.push('/feed');
         } catch (err: any) {
-            setError(err.message || 'Error publishing post.');
-            setLoading(false);
+            console.warn('[Post] DB write failed, saving to local storage:', err.message);
+            const saved = localStorage.getItem('local-posts');
+            const list = saved ? JSON.parse(saved) : [];
+            localStorage.setItem('local-posts', JSON.stringify([localPost, ...list]));
         }
+
+        router.push('/feed');
     };
 
     const handlePublishListing = async (e: React.FormEvent) => {
@@ -214,6 +244,22 @@ export default function CreatePage() {
             text: body
         });
 
+        const localListing = {
+            id: `local-list-${Date.now()}`,
+            seller_id: user.id,
+            make,
+            model,
+            year: parseInt(year),
+            price: parseFloat(price),
+            mileage: parseInt(mileage),
+            location,
+            description: richDescription,
+            images: [finalImg],
+            status: 'active',
+            created_at: new Date().toISOString(),
+            author: { id: user.id, username: `@${user.email.split('@')[0]}`, avatar_url: '' }
+        };
+
         try {
             const { error } = await supabase.from('listings').insert({
                 seller_id: user.id,
@@ -228,11 +274,14 @@ export default function CreatePage() {
             });
 
             if (error) throw error;
-            router.push('/marketplace');
         } catch (err: any) {
-            setError(err.message || 'Error publishing listing.');
-            setLoading(false);
+            console.warn('[Listing] DB write failed, saving to local storage:', err.message);
+            const saved = localStorage.getItem('local-listings');
+            const list = saved ? JSON.parse(saved) : [];
+            localStorage.setItem('local-listings', JSON.stringify([localListing, ...list]));
         }
+
+        router.push('/marketplace');
     };
 
     const handlePublishEvent = async (e: React.FormEvent) => {
@@ -267,6 +316,21 @@ export default function CreatePage() {
             text: body
         });
 
+        const localEvent = {
+            id: `local-post-${Date.now()}`,
+            author_id: user.id,
+            title,
+            body: richBody,
+            image_url: finalImg,
+            content_type: 'convoy',
+            tags: eventTags.length > 0 ? eventTags : ['Convoy', 'Drive'],
+            created_at: new Date().toISOString(),
+            like_count: 0,
+            view_count: 0,
+            comment_count: 0,
+            author: { id: user.id, username: `@${user.email.split('@')[0]}`, avatar_url: '' }
+        };
+
         try {
             const { error } = await supabase.from('posts').insert({
                 author_id: user.id,
@@ -278,11 +342,14 @@ export default function CreatePage() {
             });
 
             if (error) throw error;
-            router.push('/feed');
         } catch (err: any) {
-            setError(err.message || 'Error hosting event.');
-            setLoading(false);
+            console.warn('[Event] DB write failed, saving to local storage:', err.message);
+            const saved = localStorage.getItem('local-posts');
+            const list = saved ? JSON.parse(saved) : [];
+            localStorage.setItem('local-posts', JSON.stringify([localEvent, ...list]));
         }
+
+        router.push('/feed');
     };
 
     const resetForms = () => {
@@ -478,32 +545,30 @@ export default function CreatePage() {
                             />
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Cover Photo Preset</label>
-                            <div className="flex gap-2 overflow-x-auto py-1">
-                                {PRESET_IMAGES.map((img, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => {
-                                            setImageUrl(img);
-                                            setCustomImageUrl('');
-                                        }}
-                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange' : 'border-transparent'}`}
-                                    >
-                                        <img src={img} alt="preset" className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="space-y-1.5 pt-1">
-                                <span className="text-[9px] text-zinc-500 block font-mono">OR CUSTOM COVER URL:</span>
-                                <input 
-                                    type="text" 
-                                    value={customImageUrl}
-                                    onChange={e => setCustomImageUrl(e.target.value)}
-                                    placeholder="https://images.unsplash.com/..."
-                                    className="w-full px-4 py-2 bg-white/2 border border-white/8 rounded-xl text-white text-xs focus:outline-none focus:border-signal-orange/40"
-                                />
+                        <div className="space-y-4">
+                            <ImageUpload 
+                                value={customImageUrl} 
+                                onChange={setCustomImageUrl} 
+                                label="Upload Build Photo" 
+                            />
+                            
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from presets</label>
+                                <div className="flex gap-2 overflow-x-auto py-1">
+                                    {PRESET_IMAGES.map((img, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                setImageUrl(img);
+                                                setCustomImageUrl('');
+                                            }}
+                                            className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
+                                        >
+                                            <img src={img} alt="preset" className="w-full h-full object-cover" />
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
@@ -698,32 +763,30 @@ export default function CreatePage() {
                             />
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Listing Cover Image</label>
-                            <div className="flex gap-2 overflow-x-auto py-1">
-                                {PRESET_IMAGES.map((img, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => {
-                                            setImageUrl(img);
-                                            setCustomImageUrl('');
-                                        }}
-                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange' : 'border-transparent'}`}
-                                    >
-                                        <img src={img} alt="preset" className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="space-y-1 pt-1">
-                                <span className="text-[9px] text-zinc-500 block font-mono">OR CUSTOM COVER URL:</span>
-                                <input 
-                                    type="text" 
-                                    value={customImageUrl}
-                                    onChange={e => setCustomImageUrl(e.target.value)}
-                                    placeholder="https://images.unsplash.com/..."
-                                    className="w-full px-3 py-2 bg-white/2 border border-white/8 rounded-lg text-white text-xs focus:outline-none"
-                                />
+                        <div className="space-y-4">
+                            <ImageUpload 
+                                value={customImageUrl} 
+                                onChange={setCustomImageUrl} 
+                                label="Upload Listing Cover Image" 
+                            />
+                            
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from presets</label>
+                                <div className="flex gap-2 overflow-x-auto py-1">
+                                    {PRESET_IMAGES.map((img, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                setImageUrl(img);
+                                                setCustomImageUrl('');
+                                            }}
+                                            className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange' : 'border-transparent'}`}
+                                        >
+                                            <img src={img} alt="preset" className="w-full h-full object-cover" />
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
@@ -808,32 +871,30 @@ export default function CreatePage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Event Banner Presets</label>
-                                    <div className="flex gap-2 overflow-x-auto py-1">
-                                        {PRESET_IMAGES.map((img, idx) => (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => {
-                                                    setImageUrl(img);
-                                                    setCustomImageUrl('');
-                                                }}
-                                                className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
-                                            >
-                                                <img src={img} alt="preset" className="w-full h-full object-cover" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="space-y-1 pt-1">
-                                        <span className="text-[9px] text-zinc-500 block font-mono">OR CUSTOM BANNER IMAGE URL:</span>
-                                        <input 
-                                            type="text" 
-                                            value={customImageUrl}
-                                            onChange={e => setCustomImageUrl(e.target.value)}
-                                            placeholder="https://images.unsplash.com/..."
-                                            className="w-full px-3 py-2.5 bg-white/2 border border-white/8 rounded-lg text-white text-xs focus:outline-none"
-                                        />
+                                <div className="space-y-4">
+                                    <ImageUpload 
+                                        value={customImageUrl} 
+                                        onChange={setCustomImageUrl} 
+                                        label="Upload Event Banner Image" 
+                                    />
+                                    
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from presets</label>
+                                        <div className="flex gap-2 overflow-x-auto py-1">
+                                            {PRESET_IMAGES.map((img, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImageUrl(img);
+                                                        setCustomImageUrl('');
+                                                    }}
+                                                    className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
+                                                >
+                                                    <img src={img} alt="preset" className="w-full h-full object-cover" />
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

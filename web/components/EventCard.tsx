@@ -30,6 +30,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
                     src={event.image}
                     alt={event.title}
                     fill
+                    unoptimized
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
             </div>
