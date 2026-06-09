@@ -77,7 +77,7 @@ export function VrooqTV() {
         Euro: 5.0,
         DIY: 5.0,
         Maintenance: 5.0,
-        High HP: 5.0,
+        "High HP": 5.0,
         TrackDay: 5.0
     });
 
