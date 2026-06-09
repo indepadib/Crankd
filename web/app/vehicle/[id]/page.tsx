@@ -15,7 +15,8 @@ import {
     Trophy,
     ArrowRightLeft,
     DollarSign,
-    X
+    X,
+    Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
