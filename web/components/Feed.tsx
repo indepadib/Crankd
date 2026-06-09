@@ -28,6 +28,7 @@ import { DetailModal } from './ui/DetailModal';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { VrooqTV } from './VrooqTV';
+import { usePreferences } from '@/hooks/usePreferences';
 
 function FeedTuner() {
     const [dismissed, setDismissed] = useState(false);
@@ -85,6 +86,7 @@ function FeedItem({
     onOpenDetails: () => void;
 }) {
     const { user } = useAuth();
+    const { formatCurrency, formatDistance } = usePreferences();
     const isLarge = post.cohort_level >= 2 && layoutType === 'grid';
     
     // States
@@ -414,7 +416,7 @@ function FeedItem({
                         ) : (
                             post.author?.username?.[0]?.toUpperCase() || 'D'
                         )}
-                        <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-[#0e0e11] animate-pulse" />
+                        <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-signal-orange rounded-full border-2 border-[#0e0e11] animate-pulse" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
@@ -506,27 +508,27 @@ function FeedItem({
             {/* 2.4 Blueprint / Convoy Info Blocks */}
             <div className="px-5 pb-2">
                 {post.content_type === 'maintenance_log' && (
-                    <div className="bg-[#0b0c10] border border-cyan-500/20 rounded-2xl p-5 relative overflow-hidden group shadow-[0_0_15px_rgba(6,182,212,0.02)] mt-2">
-                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                    <div className="bg-[#0b0c10] border border-white/10 rounded-2xl p-5 relative overflow-hidden group shadow-[0_0_15px_rgba(255,255,255,0.01)] mt-2">
+                        <div className="absolute inset-0 opacity-[0.01] pointer-events-none"
                             style={{
-                                backgroundImage: 'linear-gradient(to right, #06b6d4 1px, transparent 1px), linear-gradient(to bottom, #06b6d4 1px, transparent 1px)',
+                                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)',
                                 backgroundSize: '15px 15px'
                             }}
                         />
                         <div className="relative z-10 space-y-3">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-cyan-400">
+                                <div className="flex items-center gap-2 text-signal-orange">
                                     <Wrench className="h-4 w-4" />
                                     <span className="font-mono text-xs font-black uppercase tracking-widest">Verified Provenance Log</span>
                                 </div>
-                                <span className="text-xs font-mono font-bold bg-cyan-950/40 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/30">
-                                    {post.log?.cost_amount ? `$${post.log.cost_amount.toLocaleString()}` : 'Free'}
+                                <span className="text-xs font-mono font-bold bg-white/5 text-white px-2 py-0.5 rounded border border-white/10">
+                                    {post.log?.cost_amount ? formatCurrency(post.log.cost_amount) : 'Free'}
                                 </span>
                             </div>
                             <h4 className="text-lg font-black text-white uppercase italic tracking-tight">{post.log?.title || post.title}</h4>
                             {post.log?.odometer_reading && (
-                                <span className="inline-block text-[9px] font-black font-mono text-cyan-400/80 bg-cyan-950/20 px-2 py-0.5 rounded border border-cyan-500/10 uppercase">
-                                    Odometer: {post.log.odometer_reading.toLocaleString()} mi
+                                <span className="inline-block text-[9px] font-black font-mono text-text-dim bg-white/5 px-2 py-0.5 rounded border border-white/5 uppercase">
+                                    Odometer: {formatDistance(post.log.odometer_reading)}
                                 </span>
                             )}
                         </div>
@@ -541,7 +543,7 @@ function FeedItem({
                                     <MapPin className="h-4 w-4" />
                                     <span className="font-mono text-xs font-black uppercase tracking-widest">Convoy Briefing</span>
                                 </div>
-                                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/20 px-2.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                                <span className="text-xs font-bold text-signal-orange bg-signal-orange/10 px-2.5 py-0.5 rounded border border-signal-orange/20 font-mono">
                                     {rsvps.length} Drivers RSVP'd
                                 </span>
                             </div>
@@ -555,7 +557,7 @@ function FeedItem({
                                     </div>
                                     <div className="w-0.5 h-3 bg-dashed border-l border-white/20 ml-1" />
                                     <div className="flex items-center gap-2 text-xs">
-                                        <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                                        <div className="h-2 w-2 rounded-full bg-signal-orange" />
                                         <span className="text-white/60 font-mono text-[10px] uppercase">End:</span>
                                         <span className="text-white font-bold truncate">{parsedConvoyDetails.endPoint}</span>
                                     </div>
@@ -596,7 +598,7 @@ function FeedItem({
                                 className={clsx(
                                     "px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl border transition-all duration-300 flex items-center gap-1.5 active:scale-95",
                                     isJoined
-                                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+                                        ? "bg-signal-orange/10 border-signal-orange/30 text-signal-orange shadow-[0_0_15px_rgba(249,115,22,0.05)]"
                                         : "bg-signal-orange border-signal-orange text-white hover:bg-orange-600 shadow-lg shadow-orange-600/10"
                                 )}
                             >

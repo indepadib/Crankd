@@ -48,8 +48,8 @@ export default function CommunitiesPage() {
         const savedLocal = localStorage.getItem('local-communities');
         const localList = savedLocal ? JSON.parse(savedLocal) : [];
 
-        // Combine DB, local storage, and static mock communities
-        const combined = [...localList, ...dbCommunities, ...MOCK_COMMUNITIES];
+        // Combine DB and local storage
+        const combined = [...localList, ...dbCommunities];
 
         // Filter duplicates by name or ID
         const unique = combined.reduce((acc: any[], current) => {

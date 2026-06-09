@@ -73,40 +73,7 @@ export default function CommunityDetailPage() {
             }
         }
 
-        // 3. Try Fallback
-        if (!targetCommunity) {
-            const found = MOCK_COMMUNITIES.find(c => c.id === id);
-            if (found) {
-                targetCommunity = {
-                    id: found.id,
-                    name: found.name,
-                    description: found.description || 'No description provided.',
-                    banner: found.banner || 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?q=80&w=2600&auto=format&fit=crop',
-                    members: found.members || 100,
-                    online: found.active || '10',
-                    category: found.category,
-                    topics: found.topics || [found.category, 'Builds', 'Discussion'],
-                    events: found.events || [
-                        { id: 1, title: 'Tribe Meet & Greet', date: 'Sat, Next Week • 10:00 AM', location: 'Local Hub' }
-                    ]
-                };
-            }
-        }
-
-        // Fallback default
-        if (!targetCommunity) {
-            targetCommunity = {
-                id: MOCK_COMMUNITIES[0].id,
-                name: MOCK_COMMUNITIES[0].name,
-                description: MOCK_COMMUNITIES[0].description,
-                banner: MOCK_COMMUNITIES[0].banner,
-                members: MOCK_COMMUNITIES[0].members,
-                online: MOCK_COMMUNITIES[0].active,
-                category: MOCK_COMMUNITIES[0].category,
-                topics: MOCK_COMMUNITIES[0].topics,
-                events: MOCK_COMMUNITIES[0].events
-            };
-        }
+        // 3. Try Fallback (Removed mock fallbacks)
 
         setCommunity(targetCommunity);
         setMemberCount(targetCommunity.members);
@@ -184,7 +151,19 @@ export default function CommunityDetailPage() {
         return <div className="py-40 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse">Syncing Tribe Data...</div>;
     }
 
-    if (!community) return null;
+    if (!community) {
+        return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-4">
+                <h2 className="text-2xl font-black text-white uppercase italic">Tribe Not Found</h2>
+                <p className="text-sm text-text-dim max-w-md">
+                    The community or tribe you are trying to access does not exist or has been removed.
+                </p>
+                <Link href="/communities" className="px-6 py-3 bg-signal-orange hover:bg-orange-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">
+                    Return to Tribes
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto pb-32">

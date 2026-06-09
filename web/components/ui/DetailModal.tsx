@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { usePreferences } from '@/hooks/usePreferences';
 
 interface DetailModalProps {
     isOpen: boolean;
@@ -32,6 +33,7 @@ interface DetailModalProps {
 
 export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: DetailModalProps) {
     const { user } = useAuth();
+    const { formatCurrency, formatDistance } = usePreferences();
     const [comments, setComments] = useState<any[]>([]);
     const [commentText, setCommentText] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -235,7 +237,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                             />
                             {type === 'listing' && (
                                 <div className="absolute bottom-4 left-5 px-4 py-2 bg-[#0a0a0c]/80 backdrop-blur rounded-xl border border-white/10 text-2xl font-black text-white italic">
-                                    ${data.price?.toLocaleString()}
+                                    {formatCurrency(data.price)}
                                 </div>
                             )}
                         </div>
@@ -249,7 +251,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         <SpecField label="Make / Model" value={`${data.make} ${data.model}`} icon={Car} />
                                         <SpecField label="Production Year" value={data.year} icon={Calendar} />
-                                        <SpecField label="Mileage" value={`${data.mileage?.toLocaleString()} mi`} icon={Gauge} />
+                                        <SpecField label="Mileage" value={formatDistance(data.mileage)} icon={Gauge} />
                                         <SpecField label="VIN Code" value={parsedDetails?.vin || 'Verified'} icon={Shield} />
                                         <SpecField label="Engine Config" value={parsedDetails?.engine || 'Naturally Aspirated'} icon={Zap} />
                                         <SpecField label="Gearbox" value={parsedDetails?.transmission || 'Manual'} icon={GitCommit} />

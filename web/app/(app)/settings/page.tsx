@@ -157,6 +157,11 @@ export default function SettingsPage() {
         setLoading(false);
         setSuccess(true);
 
+        // Dispatch sync event
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('profile-updated'));
+        }
+
         // Redirect back to profile page after 1.2 seconds
         setTimeout(() => {
             router.push('/profile');

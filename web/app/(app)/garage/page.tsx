@@ -31,6 +31,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import Link from 'next/link';
+import { usePreferences, CURRENCY_RATES } from '@/hooks/usePreferences';
 
 // Preset high-fidelity imagery for vehicles
 const PRESET_VEHICLE_IMAGES = [
@@ -194,6 +195,7 @@ class WebAudioEngineSynth {
 
 export default function GaragePage() {
     const { user } = useAuth();
+    const { formatCurrency, formatDistance, currencySymbol, unitLabel, preferences } = usePreferences();
     const [vehicles, setVehicles] = useState<any[]>([]);
     const [activeVehicle, setActiveVehicle] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -469,13 +471,7 @@ export default function GaragePage() {
         if (combined.length > 0) {
             setActiveLogs(combined);
         } else {
-            // World-class seed logs if empty
-            setActiveLogs([
-                { id: 'm-1', occurred_at: new Date(Date.now() - 3600000 * 24 * 6).toISOString(), title: 'Liquid Moly 5W40 Oil Service', cost_amount: 140, service_type: 'maintenance', description: 'Replaced oil & filter using premium Liqui Moly engine oil. Inspection completed, visual check passed.', odometer_reading: 84620 },
-                { id: 'm-2', occurred_at: new Date(Date.now() - 3600000 * 24 * 40).toISOString(), title: 'Brembo GT Series Brakes', cost_amount: 2200, service_type: 'modification', description: 'Installed GT 6-pot calipers and slotted zinc rotors. Replaced fluid with racing grade DOT 4.', odometer_reading: 83100 },
-                { id: 'm-3', occurred_at: new Date(Date.now() - 3600000 * 24 * 110).toISOString(), title: 'Bilstein B16 Coilover Kit', cost_amount: 1850, service_type: 'modification', description: 'Replaced OEM suspension with fully adjustable coilovers. Height lowered by 15mm. Full chassis corner balancing performed.', odometer_reading: 81200 },
-                { id: 'm-4', occurred_at: new Date(Date.now() - 3600000 * 24 * 180).toISOString(), title: 'O2 Sensor Repair', cost_amount: 320, service_type: 'repair', description: 'Bank 1 O2 sensor malfunction causing check engine code. Swapped with OEM Bosch replacement.', odometer_reading: 78500 }
-            ]);
+            setActiveLogs([]);
         }
     }, []);
 
@@ -546,8 +542,8 @@ export default function GaragePage() {
             setVehicles(parsed);
             setActiveVehicle(parsed[0]);
         } else {
-            setVehicles(MOCK_VEHICLES);
-            setActiveVehicle(MOCK_VEHICLES[0]);
+            setVehicles([]);
+            setActiveVehicle(null);
         }
         setLoading(false);
     }, [user]);
@@ -662,6 +658,12 @@ export default function GaragePage() {
         const attachmentInfo = attachedFile ? ` [Attached Invoice: ${attachedFile.name}]` : '';
         const fullDescription = `${logDescription}${attachmentInfo}`;
 
+        const inputCost = logCost ? parseFloat(logCost) : null;
+        const inputOdometer = logOdometer ? parseInt(logOdometer) : null;
+
+        const baseCost = inputCost !== null ? (preferences.currency === 'USD' ? inputCost : inputCost / (CURRENCY_RATES[preferences.currency] || 1.0)) : null;
+        const baseOdometer = inputOdometer !== null ? (preferences.measurement_unit === 'mi' ? inputOdometer : inputOdometer / 1.60934) : null;
+
         const localLog = {
             id: `local-log-${Date.now()}`,
             vehicle_id: activeVehicle.id,
@@ -670,8 +672,8 @@ export default function GaragePage() {
             service_type: logType,
             title: logTitle,
             description: fullDescription,
-            cost_amount: logCost ? parseFloat(logCost) : null,
-            odometer_reading: logOdometer ? parseInt(logOdometer) : null,
+            cost_amount: baseCost,
+            odometer_reading: baseOdometer,
             is_verified: false
         };
 
@@ -683,8 +685,8 @@ export default function GaragePage() {
                 service_type: logType,
                 title: logTitle,
                 description: fullDescription,
-                cost_amount: logCost ? parseFloat(logCost) : null,
-                odometer_reading: logOdometer ? parseInt(logOdometer) : null,
+                cost_amount: baseCost,
+                odometer_reading: baseOdometer,
                 is_verified: true
             });
 
@@ -851,6 +853,27 @@ export default function GaragePage() {
                             <span className="text-xs uppercase font-mono font-bold tracking-wider">Add New Chassis</span>
                         </button>
                     </div>
+
+                    {!activeVehicle && (
+                        <div className="glass-panel p-12 rounded-3xl border border-white/5 text-center space-y-4 max-w-xl mx-auto mt-8">
+                            <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto text-signal-orange">
+                                <Car className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase italic">No Vehicles in Your Garage</h3>
+                            <p className="text-sm text-text-dim max-w-sm mx-auto">
+                                Build your digital chassis profile. Register a vehicle to track its telemetry, maintenance logs, specifications, and display them.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setWizardStep(1);
+                                    setShowModal(true);
+                                }}
+                                className="px-6 py-3.5 bg-signal-orange hover:bg-orange-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-orange-600/10 font-mono"
+                            >
+                                Register Your First Vehicle
+                            </button>
+                        </div>
+                    )}
 
                     {/* Active Vehicle Core Console */}
                     {activeVehicle && (
@@ -1439,28 +1462,28 @@ export default function GaragePage() {
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-none select-none">
                                                     <span className="text-[8px] text-zinc-500 font-mono font-bold uppercase block">TOTAL</span>
                                                     <span className="text-sm font-black text-white font-mono mt-0.5">
-                                                        ${allocationData.sum.toLocaleString()}
+                                                        {formatCurrency(allocationData.sum)}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Details list */}
                                             <div className="space-y-2 font-mono text-[10px]">
-                                                <div className="flex justify-between items-center border-l-2 border-orange-500 pl-2">
+                                                <div className="flex justify-between items-center border-l-2 border-signal-orange pl-2">
                                                     <span className="text-zinc-400 font-bold uppercase">MODS</span>
-                                                    <span className="text-white font-bold">${allocationData.totals.modification.toLocaleString()}</span>
+                                                    <span className="text-white font-bold">{formatCurrency(allocationData.totals.modification)}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center border-l-2 border-red-500 pl-2">
+                                                <div className="flex justify-between items-center border-l-2 border-steel-mid pl-2">
                                                     <span className="text-zinc-400 font-bold uppercase">REPAIRS</span>
-                                                    <span className="text-white font-bold">${allocationData.totals.repair.toLocaleString()}</span>
+                                                    <span className="text-white font-bold">{formatCurrency(allocationData.totals.repair)}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center border-l-2 border-blue-500 pl-2">
+                                                <div className="flex justify-between items-center border-l-2 border-signal-orange-dim pl-2">
                                                     <span className="text-zinc-400 font-bold uppercase">MAINT</span>
-                                                    <span className="text-white font-bold">${allocationData.totals.maintenance.toLocaleString()}</span>
+                                                    <span className="text-white font-bold">{formatCurrency(allocationData.totals.maintenance)}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center border-l-2 border-emerald-500 pl-2">
+                                                <div className="flex justify-between items-center border-l-2 border-text-muted pl-2">
                                                     <span className="text-zinc-400 font-bold uppercase">DETAIL</span>
-                                                    <span className="text-white font-bold">${allocationData.totals.detailing.toLocaleString()}</span>
+                                                    <span className="text-white font-bold">{formatCurrency(allocationData.totals.detailing)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1536,7 +1559,7 @@ export default function GaragePage() {
                                                                         </span>
                                                                     </div>
                                                                     <span className="text-xs font-black text-white font-mono bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                                                                        {log.cost_amount ? `$${log.cost_amount.toLocaleString()}` : 'No Cost'}
+                                                                        {log.cost_amount ? formatCurrency(log.cost_amount) : 'No Cost'}
                                                                     </span>
                                                                 </div>
 
@@ -1550,7 +1573,7 @@ export default function GaragePage() {
                                                                 <div className="flex items-center justify-between mt-3 border-t border-white/5 pt-2">
                                                                     {log.odometer_reading ? (
                                                                         <span className="text-[9px] font-mono text-zinc-500 font-bold bg-white/2 px-2 py-0.5 rounded">
-                                                                            Odometer: {log.odometer_reading.toLocaleString()} mi
+                                                                            Odometer: {formatDistance(log.odometer_reading)}
                                                                         </span>
                                                                     ) : (
                                                                         <div />
@@ -1686,7 +1709,7 @@ export default function GaragePage() {
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest font-mono">Current Odometer (mi)</label>
+                                                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest font-mono">Current Odometer ({unitLabel})</label>
                                                 <input 
                                                     type="number" 
                                                     value={mileage}
@@ -1994,17 +2017,17 @@ export default function GaragePage() {
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest font-mono">Cost (USD)</label>
-                                        <input 
-                                            type="number" 
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest font-mono">Cost ({currencySymbol})</label>
+                                        <input
+                                            type="number"
                                             value={logCost}
                                             onChange={e => setLogCost(e.target.value)}
-                                            placeholder="120"
-                                            className="w-full px-3 py-2.5 bg-white/3 border border-white/8 rounded-xl text-white text-xs focus:outline-none focus:border-signal-orange/40 font-bold font-mono"
+                                            placeholder="250"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-xs focus:outline-none focus:border-signal-orange/40 transition-all font-semibold font-mono"
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest font-mono">Odometer (mi)</label>
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest font-mono">Odometer ({unitLabel})</label>
                                         <input 
                                             type="number" 
                                             value={logOdometer}
@@ -2126,7 +2149,7 @@ export default function GaragePage() {
                                 </div>
                                 <div className="flex justify-between items-center text-zinc-400 border-t border-white/5 pt-2">
                                     <span>TOTAL RECORDED COST</span>
-                                    <span className="text-signal-orange font-black text-sm">${selectedInvoice.cost ? selectedInvoice.cost.toLocaleString() : '0.00'}</span>
+                                    <span className="text-signal-orange font-black text-sm">{selectedInvoice.cost ? formatCurrency(selectedInvoice.cost) : '0.00'}</span>
                                 </div>
                             </div>
 

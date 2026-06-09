@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, Shield, MapPin, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DetailModal } from '@/components/ui/DetailModal';
+import { usePreferences } from '@/hooks/usePreferences';
 
 const MOCK_LISTINGS = [
     { id: 'mock-1', make: 'Nissan', model: 'GT-R R35', year: 2012, price: 85000, mileage: 28000, location: 'Dubai, UAE', image_url: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80', verified: true, seller_username: '@NightRacerJP' },
@@ -18,6 +19,7 @@ const MOCK_LISTINGS = [
 export default function MarketplacePage() {
     const [search, setSearch] = useState('');
     const [listings, setListings] = useState<any[]>([]);
+    const { formatCurrency, formatDistance } = usePreferences();
     const [loading, setLoading] = useState(true);
 
     // Modal details
@@ -59,8 +61,8 @@ export default function MarketplacePage() {
 
             const combined = [...parsedLocal, ...dbListings];
 
-            // If combined is empty, default to MOCK_LISTINGS
-            const uniqueListings = combined.length > 0 ? combined : MOCK_LISTINGS;
+            // Retrieve combined list directly (Removed mock listings default)
+            const uniqueListings = combined;
 
             // Filter out duplicate IDs
             const deduped = uniqueListings.reduce((acc: any[], current) => {
@@ -112,6 +114,16 @@ export default function MarketplacePage() {
             {/* Content Display */}
             {loading ? (
                 <div className="py-20 text-center text-zinc-500 font-bold">Scanning Marketplace...</div>
+            ) : filtered.length === 0 ? (
+                <div className="glass-panel p-12 rounded-3xl border border-white/5 text-center space-y-4 max-w-xl mx-auto mt-8">
+                    <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto text-signal-orange">
+                        <Search className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-xl font-black text-white uppercase italic">No Listings Found</h3>
+                    <p className="text-sm text-text-dim max-w-sm mx-auto">
+                        There are currently no active listings for sale in the marketplace. Check back later or create a listing from the console.
+                    </p>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filtered.map((listing, i) => (
@@ -140,7 +152,7 @@ export default function MarketplacePage() {
                                         </div>
                                     )}
                                     <div className="absolute bottom-3 left-4 text-2xl font-black text-white italic">
-                                        ${listing.price.toLocaleString()}
+                                        {formatCurrency(listing.price)}
                                     </div>
                                 </div>
 
@@ -149,7 +161,7 @@ export default function MarketplacePage() {
                                         {listing.year} {listing.make} {listing.model}
                                     </h3>
                                     <div className="flex items-center gap-4 mt-2 text-xs text-text-dim">
-                                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{listing.mileage.toLocaleString()} mi</span>
+                                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{formatDistance(listing.mileage)}</span>
                                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{listing.location}</span>
                                     </div>
                                 </div>
