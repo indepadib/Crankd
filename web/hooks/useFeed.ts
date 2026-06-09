@@ -31,7 +31,8 @@ export function useFeed(userId?: string) {
         let savedLocal = localStorage.getItem('local-posts');
         let localList = savedLocal ? JSON.parse(savedLocal) : [];
 
-        if (!localStorage.getItem('feed-seeded')) {
+        const hasSeeds = localList.some((p: any) => p.id && p.id.startsWith('seed-post'));
+        if (!hasSeeds) {
             const seedPosts = [
                 {
                     id: 'seed-post-1',
