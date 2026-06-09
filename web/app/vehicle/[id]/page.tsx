@@ -148,7 +148,7 @@ export default function VehicleProfilePage() {
                     });
 
                     setTimeline(parsedTimeline.length > 0 ? parsedTimeline : [
-                        { id: 99, type: 'transfer', title: 'Ledger Created', date: new Date(data.created_at).toLocaleDateString(), detail: 'Vehicle recorded on the Crankd public database.', icon: ArrowRightLeft }
+                        { id: 99, type: 'transfer', title: 'Ledger Created', date: new Date(data.created_at).toLocaleDateString(), detail: 'Vehicle recorded on the Vrooq public database.', icon: ArrowRightLeft }
                     ]);
                 } else {
                     // Fallback to mock data if single query succeeds but returns empty

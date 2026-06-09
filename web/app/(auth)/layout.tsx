@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 {/* Content */}
                 <div className="relative z-10 w-full max-w-lg">
                     <Link href="/" className="inline-block mb-12">
-                        <span className="text-4xl font-black italic tracking-tighter text-white">CRANKD.</span>
+                        <span className="text-4xl font-black italic tracking-tighter text-white">VROOQ.</span>
                     </Link>
                     <h1 className="text-6xl font-black text-white italic uppercase tracking-tighter mb-6 leading-tight">
                         Fuel Your <br />
@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
                 <div className="relative z-10">
                     <div className="flex items-center gap-4 text-sm font-bold text-zinc-500">
-                        <span>© 2024 Crankd Inc.</span>
+                        <span>© 2026 Vrooq Inc.</span>
                         <Link href="/terms" className="hover:text-white transition-colors">Privacy</Link>
                         <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
                     </div>
@@ -44,7 +44,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-col items-center justify-center p-6 lg:p-24 bg-carbon border-l border-white/5 relative">
                 {/* Mobile Header */}
                 <div className="lg:hidden absolute top-8 left-8">
-                    <Link href="/" className="text-2xl font-black italic tracking-tighter text-white">CRANKD.</Link>
+                    <Link href="/" className="text-2xl font-black italic tracking-tighter text-white">VROOQ.</Link>
                 </div>
 
                 <div className="w-full max-w-md">

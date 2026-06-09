@@ -74,7 +74,7 @@ export default function InventoryPage() {
                     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 max-w-md w-full">
                         <h3 className="text-xl font-bold mb-4">Add New Vehicle</h3>
                         <p className="text-zinc-400 mb-6 text-sm">
-                            Enter the VIN to auto-populate details using the Crankd decoder service.
+                            Enter the VIN to auto-populate details using the Vrooq decoder service.
                         </p>
 
                         <div className="space-y-4">

@@ -12,7 +12,7 @@ export default function DashboardLayout({
             <aside className="w-64 border-r border-zinc-800 bg-zinc-900/50 hidden md:flex flex-col">
                 <div className="p-6 border-b border-zinc-800">
                     <h1 className="text-2xl font-black tracking-tighter text-orange-500">
-                        CRANKD
+                        VROOQ
                     </h1>
                     <p className="text-xs text-zinc-500 font-mono mt-1">DEALER PORTAL</p>
                 </div>

@@ -10,11 +10,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-    title: "CRANKD | The Digital Soul of Your Machine",
+    title: "Vrooq | The garage network for car people",
     description: "A high-fidelity system of record for vehicle ownership, maintenance, and heritage. Discover unique builds, track your garage, and connect with car culture.",
     keywords: ["cars", "automotive", "garage", "vehicle history", "car culture", "marketplace"],
     openGraph: {
-        title: "CRANKD — The Digital Soul of Your Machine",
+        title: "Vrooq — The garage network for car people",
         description: "Discover unique builds, mint your garage, and join the world's most exclusive automotive community.",
         type: "website",
     },

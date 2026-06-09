@@ -2,7 +2,7 @@ import React from 'react';
 
 export const AnalyticsChart = () => {
     // Simple mock SVG chart for visual flair
-    // Shows a positive trend line in Crankd orange
+    // Shows a positive trend line in Vrooq orange
     return (
         <svg viewBox="0 0 400 150" className="w-full h-full p-4 overflow-visible">
             {/* Grid Lines */}

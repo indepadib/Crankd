@@ -2107,7 +2107,7 @@ export default function GaragePage() {
                                     <FileText className="h-6 w-6" />
                                 </div>
                                 <h3 className="text-base font-black text-white uppercase font-mono tracking-wide">VERIFIED INVOICE LEDGER</h3>
-                                <p className="text-[9px] text-zinc-500 font-mono uppercase mt-0.5">CRANKD VERIFICATION SYSTEMS • ID #{Math.floor(100000 + Math.random() * 900000)}</p>
+                                <p className="text-[9px] text-zinc-500 font-mono uppercase mt-0.5">VROOQ VERIFICATION SYSTEMS • ID #{Math.floor(100000 + Math.random() * 900000)}</p>
                             </div>
 
                             {/* Details table */}

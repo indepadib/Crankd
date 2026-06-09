@@ -97,7 +97,7 @@ const REVIEWS = [
         author: 'Esther Howard',
         role: 'Collector',
         rating: 5,
-        review: 'Bought my first custom Porsche through the Crankd portal and honestly the transparency was incredible. Zero friction, pure machine.',
+        review: 'Bought my first custom Porsche through the Vrooq portal and honestly the transparency was incredible. Zero friction, pure machine.',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80'
     },
     {
@@ -170,7 +170,7 @@ export default function Home() {
                         <div className="lg:col-span-8 space-y-6">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/5 bg-white/5 text-zinc-400 text-xs font-mono">
                                 <Sparkles className="w-3 h-3 text-signal-orange animate-pulse" />
-                                <span>CRANKD PROTOCOL v1.0 LIVE</span>
+                                <span>VROOQ PROTOCOL v1.0 LIVE</span>
                             </div>
                             <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.85] text-white">
                                 DRIVE YOUR<br />
@@ -253,7 +253,7 @@ export default function Home() {
                                 BUILT FOR THOSE WHO CHOOSE DIFFERENTLY.
                             </h2>
                             <p className="text-zinc-400 text-sm leading-relaxed">
-                                Crankd is the specialized ledger for automotive enthusiasts. We connect detailed service logs, dyno verified modifications, and GPS convoys directly to chassis records.
+                                Vrooq is the specialized ledger for automotive enthusiasts. We connect detailed service logs, dyno verified modifications, and GPS convoys directly to chassis records.
                             </p>
                         </div>
 
@@ -525,8 +525,8 @@ export default function Home() {
             <footer className="py-12 bg-zinc-950/40 border-t border-white/5 relative z-10 w-full mt-auto">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="text-center md:text-left space-y-1">
-                        <h3 className="text-xl font-black tracking-tighter text-white uppercase italic">CRANKD<span className="text-signal-orange">.</span></h3>
-                        <p className="text-zinc-500 text-[11px]">© 2026 Crankd Inc. Built with absolute passion for automotive culture.</p>
+                        <h3 className="text-xl font-black tracking-tighter text-white uppercase italic">VROOQ<span className="text-signal-orange">.</span></h3>
+                        <p className="text-zinc-500 text-[11px]">© 2026 Vrooq Inc. Built with absolute passion for automotive culture.</p>
                     </div>
                     <div className="flex gap-6 text-xs font-bold text-zinc-500">
                         <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>

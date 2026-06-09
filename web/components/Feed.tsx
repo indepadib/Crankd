@@ -27,6 +27,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { DetailModal } from './ui/DetailModal';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { VrooqTV } from './VrooqTV';
 
 function FeedTuner() {
     const [dismissed, setDismissed] = useState(false);
@@ -49,7 +50,7 @@ function FeedTuner() {
                 <div>
                     <div className="flex items-center gap-2 text-signal-orange mb-2">
                         <Sparkles className="h-4 w-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Crankd Intelligence</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">Vrooq Intelligence</span>
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">Fine-tune your feed</h3>
                     <p className="text-sm text-text-dim">Our algorithm adapts to your garage.</p>
@@ -722,7 +723,7 @@ function FeedItem({
 }
 
 export function Feed() {
-    const [view, setView] = useState<'following' | 'discover'>('discover');
+    const [view, setView] = useState<'following' | 'discover' | 'vrooqtv'>('discover');
     const [layoutType, setLayoutType] = useState<'social' | 'grid'>('social');
     const [activeTag, setActiveTag] = useState<string | null>(null);
     const { user } = useAuth();
@@ -804,6 +805,13 @@ export function Feed() {
                             Discover
                             {view === 'discover' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
                         </button>
+                        <button
+                            onClick={() => setView('vrooqtv')}
+                            className={`text-sm font-bold pb-2 transition-colors relative ${view === 'vrooqtv' ? 'text-white' : 'text-text-dim hover:text-white'}`}
+                        >
+                            Vrooq TV 📺
+                            {view === 'vrooqtv' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
+                        </button>
                     </div>
                 </div>
             </header>
@@ -849,11 +857,13 @@ export function Feed() {
                         </div>
                     )}
                 </div>
-            ) : (
+            ) : view === 'discover' ? (
                 <DiscoverView onSelectTag={(tag) => {
                     setActiveTag(tag);
                     setView('following');
                 }} />
+            ) : (
+                <VrooqTV />
             )}
 
             {/* Global Overlay Detail Modal */}

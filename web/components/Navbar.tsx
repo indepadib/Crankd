@@ -10,7 +10,7 @@ export const Navbar = () => {
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2 group">
                     <span className="text-2xl font-black tracking-tighter text-white group-hover:text-signal-orange transition-colors">
-                        CRANKD
+                        VROOQ
                     </span>
                     <span className="text-[10px] font-bold text-signal-orange bg-signal-orange/10 border border-signal-orange/20 px-2 py-0.5 rounded-full uppercase tracking-widest">
                         Beta
