@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthProvider';
 import { 
     Heart, 
     MessageCircle, 
@@ -66,7 +68,8 @@ const REELS_VIDEOS = [
 ];
 
 export function VrooqTV() {
-    const [videoStack, setVideoStack] = useState<any[]>(REELS_VIDEOS);
+    const { user } = useAuth();
+    const [videoStack, setVideoStack] = useState<any[]>([]);
     const [activeIdx, setActiveIdx] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
@@ -90,6 +93,98 @@ export function VrooqTV() {
     const activeVideo = videoStack[activeIdx] || null;
 
     useEffect(() => {
+        const fetchReels = async () => {
+            let dbVideos: any[] = [];
+            try {
+                // Fetch videos from Supabase
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select('*, author:profiles(username, avatar_url)')
+                    .eq('content_type', 'video')
+                    .order('created_at', { ascending: false });
+                
+                if (!error && data) {
+                    dbVideos = data;
+                }
+            } catch (err) {
+                console.warn('Failed to fetch video posts from database:', err);
+            }
+
+            // Fetch from local storage
+            let localVideos: any[] = [];
+            try {
+                const saved = localStorage.getItem('local-posts');
+                const localList = saved ? JSON.parse(saved) : [];
+                localVideos = localList.filter((p: any) => p.content_type === 'video' || p.content_type === 'reel');
+            } catch (err) {
+                console.warn('Failed to parse local posts:', err);
+            }
+
+            // Combine and format
+            const combined = [...localVideos, ...dbVideos];
+            const uniqueMap = new Map();
+            combined.forEach(p => {
+                uniqueMap.set(p.id, p);
+            });
+
+            const formatted = Array.from(uniqueMap.values()).map(post => {
+                let description = '';
+                if (post.body) {
+                    try {
+                        const parsed = JSON.parse(post.body);
+                        description = parsed.text || post.body;
+                    } catch (e) {
+                        description = post.body;
+                    }
+                }
+                const username = post.author?.username || post.author_username || 'Driver';
+                const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+
+                return {
+                    id: post.id,
+                    title: post.title || 'Vrooq Clip',
+                    description: description,
+                    url: post.image_url || '',
+                    tags: post.tags || ['vrooq'],
+                    author: {
+                        username: cleanUsername,
+                        avatar: cleanUsername.substring(0, 2).toUpperCase()
+                    },
+                    likes: post.like_count || 0,
+                    comments: post.comment_count || 0,
+                    marketplaceItem: null
+                };
+            });
+
+            // Combine with default preset reels at the end (or as fallbacks)
+            const finalStack = [...formatted, ...REELS_VIDEOS];
+            // Filter duplicates by url just in case
+            const seenUrls = new Set();
+            const filteredStack = finalStack.filter(item => {
+                if (seenUrls.has(item.url)) return false;
+                seenUrls.add(item.url);
+                return true;
+            });
+
+            setVideoStack(filteredStack);
+        };
+
+        fetchReels();
+    }, []);
+
+    useEffect(() => {
+        if (videoStack.length === 0) return;
+        const likedState: Record<string, boolean> = {};
+        videoStack.forEach(v => {
+            const saved = localStorage.getItem(`liked-${v.id}`);
+            if (saved === 'true') {
+                likedState[v.id] = true;
+            }
+        });
+        setLikedVideos(likedState);
+    }, [videoStack]);
+
+    useEffect(() => {
         // Autoplay whenever active index changes
         if (videoRef.current) {
             videoRef.current.load();
@@ -102,7 +197,7 @@ export function VrooqTV() {
         setShowComments(false);
         setShowCheckout(false);
         setCheckoutComplete(false);
-    }, [activeIdx]);
+    }, [activeIdx, videoStack]);
 
     const togglePlayback = () => {
         if (!videoRef.current) return;
@@ -117,6 +212,7 @@ export function VrooqTV() {
     };
 
     const handleNext = () => {
+        if (videoStack.length === 0) return;
         if (activeIdx < videoStack.length - 1) {
             setActiveIdx(prev => prev + 1);
         } else {
@@ -125,6 +221,7 @@ export function VrooqTV() {
     };
 
     const handleBack = () => {
+        if (videoStack.length === 0) return;
         if (activeIdx > 0) {
             setActiveIdx(prev => prev - 1);
         } else {
@@ -147,38 +244,79 @@ export function VrooqTV() {
             setTimeout(() => setLikeExplosion(false), 800);
         }
 
+        // Persist liked status locally
+        localStorage.setItem(`liked-${id}`, (!isCurrentlyLiked).toString());
+
         setVideoStack(prev => prev.map(v => {
             if (v.id === id) {
                 return {
                     ...v,
-                    likes: isCurrentlyLiked ? v.likes - 1 : v.likes + 1
+                    likes: isCurrentlyLiked ? Math.max(0, v.likes - 1) : v.likes + 1
                 };
             }
             return v;
         }));
     };
 
-    const handleSendComment = (e: React.FormEvent) => {
+    const getCommentsList = () => {
+        if (!activeVideo) return [];
+        
+        // 1. If in videoComments state, return it
+        if (videoComments[activeVideo.id]) {
+            return videoComments[activeVideo.id];
+        }
+
+        // 2. Try loading from localStorage comments-${activeVideo.id}
+        const saved = localStorage.getItem(`comments-${activeVideo.id}`);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {}
+        }
+
+        // 3. Fallback to default mock comments
+        return [
+            { id: 'c1', username: '@GTR_Enthusiast', text: 'Clean layout! Approved.', created_at: '10:14 AM' },
+            { id: 'c2', username: '@BrakeChecker', text: 'Top tier mods on this build.', created_at: '11:05 AM' }
+        ];
+    };
+
+    const handleSendComment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!commentInput.trim() || !activeVideo) return;
 
         const id = activeVideo.id;
+        const currentEmail = user?.email || 'driver_one@vrooq.com';
+        const currentUsername = `@${currentEmail.split('@')[0]}`;
         const newComment = {
             id: `c-${Date.now()}`,
-            username: '@driver_one',
+            username: currentUsername,
             text: commentInput.trim(),
             created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
-        const currentComments = videoComments[id] || [
-            { id: 'c1', username: '@GTR_Enthusiast', text: 'Clean layout! Approved.', created_at: '10:14 AM' },
-            { id: 'c2', username: '@BrakeChecker', text: 'Top tier mods on this build.', created_at: '11:05 AM' }
-        ];
+        const currentComments = getCommentsList();
+        const updatedComments = [newComment, ...currentComments];
 
         setVideoComments(prev => ({
             ...prev,
-            [id]: [newComment, ...currentComments]
+            [id]: updatedComments
         }));
+
+        localStorage.setItem(`comments-${id}`, JSON.stringify(updatedComments));
+
+        // Sync comment to Supabase
+        if (!id.startsWith('r-')) {
+            try {
+                await supabase.from('post_comments').insert({
+                    post_id: id,
+                    author_username: currentUsername,
+                    comment_text: commentInput.trim()
+                });
+            } catch (err) {
+                console.warn('Failed to insert comment:', err);
+            }
+        }
 
         setVideoStack(prev => prev.map(v => {
             if (v.id === id) {
@@ -199,14 +337,6 @@ export function VrooqTV() {
             setCheckoutLoading(false);
             setCheckoutComplete(true);
         }, 1200);
-    };
-
-    const getCommentsList = () => {
-        if (!activeVideo) return [];
-        return videoComments[activeVideo.id] || [
-            { id: 'c1', username: '@GTR_Enthusiast', text: 'Clean layout! Approved.', created_at: '10:14 AM' },
-            { id: 'c2', username: '@BrakeChecker', text: 'Top tier mods on this build.', created_at: '11:05 AM' }
-        ];
     };
 
     return (

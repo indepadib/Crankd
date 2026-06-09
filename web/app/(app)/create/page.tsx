@@ -60,6 +60,29 @@ const PRESET_IMAGES = [
     'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80'
 ];
 
+const PRESET_VIDEOS = [
+    {
+        name: 'Supra Drift',
+        url: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-drifting-in-a-parking-lot-40439-large.mp4',
+        cover: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=200&q=80'
+    },
+    {
+        name: 'Singer Porsche',
+        url: 'https://assets.mixkit.co/videos/preview/mixkit-porsche-car-driving-on-a-curved-road-41482-large.mp4',
+        cover: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&q=80'
+    },
+    {
+        name: 'Engine Tuning',
+        url: 'https://assets.mixkit.co/videos/preview/mixkit-mechanic-hands-repairing-a-car-engine-40488-large.mp4',
+        cover: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=200&q=80'
+    },
+    {
+        name: 'Garage GT-R',
+        url: 'https://assets.mixkit.co/videos/preview/mixkit-luxurious-car-parked-in-a-garage-41486-large.mp4',
+        cover: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=200&q=80'
+    }
+];
+
 function CreateFormContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -75,6 +98,12 @@ function CreateFormContent() {
     const [tags, setTags] = useState('');
     const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0]);
     const [customImageUrl, setCustomImageUrl] = useState('');
+
+    // Video states
+    const [postMediaType, setPostMediaType] = useState<'photo' | 'video'>('photo');
+    const [videoUrl, setVideoUrl] = useState('');
+    const [customVideoUrl, setCustomVideoUrl] = useState('');
+    const [videoUploading, setVideoUploading] = useState(false);
 
     // Community / Tribe states
     const [communityId, setCommunityId] = useState('');
@@ -214,6 +243,36 @@ function CreateFormContent() {
         }
     };
 
+    const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('video/')) {
+            alert('Please select a valid video file.');
+            return;
+        }
+
+        if (file.size > 15 * 1024 * 1024) {
+            alert('Video file is too large (max 15MB). Please upload a shorter clip.');
+            return;
+        }
+
+        setVideoUploading(true);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                setCustomVideoUrl(reader.result);
+                setVideoUrl('');
+            }
+            setVideoUploading(false);
+        };
+        reader.onerror = () => {
+            alert('Failed to read video file.');
+            setVideoUploading(false);
+        };
+    };
+
     const handlePublishPost = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) {
@@ -229,7 +288,10 @@ function CreateFormContent() {
             cleanTags.push(communityName);
         }
         
-        const finalImg = customImageUrl.trim() || imageUrl;
+        const finalImg = postMediaType === 'video'
+            ? (customVideoUrl.trim() || videoUrl)
+            : (customImageUrl.trim() || imageUrl);
+        const contentType = postMediaType === 'video' ? 'video' : 'media';
 
         const richBody = JSON.stringify({
             chassis: chassisCode,
@@ -248,7 +310,7 @@ function CreateFormContent() {
             title,
             body: richBody,
             image_url: finalImg,
-            content_type: 'media',
+            content_type: contentType,
             tags: cleanTags.length > 0 ? cleanTags : ['Build'],
             community_id: communityId || null,
             community: communityId ? { id: communityId, name: communityName } : null,
@@ -265,7 +327,7 @@ function CreateFormContent() {
                 title,
                 body: richBody,
                 image_url: finalImg,
-                content_type: 'media',
+                content_type: contentType,
                 tags: cleanTags.length > 0 ? cleanTags : ['Build'],
                 community_id: communityId || null
             });
@@ -451,6 +513,10 @@ function CreateFormContent() {
         setRequiredGear([]);
         setCustomImageUrl('');
         setImageUrl(PRESET_IMAGES[0]);
+        setPostMediaType('photo');
+        setVideoUrl('');
+        setCustomVideoUrl('');
+        setVideoUploading(false);
     };
 
     const toggleGear = (item: string) => {
@@ -632,30 +698,150 @@ function CreateFormContent() {
                         </div>
 
                         <div className="space-y-4">
-                            <ImageUpload 
-                                value={customImageUrl} 
-                                onChange={setCustomImageUrl} 
-                                label="Upload Build Photo" 
-                            />
-                            
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from presets</label>
-                                <div className="flex gap-2 overflow-x-auto py-1">
-                                    {PRESET_IMAGES.map((img, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={() => {
-                                                setImageUrl(img);
-                                                setCustomImageUrl('');
-                                            }}
-                                            className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
-                                        >
-                                            <img src={img} alt="preset" className="w-full h-full object-cover" />
-                                        </button>
-                                    ))}
+                            {/* Photo vs Video Selection Tabs */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Media Type</label>
+                                <div className="flex gap-2 p-1 bg-white/2 border border-white/5 rounded-xl">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPostMediaType('photo')}
+                                        className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all font-mono ${
+                                            postMediaType === 'photo'
+                                                ? 'bg-signal-orange text-white shadow-lg shadow-orange-500/10'
+                                                : 'text-zinc-500 hover:text-white'
+                                        }`}
+                                    >
+                                        Photo Post
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPostMediaType('video');
+                                            if (!videoUrl && !customVideoUrl) {
+                                                setVideoUrl(PRESET_VIDEOS[0].url);
+                                            }
+                                        }}
+                                        className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all font-mono ${
+                                            postMediaType === 'video'
+                                                ? 'bg-signal-orange text-white shadow-lg shadow-orange-500/10'
+                                                : 'text-zinc-500 hover:text-white'
+                                        }`}
+                                    >
+                                        Video / Vrooq TV Reel
+                                    </button>
                                 </div>
                             </div>
+
+                            {postMediaType === 'photo' ? (
+                                <>
+                                    <ImageUpload 
+                                        value={customImageUrl} 
+                                        onChange={setCustomImageUrl} 
+                                        label="Upload Build Photo" 
+                                    />
+                                    
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from presets</label>
+                                        <div className="flex gap-2 overflow-x-auto py-1">
+                                            {PRESET_IMAGES.map((img, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImageUrl(img);
+                                                        setCustomImageUrl('');
+                                                    }}
+                                                    className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 ${imageUrl === img && !customImageUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
+                                                >
+                                                    <img src={img} alt="preset" className="w-full h-full object-cover" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Upload Reel Video File</label>
+                                        <div className="relative border-2 border-dashed border-white/10 hover:border-signal-orange/40 bg-white/2 hover:bg-signal-orange/1 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group">
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                onChange={handleVideoFileChange}
+                                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                            />
+                                            {customVideoUrl ? (
+                                                <div className="space-y-2 text-center z-20">
+                                                    <video src={customVideoUrl} className="max-h-48 rounded-xl mx-auto" controls />
+                                                    <p className="text-[10px] text-signal-orange font-bold uppercase font-mono">Video Selected</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCustomVideoUrl('');
+                                                            setVideoUrl(PRESET_VIDEOS[0].url);
+                                                        }}
+                                                        className="text-[9px] text-red-400 hover:text-red-300 font-bold uppercase font-mono underline relative z-30"
+                                                    >
+                                                        Remove Video
+                                                    </button>
+                                                </div>
+                                            ) : videoUploading ? (
+                                                <div className="text-center py-4 space-y-2 animate-pulse">
+                                                    <p className="text-xs text-white font-mono uppercase">Reading video matrix...</p>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center space-y-2 pointer-events-none select-none">
+                                                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto group-hover:border-signal-orange/30 group-hover:bg-signal-orange/5 transition-colors">
+                                                        <Upload className="h-5 w-5 text-zinc-500 group-hover:text-signal-orange transition-colors" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-white font-bold uppercase tracking-wide">Upload Video File</p>
+                                                        <p className="text-[9px] text-zinc-500 font-mono mt-0.5 uppercase">MP4, MOV or WEBM (max 15MB)</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Video URL Input */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono block">Or enter a public Video URL</label>
+                                        <input
+                                            type="text"
+                                            value={customVideoUrl.startsWith('data:') ? '' : customVideoUrl}
+                                            onChange={e => {
+                                                setCustomVideoUrl(e.target.value);
+                                                setVideoUrl('');
+                                            }}
+                                            placeholder="https://example.com/my-cool-car-video.mp4"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 transition-all font-semibold"
+                                        />
+                                    </div>
+
+                                    {/* Preset videos selection */}
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-zinc-500 uppercase font-mono block">Or select from high-quality presets</label>
+                                        <div className="flex gap-2 overflow-x-auto py-1">
+                                            {PRESET_VIDEOS.map((vid, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setVideoUrl(vid.url);
+                                                        setCustomVideoUrl('');
+                                                    }}
+                                                    className={`relative w-24 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 flex flex-col justify-end p-1.5 ${videoUrl === vid.url && !customVideoUrl ? 'border-signal-orange scale-102' : 'border-transparent'}`}
+                                                >
+                                                    <img src={vid.cover} alt={vid.name} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                                                    <div className="absolute inset-0 bg-black/40" />
+                                                    <span className="relative text-[8px] font-bold font-mono text-white uppercase truncate w-full text-left">{vid.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold font-mono">{error}</div>}

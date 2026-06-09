@@ -244,12 +244,13 @@ export default function ProfilePage() {
         return <div className="py-40 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse">Retrieving Profile Matrix...</div>;
     }
 
+    const isAdmin = username.toLowerCase().includes('adib') || user?.email?.toLowerCase().includes('adib');
     const rank = getDriverRank();
     const stats = [
         { label: 'Vehicles', value: vehicles.length.toString() },
         { label: 'Posts', value: posts.length.toString() },
-        { label: 'Followers', value: '1.2K' },
-        { label: 'Following', value: '389' },
+        { label: 'Followers', value: isAdmin ? '1.2K' : '0' },
+        { label: 'Following', value: isAdmin ? '389' : '0' },
     ];
 
     const defaultCover = 'https://images.unsplash.com/photo-1542282088-fe8426682b8f?q=80&w=2670&auto=format&fit=crop';
