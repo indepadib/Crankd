@@ -36,7 +36,7 @@ export interface UserProfile {
 export interface Post {
     id: string;
     author_id: string;
-    content_type: 'media' | 'maintenance_log' | 'listing' | 'convoy' | 'vehicle_showcase';
+    content_type: 'media' | 'maintenance_log' | 'listing' | 'convoy' | 'vehicle_showcase' | 'video';
     media_id?: string;
     log_id?: string;
     listing_id?: string;
