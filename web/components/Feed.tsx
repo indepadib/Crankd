@@ -305,11 +305,22 @@ function FeedItem({
             >
                 {getImage() ? (
                     <div className="absolute inset-0">
-                        <img
-                            src={getImage()!}
-                            alt={post.title || 'Feed Image'}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-103"
-                        />
+                        {post.content_type === 'video' || getImage()!.includes('.mp4') || getImage()!.startsWith('data:video') ? (
+                            <video
+                                src={getImage()!}
+                                loop
+                                muted
+                                autoPlay
+                                playsInline
+                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-103"
+                            />
+                        ) : (
+                            <img
+                                src={getImage()!}
+                                alt={post.title || 'Feed Image'}
+                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-103"
+                            />
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/50 to-transparent opacity-90" />
                     </div>
                 ) : post.content_type === 'convoy' ? (
@@ -477,11 +488,19 @@ function FeedItem({
                     onClick={handleImageClick}
                     className="relative w-full aspect-video md:aspect-[16/10] overflow-hidden bg-black/20 border-y border-white/5 cursor-pointer group/image"
                 >
-                    <img
-                        src={getImage()!}
-                        alt={post.title || 'Feed Media'}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
-                    />
+                    {post.content_type === 'video' || getImage()!.includes('.mp4') || getImage()!.startsWith('data:video') ? (
+                        <video
+                            src={getImage()!}
+                            controls
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
+                        />
+                    ) : (
+                        <img
+                            src={getImage()!}
+                            alt={post.title || 'Feed Media'}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
+                        />
+                    )}
 
                     {/* Shimmer Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000 ease-out pointer-events-none" />

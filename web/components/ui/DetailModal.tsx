@@ -66,6 +66,17 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         } catch (e) {
             descriptionText = data.body;
         }
+    } else if (type === 'post' && data?.body) {
+        try {
+            if (data.body.startsWith('{')) {
+                parsedDetails = JSON.parse(data.body);
+                descriptionText = parsedDetails.text || '';
+            } else {
+                descriptionText = data.body;
+            }
+        } catch (e) {
+            descriptionText = data.body;
+        }
     }
 
     // Load comments and RSVPs
@@ -230,11 +241,19 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                     <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                         {/* Image Gallery / Main Image */}
                         <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden border border-white/5 bg-black/30 relative">
-                            <img 
-                                src={data.image_url || data.image || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200&q=80'} 
-                                alt="Showcase"
-                                className="w-full h-full object-cover"
-                            />
+                            {data.content_type === 'video' || (data.image_url || data.image || '').includes('.mp4') || (data.image_url || data.image || '').startsWith('data:video') ? (
+                                <video 
+                                    src={data.image_url || data.image} 
+                                    controls 
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <img 
+                                    src={data.image_url || data.image || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200&q=80'} 
+                                    alt="Showcase"
+                                    className="w-full h-full object-cover"
+                                />
+                            )}
                             {type === 'listing' && (
                                 <div className="absolute bottom-4 left-5 px-4 py-2 bg-[#0a0a0c]/80 backdrop-blur rounded-xl border border-white/10 text-2xl font-black text-white italic">
                                     {formatCurrency(data.price)}
@@ -415,13 +434,36 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
 
                         {type === 'post' && (
                             <div className="space-y-6">
-                                <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
-                                    {data.body}
+                                <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                                    {descriptionText || data.body}
                                 </p>
+
+                                {/* Specifications Grid if rich post */}
+                                {parsedDetails && (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-white/5">
+                                        <SpecField label="Chassis / Engine" value={parsedDetails.chassis} icon={Car} />
+                                        <SpecField label="Horsepower" value={parsedDetails.hp ? `${parsedDetails.hp} WHP` : null} icon={Zap} />
+                                        <SpecField label="Modification Cost" value={parsedDetails.cost ? formatCurrency(parseFloat(parsedDetails.cost)) : null} icon={Scale} />
+                                        <SpecField label="Mods Count" value={parsedDetails.mods ? `${parsedDetails.mods.split(',').length} items` : '0 items'} icon={GitCommit} />
+                                    </div>
+                                )}
+
+                                {parsedDetails?.mods && (
+                                    <div className="pt-4 border-t border-white/5 space-y-3">
+                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">Modifications details</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {parsedDetails.mods.split(',').map((mod: string, i: number) => (
+                                                <span key={i} className="px-3 py-1.5 bg-white/2 border border-white/5 text-zinc-300 text-xs rounded-xl font-medium">
+                                                    {mod.trim()}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Specifications overlay if present */}
                                 {data.tags && (
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <div className="flex flex-wrap gap-1.5 pt-4">
                                         {data.tags.map((t: string, idx: number) => (
                                             <span key={idx} className="px-2.5 py-1 bg-white/5 border border-white/8 text-zinc-400 text-xs rounded-lg font-semibold">
                                                 #{t}

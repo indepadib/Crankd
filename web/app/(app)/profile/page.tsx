@@ -479,7 +479,11 @@ export default function ProfilePage() {
                                     onClick={() => handleOpenPostDetails(post)}
                                     className="aspect-square rounded-2xl overflow-hidden group relative cursor-pointer border border-white/5 hover:border-white/20 transition-all bg-steel/30"
                                 >
-                                    <img src={postImg} alt={post.title || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    {post.content_type === 'video' || postImg.includes('.mp4') || postImg.startsWith('data:video') ? (
+                                        <video src={postImg} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" muted playsInline />
+                                    ) : (
+                                        <img src={postImg} alt={post.title || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    )}
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                                         <div className="flex items-center gap-1.5 text-white font-bold text-sm">
                                             <Heart className="h-4.5 w-4.5 fill-white text-signal-orange drop-shadow-[0_0_8px_#f97316]" /> {post.like_count || 0}
