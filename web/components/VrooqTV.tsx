@@ -515,7 +515,7 @@ export function VrooqTV() {
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto py-3 space-y-3 custom-scrollbar text-[10px]">
-                                    {getCommentsList().map((c) => (
+                                    {getCommentsList().map((c: any) => (
                                         <div key={c.id} className="bg-white/2 p-2 rounded-lg border border-white/5">
                                             <p className="font-bold text-signal-orange">{c.username}</p>
                                             <p className="text-zinc-300 mt-0.5">{c.text}</p>
