@@ -171,6 +171,7 @@ function CreateFormContent() {
     const [extColor, setExtColor] = useState('');
     const [intColor, setIntColor] = useState('');
     const [listingMods, setListingMods] = useState('');
+    const [selectedVehicleId, setSelectedVehicleId] = useState('');
 
     // Convoy specific states
     const [convoyStep, setConvoyStep] = useState(1);
@@ -211,9 +212,14 @@ function CreateFormContent() {
     }, [user]);
 
     const handleAutofillListing = (vehicleId: string) => {
-        if (!vehicleId) return;
+        if (!vehicleId) {
+            setSelectedVehicleId('');
+            return;
+        }
         const selected = userVehicles.find(v => v.id === vehicleId);
         if (!selected) return;
+
+        setSelectedVehicleId(selected.id);
 
         setMake(selected.make || '');
         setModel(selected.model || '');
@@ -362,7 +368,8 @@ function CreateFormContent() {
             exteriorColor: extColor,
             interiorColor: intColor,
             mods: listingMods,
-            text: body
+            text: body,
+            vehicleId: selectedVehicleId || null
         });
 
         const userEmail = user.email || 'enthusiast';

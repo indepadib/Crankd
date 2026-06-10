@@ -427,6 +427,24 @@ export default function VehicleProfilePage() {
                 {/* LEFT COLUMN: SPECS & ACTIONS */}
                 <div className="lg:col-span-1 space-y-6">
                     
+                    {/* Certified Digital Passport Banner */}
+                    <div className="glass-panel p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                        <div className="flex items-start gap-4">
+                            <div className="h-10 w-10 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">
+                                <Shield className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-black text-white uppercase italic tracking-tight flex items-center gap-1.5">
+                                    Certified Vrooq Passport <span className="text-emerald-400 font-sans text-xs">✓</span>
+                                </h4>
+                                <p className="text-[10px] text-zinc-400 font-medium leading-normal uppercase font-mono">
+                                    This profile is a cryptographically secured provenance ledger tracking the complete ownership, service logs, and specs of this chassis.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Owner Card */}
                     <div className="block glass-panel p-6 rounded-2xl border border-white/5">
                         <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3 font-black font-mono">Current Custodian</div>

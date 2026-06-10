@@ -302,7 +302,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                 {/* Modifications */}
                                 {parsedDetails?.mods && (
                                     <div className="pt-4 border-t border-white/5 space-y-3">
-                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Upgraded Modifications</h4>
+                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">Upgraded Modifications</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {parsedDetails.mods.split(',').map((mod: string, i: number) => (
                                                 <span key={i} className="px-3 py-1.5 bg-white/2 border border-white/5 text-zinc-300 text-xs rounded-xl font-medium">
@@ -310,6 +310,18 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                                 </span>
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Vehicle Ledger Link */}
+                                {(parsedDetails?.vehicleId || data.vehicle_id || data.vehicle?.id) && (
+                                    <div className="pt-6 border-t border-white/5">
+                                        <a 
+                                            href={`/vehicle/${parsedDetails.vehicleId || data.vehicle_id || data.vehicle?.id}`}
+                                            className="w-full py-3.5 bg-signal-orange/10 border border-signal-orange/30 hover:bg-signal-orange hover:text-white text-signal-orange text-xs font-mono font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Shield className="h-4 w-4" /> View Certified Provenance Ledger
+                                        </a>
                                     </div>
                                 )}
                             </div>
@@ -469,6 +481,18 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                                 #{t}
                                             </span>
                                         ))}
+                                    </div>
+                                )}
+
+                                {/* Vehicle Ledger Link */}
+                                {(data.vehicle_id || data.vehicle?.id) && (
+                                    <div className="pt-6 border-t border-white/5">
+                                        <a 
+                                            href={`/vehicle/${data.vehicle_id || data.vehicle?.id}`}
+                                            className="w-full py-3.5 bg-signal-orange/10 border border-signal-orange/30 hover:bg-signal-orange hover:text-white text-signal-orange text-xs font-mono font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Shield className="h-4 w-4" /> View Certified Provenance Ledger
+                                        </a>
                                     </div>
                                 )}
                             </div>
