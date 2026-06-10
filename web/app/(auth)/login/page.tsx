@@ -80,7 +80,7 @@ export default function LoginPage() {
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
-                            placeholder="driver@crankd.com"
+                            placeholder="driver@vrooq.com"
                             className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 focus:bg-white/10 transition-all font-semibold"
                         />
                     </div>

@@ -17,8 +17,8 @@ export function Sidebar() {
                 href="/feed"
                 className="h-12 w-12 bg-signal-orange rounded-2xl flex items-center justify-center shadow-lg shadow-signal-orange/30 hover:scale-105 hover:shadow-signal-orange/50 transition-all duration-200 group relative"
             >
-                <span className="text-white font-black text-xl italic tracking-tighter">C</span>
-                <Tooltip label="Home" />
+                <span className="text-white font-black text-2xl italic tracking-tighter select-none">V</span>
+                <Tooltip label="Vrooq" />
             </Link>
 
             {/* Main Nav */}
