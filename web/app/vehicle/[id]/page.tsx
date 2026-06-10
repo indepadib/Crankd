@@ -57,6 +57,117 @@ export default function VehicleProfilePage() {
     const [publishingPhoto, setPublishingPhoto] = useState(false);
     const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
 
+    // Specs Editor States
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editMake, setEditMake] = useState('');
+    const [editModel, setEditModel] = useState('');
+    const [editYear, setEditYear] = useState('');
+    const [editVin, setEditVin] = useState('');
+    const [editTrim, setEditTrim] = useState('');
+    const [editHealthScore, setEditHealthScore] = useState('');
+    const [editImageUrl, setEditImageUrl] = useState('');
+    const [editEngine, setEditEngine] = useState('');
+    const [editPower, setEditPower] = useState('');
+    const [editWeight, setEditWeight] = useState('');
+    const [editDrivetrain, setEditDrivetrain] = useState('');
+    const [editTransmission, setEditTransmission] = useState('');
+    const [editStage, setEditStage] = useState('');
+    const [editChassisCode, setEditChassisCode] = useState('');
+    const [editColor, setEditColor] = useState('');
+
+    const handleOpenEditModal = () => {
+        if (!vehicle) return;
+        setEditMake(vehicle.make || '');
+        setEditModel(vehicle.model || '');
+        setEditYear(vehicle.year?.toString() || '');
+        setEditVin(vehicle.vin || '');
+        setEditTrim(vehicle.trim || '');
+        setEditHealthScore(vehicle.health_score?.toString() || '95');
+        setEditImageUrl(vehicle.image_url || '');
+        setEditEngine(vehicle.specs?.engine || '');
+        setEditPower(vehicle.specs?.power?.replace(' HP', '') || '');
+        setEditWeight(vehicle.specs?.weight?.replace(' kg', '') || '');
+        setEditDrivetrain(vehicle.specs?.drivetrain || '');
+        setEditTransmission(vehicle.specs?.transmission || 'Manual');
+        setEditStage(vehicle.specs?.stage || 'Stock');
+        setEditChassisCode(vehicle.specs?.chassisCode || '');
+        setEditColor(vehicle.specs?.color || '');
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveSpecs = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!vehicle || !user) return;
+
+        setLoading(true);
+
+        const updatedMake = editMake.trim();
+        const updatedModel = editModel.trim();
+        const updatedYear = parseInt(editYear) || vehicle.year;
+        const updatedVin = editVin.trim();
+        const updatedTrim = editTrim.trim();
+        const updatedHealthScore = parseInt(editHealthScore) || 95;
+        const updatedImageUrl = editImageUrl.trim();
+
+        // 1. Update specs local registry
+        const specsData = {
+            vin: updatedVin,
+            trim: updatedTrim,
+            healthScore: updatedHealthScore,
+            engine: editEngine.trim(),
+            power: editPower.trim(),
+            weight: editWeight.trim(),
+            drivetrain: editDrivetrain.trim(),
+            transmission: editTransmission.trim(),
+            stage: editStage.trim(),
+            chassisCode: editChassisCode.trim(),
+            color: editColor.trim()
+        };
+        localStorage.setItem(`vehicle-specs-${vehicle.id}`, JSON.stringify(specsData));
+
+        // 2. Update local-vehicles list in case of local vehicle or offline fallback
+        const localSaved = localStorage.getItem('local-vehicles');
+        const localList = localSaved ? JSON.parse(localSaved) : [];
+        const updatedLocalList = localList.map((v: any) => {
+            if (v.id === vehicle.id) {
+                return {
+                    ...v,
+                    make: updatedMake,
+                    model: updatedModel,
+                    year: updatedYear,
+                    trim: updatedTrim,
+                    health_score: updatedHealthScore,
+                    image_url: updatedImageUrl,
+                    vin: updatedVin
+                };
+            }
+            return v;
+        });
+        localStorage.setItem('local-vehicles', JSON.stringify(updatedLocalList));
+
+        // 3. Update Supabase
+        if (!vehicle.id.startsWith('local-')) {
+            try {
+                const { error } = await supabase
+                    .from('vehicles')
+                    .update({
+                        make: updatedMake,
+                        model: updatedModel,
+                        year: updatedYear,
+                        image_url: updatedImageUrl
+                    })
+                    .eq('id', vehicle.id);
+
+                if (error) throw error;
+            } catch (err: any) {
+                console.warn('Failed to update vehicle in database:', err.message);
+            }
+        }
+
+        setIsEditModalOpen(false);
+        await fetchVehicle();
+    };
+
     const fetchVehicle = useCallback(async () => {
         if (!vehicleId) return;
         setLoading(true);
@@ -337,10 +448,20 @@ export default function VehicleProfilePage() {
                         viewport={{ once: true }}
                         className="glass-panel p-6 rounded-2xl border border-white/5"
                     >
-                        <h3 className="text-white font-bold uppercase tracking-wider mb-4 flex items-center gap-2 font-mono text-xs">
-                            <Activity className="h-4 w-4 text-signal-orange" />
-                            Technical Specs Ledger
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-white font-bold uppercase tracking-wider flex items-center gap-2 font-mono text-xs">
+                                <Activity className="h-4 w-4 text-signal-orange" />
+                                Technical Specs Ledger
+                            </h3>
+                            {isOwner && (
+                                <button
+                                    onClick={handleOpenEditModal}
+                                    className="px-2.5 py-1 bg-white/5 border border-white/10 hover:border-signal-orange/40 hover:bg-signal-orange/5 text-[9px] font-bold text-zinc-400 hover:text-white rounded-lg uppercase tracking-wider font-mono transition-all"
+                                >
+                                    Edit specs
+                                </button>
+                            )}
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                             <SpecItem label="Engine" value={vehicle.specs.engine} icon={Zap} />
                             <SpecItem label="Power Output" value={vehicle.specs.power} icon={Gauge} />
@@ -494,6 +615,137 @@ export default function VehicleProfilePage() {
                         </button>
                         <img src={selectedPhotoUrl} alt="Enlarged Chassis View" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl border border-white/5" />
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Edit Specifications Modal */}
+            <AnimatePresence>
+                {isEditModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-end overflow-hidden">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="relative w-full max-w-lg h-full bg-[#0a0a0c] border-l border-white/8 shadow-2xl flex flex-col justify-between z-10"
+                        >
+                            <div className="flex items-center justify-between p-6 border-b border-white/5 bg-black/40 backdrop-blur-md">
+                                <div>
+                                    <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest block mb-1">Specs Editor</span>
+                                    <h2 className="text-2xl font-black uppercase italic tracking-tight text-white leading-none">Edit Specifications</h2>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveSpecs} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar text-xs">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Make</label>
+                                        <input type="text" value={editMake} onChange={e => setEditMake(e.target.value)} required className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Model</label>
+                                        <input type="text" value={editModel} onChange={e => setEditModel(e.target.value)} required className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Year</label>
+                                        <input type="number" value={editYear} onChange={e => setEditYear(e.target.value)} required className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">VIN / Chassis</label>
+                                        <input type="text" value={editVin} onChange={e => setEditVin(e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Trim / Package</label>
+                                        <input type="text" value={editTrim} onChange={e => setEditTrim(e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Health Score</label>
+                                        <input type="number" value={editHealthScore} onChange={e => setEditHealthScore(e.target.value)} min="1" max="100" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Cover Image URL</label>
+                                    <input type="text" value={editImageUrl} onChange={e => setEditImageUrl(e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                </div>
+
+                                <div className="h-px bg-white/5 my-2" />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Engine Config</label>
+                                        <input type="text" value={editEngine} onChange={e => setEditEngine(e.target.value)} placeholder="e.g. 3.2L S54 I6" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Power Output (HP)</label>
+                                        <input type="text" value={editPower} onChange={e => setEditPower(e.target.value)} placeholder="e.g. 343" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Gearbox / Transmission</label>
+                                        <input type="text" value={editTransmission} onChange={e => setEditTransmission(e.target.value)} placeholder="e.g. 6-Speed Manual" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Drivetrain</label>
+                                        <input type="text" value={editDrivetrain} onChange={e => setEditDrivetrain(e.target.value)} placeholder="e.g. RWD" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Tuning Stage</label>
+                                        <input type="text" value={editStage} onChange={e => setEditStage(e.target.value)} placeholder="e.g. Stage 1" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Chassis Code</label>
+                                        <input type="text" value={editChassisCode} onChange={e => setEditChassisCode(e.target.value)} placeholder="e.g. E46" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Weight (kg)</label>
+                                        <input type="text" value={editWeight} onChange={e => setEditWeight(e.target.value)} placeholder="e.g. 1495" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Paint Color</label>
+                                        <input type="text" value={editColor} onChange={e => setEditColor(e.target.value)} placeholder="e.g. Laguna Seca Blue" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="pt-6">
+                                    <button 
+                                        type="submit" 
+                                        className="w-full py-3 bg-signal-orange hover:bg-orange-600 text-white font-mono font-bold uppercase tracking-wider rounded-xl transition-all"
+                                    >
+                                        Save Specifications
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
