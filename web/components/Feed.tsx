@@ -14,7 +14,8 @@ import {
     X, 
     Check, 
     Clock,
-    Plus
+    Plus,
+    Search
 } from 'lucide-react';
 import { Post } from '@/types'; // Use shared type
 import { VehicleCard } from './VehicleCard';
@@ -781,6 +782,12 @@ export function Feed() {
                                 </button>
                             </div>
                         )}
+                        <Link
+                            href="/registry"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-signal-orange/10 border border-white/10 hover:border-signal-orange/30 text-text-dim hover:text-white text-[10px] font-mono font-bold uppercase tracking-wider rounded-lg transition-all"
+                        >
+                            <Search className="h-3 w-3.5 text-signal-orange animate-pulse" /> Public Registry
+                        </Link>
                     </div>
                     <p className="text-text-dim text-sm">
                         {view === 'following' ? 'Command center for your garage.' : 'Trending stories and builds from the streets.'}
