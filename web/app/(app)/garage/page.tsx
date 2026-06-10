@@ -202,6 +202,26 @@ export default function GaragePage() {
     const [activeLogs, setActiveLogs] = useState<any[]>([]);
     const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
 
+    // Specs Editor States
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editMake, setEditMake] = useState('');
+    const [editModel, setEditModel] = useState('');
+    const [editYear, setEditYear] = useState('');
+    const [editVin, setEditVin] = useState('');
+    const [editTrim, setEditTrim] = useState('');
+    const [editHealthScore, setEditHealthScore] = useState('');
+    const [editImageUrl, setEditImageUrl] = useState('');
+    const [editEngine, setEditEngine] = useState('');
+    const [editPower, setEditPower] = useState('');
+    const [editTorque, setEditTorque] = useState('');
+    const [editWeight, setEditWeight] = useState('');
+    const [editDrivetrain, setEditDrivetrain] = useState('');
+    const [editTransmission, setEditTransmission] = useState('');
+    const [editStage, setEditStage] = useState('');
+    const [editChassisCode, setEditChassisCode] = useState('');
+    const [editColor, setEditColor] = useState('');
+    const [editMileage, setEditMileage] = useState('');
+
     // HUD & Telemetry Live states
     const [liveRpm, setLiveRpm] = useState(1000); // Idle RPM
     const [liveBoost, setLiveBoost] = useState(0.0);
@@ -558,6 +578,116 @@ export default function GaragePage() {
             setSelectedHotspot(null); // Clear filter on swap
         }
     }, [activeVehicle, loadActiveLogs]);
+
+    const handleOpenEditModal = () => {
+        if (!activeVehicle) return;
+        setEditMake(activeVehicle.make || '');
+        setEditModel(activeVehicle.model || '');
+        setEditYear(activeVehicle.year?.toString() || '');
+        
+        let currentSpecs: any = null;
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem(`vehicle-specs-${activeVehicle.id}`);
+            if (saved) {
+                try { currentSpecs = JSON.parse(saved); } catch (e) {}
+            }
+        }
+
+        setEditVin(currentSpecs?.vin || activeVehicle.vin || 'WBAXXXXXXXXXXXXXX');
+        setEditTrim(currentSpecs?.trim || activeVehicle.trim || 'OEM Spec');
+        setEditHealthScore(currentSpecs?.healthScore || activeVehicle.health_score || '95');
+        setEditImageUrl(activeVehicle.image_url || '');
+        setEditEngine(currentSpecs?.engine || 'OEM Configured');
+        setEditPower(currentSpecs?.power || '300');
+        setEditTorque(currentSpecs?.torque || '400');
+        setEditWeight(currentSpecs?.weight || '1450');
+        setEditDrivetrain(currentSpecs?.drivetrain || 'RWD');
+        setEditTransmission(currentSpecs?.transmission || 'Manual');
+        setEditStage(currentSpecs?.stage || 'Stock');
+        setEditChassisCode(currentSpecs?.chassisCode || 'N/A');
+        setEditColor(currentSpecs?.color || 'OEM Spec');
+        setEditMileage(currentSpecs?.mileage || '60000');
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveSpecs = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeVehicle || !user) return;
+
+        setLoading(true);
+
+        const updatedMake = editMake.trim();
+        const updatedModel = editModel.trim();
+        const updatedYear = parseInt(editYear) || activeVehicle.year;
+        const updatedImageUrl = editImageUrl.trim();
+
+        // 1. Update specs local registry
+        const specsData = {
+            vin: editVin.trim(),
+            trim: editTrim.trim(),
+            healthScore: parseInt(editHealthScore) || 95,
+            engine: editEngine.trim(),
+            power: editPower.trim(),
+            torque: editTorque.trim(),
+            weight: editWeight.trim(),
+            drivetrain: editDrivetrain.trim(),
+            transmission: editTransmission.trim(),
+            stage: editStage.trim(),
+            chassisCode: editChassisCode.trim(),
+            color: editColor.trim(),
+            mileage: editMileage.trim()
+        };
+        localStorage.setItem(`vehicle-specs-${activeVehicle.id}`, JSON.stringify(specsData));
+
+        // 2. Update local-vehicles list
+        const localSaved = localStorage.getItem('local-vehicles');
+        const localList = localSaved ? JSON.parse(localSaved) : [];
+        const updatedLocalList = localList.map((v: any) => {
+            if (v.id === activeVehicle.id) {
+                return {
+                    ...v,
+                    make: updatedMake,
+                    model: updatedModel,
+                    year: updatedYear,
+                    image_url: updatedImageUrl
+                };
+            }
+            return v;
+        });
+        localStorage.setItem('local-vehicles', JSON.stringify(updatedLocalList));
+
+        // 3. Update Supabase (only existing schema columns)
+        if (!activeVehicle.id.startsWith('local-')) {
+            try {
+                const { error } = await supabase
+                    .from('vehicles')
+                    .update({
+                        make: updatedMake,
+                        model: updatedModel,
+                        year: updatedYear,
+                        image_url: updatedImageUrl
+                    })
+                    .eq('id', activeVehicle.id);
+
+                if (error) throw error;
+            } catch (err: any) {
+                console.warn('Failed to update vehicle in database:', err.message);
+            }
+        }
+
+        setIsEditModalOpen(false);
+        
+        // Refresh active vehicle and lists
+        const updatedVehicle = {
+            ...activeVehicle,
+            make: updatedMake,
+            model: updatedModel,
+            year: updatedYear,
+            image_url: updatedImageUrl
+        };
+        setActiveVehicle(updatedVehicle);
+        await loadVehicles();
+    };
 
     const handleAddVehicle = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -1603,12 +1733,21 @@ export default function GaragePage() {
                                         </div>
                                     </div>
                                     
-                                    <Link 
-                                        href={`/vehicle/${activeVehicle.id}`}
-                                        className="w-full mt-4 py-3.5 rounded-xl border border-white/8 hover:border-white/20 text-text-dim hover:text-white text-xs uppercase tracking-wider font-mono font-bold transition-all flex items-center justify-center gap-2 bg-white/1"
-                                    >
-                                        Inspect Global Ledgers Ledger <ArrowUpRight className="h-4 w-4" />
-                                    </Link>
+                                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                        <button
+                                            type="button"
+                                            onClick={handleOpenEditModal}
+                                            className="flex-1 py-3.5 rounded-xl border border-white/8 hover:border-signal-orange/40 hover:bg-signal-orange/5 text-text-dim hover:text-white text-xs uppercase tracking-wider font-mono font-bold transition-all flex items-center justify-center gap-2 bg-white/1"
+                                        >
+                                            <Wrench className="h-4 w-4 text-signal-orange" /> Edit Specs
+                                        </button>
+                                        <Link 
+                                            href={`/vehicle/${activeVehicle.id}`}
+                                            className="flex-1 py-3.5 rounded-xl border border-white/8 hover:border-white/20 text-text-dim hover:text-white text-xs uppercase tracking-wider font-mono font-bold transition-all flex items-center justify-center gap-2 bg-white/1"
+                                        >
+                                            Inspect Ledger <ArrowUpRight className="h-4 w-4" />
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1911,6 +2050,145 @@ export default function GaragePage() {
                                             : wizardStep === 1 
                                                 ? 'Next Specs Step →' 
                                                 : 'Complete Registry'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+
+                {isEditModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-end overflow-hidden">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="relative w-full max-w-lg h-full bg-[#0a0a0c] border-l border-white/8 shadow-2xl flex flex-col justify-between z-10"
+                        >
+                            <div className="flex items-center justify-between p-6 border-b border-white/5 bg-black/40 backdrop-blur-md">
+                                <div>
+                                    <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest block mb-1">Specs Editor</span>
+                                    <h2 className="text-2xl font-black uppercase italic tracking-tight text-white leading-none">Edit Specifications</h2>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveSpecs} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar text-xs">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Make</label>
+                                        <input type="text" value={editMake} onChange={e => setEditMake(e.target.value)} required className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Model</label>
+                                        <input type="text" value={editModel} onChange={e => setEditModel(e.target.value)} required className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Year</label>
+                                        <input type="number" value={editYear} onChange={e => setEditYear(e.target.value)} required className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">VIN / Chassis</label>
+                                        <input type="text" value={editVin} onChange={e => setEditVin(e.target.value)} className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Trim / Package</label>
+                                        <input type="text" value={editTrim} onChange={e => setEditTrim(e.target.value)} className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Health Score</label>
+                                        <input type="number" value={editHealthScore} onChange={e => setEditHealthScore(e.target.value)} min="1" max="100" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Cover Image URL</label>
+                                    <input type="text" value={editImageUrl} onChange={e => setEditImageUrl(e.target.value)} className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                </div>
+
+                                <div className="h-px bg-white/5 my-2" />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Engine Config</label>
+                                        <input type="text" value={editEngine} onChange={e => setEditEngine(e.target.value)} placeholder="e.g. 3.2L S54 I6" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Power Output (HP)</label>
+                                        <input type="text" value={editPower} onChange={e => setEditPower(e.target.value)} placeholder="e.g. 343" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Torque (Nm)</label>
+                                        <input type="text" value={editTorque} onChange={e => setEditTorque(e.target.value)} placeholder="e.g. 365" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Gearbox / Transmission</label>
+                                        <input type="text" value={editTransmission} onChange={e => setEditTransmission(e.target.value)} placeholder="e.g. 6-Speed Manual" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Drivetrain</label>
+                                        <input type="text" value={editDrivetrain} onChange={e => setEditDrivetrain(e.target.value)} placeholder="e.g. RWD" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Tuning Stage</label>
+                                        <input type="text" value={editStage} onChange={e => setEditStage(e.target.value)} placeholder="e.g. Stage 1" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Chassis Code</label>
+                                        <input type="text" value={editChassisCode} onChange={e => setEditChassisCode(e.target.value)} placeholder="e.g. E46" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Weight (kg)</label>
+                                        <input type="text" value={editWeight} onChange={e => setEditWeight(e.target.value)} placeholder="e.g. 1495" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Paint Color</label>
+                                        <input type="text" value={editColor} onChange={e => setEditColor(e.target.value)} placeholder="e.g. Laguna Seca Blue" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Mileage (mi)</label>
+                                        <input type="text" value={editMileage} onChange={e => setEditMileage(e.target.value)} placeholder="e.g. 84620" className="w-full px-3 py-2 bg-[#141416] border border-white/10 rounded-lg text-white focus:outline-none focus:border-signal-orange/40" />
+                                    </div>
+                                </div>
+
+                                <div className="pt-6">
+                                    <button 
+                                        type="submit" 
+                                        className="w-full py-3 bg-signal-orange hover:bg-orange-600 text-white font-mono font-bold uppercase tracking-wider rounded-xl transition-all"
+                                    >
+                                        Save Specifications
                                     </button>
                                 </div>
                             </form>
