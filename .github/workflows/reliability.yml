@@ -1,0 +1,39 @@
+name: VROOQ Reliability / mobile and truthful publishing
+
+on:
+  push:
+    branches: [fix/vrooq-trust-and-mobile-actions-20261121]
+  pull_request:
+    paths:
+      - "web/hooks/useFeed.ts"
+      - "web/components/QuickCreateMenu.tsx"
+      - "web/components/Dock.tsx"
+      - "web/components/Feed.tsx"
+      - "web/app/(app)/create/page.tsx"
+      - "web/app/(app)/marketplace/page.tsx"
+      - "web/app/(app)/marketplace/parts/[id]/page.tsx"
+      - "backend/05_seller_checkout_preflight.sql"
+      - ".github/workflows/reliability.yml"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Lint new menu, real feed hook, and checkout
+        run: npx eslint hooks/useFeed.ts components/QuickCreateMenu.tsx components/Dock.tsx 'app/(app)/marketplace/parts/[id]/page.tsx'
+      - name: Verify TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
