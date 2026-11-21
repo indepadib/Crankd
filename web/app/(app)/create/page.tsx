@@ -87,7 +87,10 @@ function CreateFormContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuth();
-    const [selectedForm, setSelectedForm] = useState<string | null>(null);
+    const [selectedForm, setSelectedForm] = useState<string | null>(() => {
+        const requested = searchParams.get('type');
+        return requested && ['post', 'listing', 'event'].includes(requested) ? requested : null;
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [userVehicles, setUserVehicles] = useState<any[]>([]);
