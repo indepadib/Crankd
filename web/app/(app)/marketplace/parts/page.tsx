@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { ArrowRight, Box, MapPin, PackageSearch, Plus, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthProvider';
-import { PART_CATEGORIES, PART_CONDITIONS, PartListing, moneyMAD, partConditionLabel, readableError } from '@/lib/parts';
+import { PART_CATEGORIES, PART_CONDITIONS, PartListing, moneyMAD, partConditionLabel } from '@/lib/parts';
 
 export default function PartsMarketplacePage() {
   const { user } = useAuth();
@@ -28,7 +28,10 @@ export default function PartsMarketplacePage() {
         .select('*').eq('status', 'active').gt('quantity', 0)
         .order('created_at', { ascending: false }).limit(150);
       if (!active) return;
-      if (fetchError) setError(readableError(fetchError));
+      if (fetchError) {
+        console.warn('[VROOQ Parts] Catalogue non disponible:', fetchError.code);
+        setError('Notre catalogue de pièces est temporairement indisponible. Le service est en cours de configuration.');
+      }
       else setParts((data || []) as PartListing[]);
       setLoading(false);
     }
