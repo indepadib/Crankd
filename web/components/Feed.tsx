@@ -823,6 +823,17 @@ export function Feed() {
                     )}>
                         {loading && filteredPosts.length === 0 ? (
                             <div className="col-span-full py-20 text-center text-white/50 font-mono uppercase tracking-widest animate-pulse">Chargement du fil…</div>
+                        ) : filteredPosts.length === 0 ? (
+                            <div className="col-span-full rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-14 text-center">
+                                <h2 className="text-xl font-black text-white">Pas encore de publications ici</h2>
+                                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-zinc-400">
+                                    Les publications réelles des membres apparaîtront dans ce fil. Partage ta voiture ou découvre les pièces disponibles.
+                                </p>
+                                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                                    <Link href="/create?type=post" className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">Créer une publication</Link>
+                                    <Link href="/marketplace/parts" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">Explorer les pièces</Link>
+                                </div>
+                            </div>
                         ) : (
                             <>
                                 {filteredPosts.map((post, idx) => (
