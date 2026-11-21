@@ -23,16 +23,16 @@ export function Sidebar() {
 
             {/* Main Nav */}
             <nav className="glass-panel p-2 rounded-2xl flex flex-col gap-1 shadow-2xl">
-                <DockItem href="/feed" icon={Home} label="Feed" isActive={pathname === '/feed'} />
+                <DockItem href="/feed" icon={Home} label="Actu" isActive={pathname === '/feed'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
-                <DockItem href="/registry" icon={Search} label="Registry" isActive={pathname === '/registry'} />
-                <DockItem href="/marketplace" icon={ShoppingBag} label="Market" isActive={pathname.startsWith('/marketplace')} />
-                <DockItem href="/communities" icon={Users} label="Tribes" isActive={pathname.startsWith('/communities')} />
-                <DockItem href="/convoys" icon={MapPin} label="Convoys" isActive={pathname.startsWith('/convoys')} />
+                <DockItem href="/registry" icon={Search} label="Registre" isActive={pathname === '/registry'} />
+                <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />
+                <DockItem href="/communities" icon={Users} label="Clubs" isActive={pathname.startsWith('/communities')} />
+                <DockItem href="/convoys" icon={MapPin} label="Sorties" isActive={pathname.startsWith('/convoys')} />
 
                 <div className="h-px bg-white/10 mx-2 my-1" />
 
-                <DockItem href="/create" icon={Plus} label="Create" highlight />
+                <DockItem href="/create" icon={Plus} label="Créer" highlight />
             </nav>
 
             {/* User Nav */}
@@ -40,10 +40,10 @@ export function Sidebar() {
                 <DockItem
                     href="/profile"
                     icon={User}
-                    label={user?.user_metadata?.username || 'Profile'}
+                    label={user?.user_metadata?.username || 'Profil'}
                     isActive={pathname === '/profile'}
                 />
-                <DockItem href="/settings" icon={Settings} label="Settings" isActive={pathname.startsWith('/settings')} />
+                <DockItem href="/settings" icon={Settings} label="Réglages" isActive={pathname.startsWith('/settings')} />
             </nav>
         </aside>
     );

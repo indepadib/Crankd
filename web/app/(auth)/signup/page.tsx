@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -11,27 +11,14 @@ function SignupFormContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    const [username, setUsername] = useState('');
+    const [username, setUsername] = useState(() => searchParams.get('username')?.replace(/\s+/g, '') || '');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [envMissing, setEnvMissing] = useState(false);
-
-    useEffect(() => {
-        // Pre-populate username if present in the URL query
-        const urlUsername = searchParams.get('username');
-        if (urlUsername) {
-            setUsername(urlUsername);
-        }
-        
-        // Check if environment variables are missing
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-            setEnvMissing(true);
-        }
-    }, [searchParams]);
+    const envMissing = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,10 +31,11 @@ function SignupFormContent() {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
+                    emailRedirectTo: `${window.location.origin}/login`,
                     data: { 
                         username, 
                         full_name: username 
@@ -59,11 +47,14 @@ function SignupFormContent() {
                 setError(error.message);
                 setLoading(false);
             } else {
-                setSuccess(true);
-                setTimeout(() => router.push('/feed'), 2000);
+                if (data.session) {
+                    router.replace('/feed');
+                } else {
+                    setSuccess(true);
+                }
             }
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
             setLoading(false);
         }
     };
@@ -76,9 +67,9 @@ function SignupFormContent() {
                 className="text-center py-8 space-y-4"
             >
                 <div className="text-5xl animate-bounce">🏎️</div>
-                <h3 className="text-2xl font-black text-white uppercase italic">Registration Sent!</h3>
+                <h3 className="text-2xl font-black text-white uppercase italic">Vérifie ton e-mail</h3>
                 <p className="text-zinc-400 text-sm max-w-xs mx-auto leading-relaxed">
-                    Check your email inbox to confirm your account. Redirecting you to your feed...
+                    Confirme ton adresse e-mail puis connecte-toi pour accéder à ton garage.
                 </p>
             </motion.div>
         );
@@ -92,8 +83,8 @@ function SignupFormContent() {
             className="space-y-6"
         >
             <div>
-                <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">Create Garage</h2>
-                <p className="text-zinc-500 text-sm mt-1">Claim your driver tag and start tracking builds.</p>
+                <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">Créer mon compte</h2>
+                <p className="text-zinc-500 text-sm mt-1">Inscris-toi pour rejoindre VROOQ et retrouver ta voiture, tes annonces et la communauté.</p>
             </div>
 
             {envMissing && (
@@ -101,7 +92,7 @@ function SignupFormContent() {
                     <ShieldAlert className="h-5 w-5 shrink-0" />
                     <div>
                         <span className="font-bold block mb-1">Configuration Needed</span>
-                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify's Environment Variables.
+                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify&apos;s Environment Variables.
                     </div>
                 </div>
             )}
@@ -109,11 +100,13 @@ function SignupFormContent() {
             <form onSubmit={handleSignup} className="space-y-4">
                 {/* Username */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Username</label>
+                    <label htmlFor="signup-username" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pseudo</label>
                     <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="signup-username"
                             type="text"
+                            autoComplete="username"
                             value={username}
                             onChange={e => setUsername(e.target.value.replace(/\s+/g, ''))}
                             required
@@ -125,11 +118,13 @@ function SignupFormContent() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
+                    <label htmlFor="signup-email" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="signup-email"
                             type="email"
+                            autoComplete="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
@@ -139,13 +134,15 @@ function SignupFormContent() {
                     </div>
                 </div>
 
-                {/* Password */}
+                {/* Mot de passe */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
+                    <label htmlFor="signup-password" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mot de passe</label>
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="signup-password"
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
@@ -156,6 +153,7 @@ function SignupFormContent() {
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -177,7 +175,7 @@ function SignupFormContent() {
                     {loading ? (
                         <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                        <>Create Account <ArrowRight className="h-4 w-4" /></>
+                        <>Créer mon compte <ArrowRight className="h-4 w-4" /></>
                     )}
                 </button>
             </form>

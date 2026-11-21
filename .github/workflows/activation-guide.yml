@@ -1,0 +1,38 @@
+name: VROOQ Activation / onboarding and auth checks
+
+on:
+  push:
+    branches:
+      - feat/vrooq-activation-guide-20261121
+  pull_request:
+    paths:
+      - "web/components/ActivationGuide.tsx"
+      - "web/app/(app)/layout.tsx"
+      - "web/app/(auth)/**"
+      - "web/app/page.tsx"
+      - "web/app/(app)/marketplace/page.tsx"
+      - ".github/workflows/activation-guide.yml"
+
+jobs:
+  activation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Focused lint — onboarding and authentication
+        run: npx eslint components/ActivationGuide.tsx 'app/(app)/layout.tsx' 'app/(auth)/**/*.tsx'
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
