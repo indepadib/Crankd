@@ -22,6 +22,7 @@ export default function PartDetailsPage() {
   const [mainImage, setMainImage] = useState(0);
   const [paymentChannel, setPaymentChannel] = useState<'card' | 'wallet'>('card');
   const [carrierChoice, setCarrierChoice] = useState<'cathedis' | 'amana'>('cathedis');
+  const [sellerReady, setSellerReady] = useState<'checking' | 'active' | 'inactive' | 'unavailable'>('checking');
 
   useEffect(() => {
     let active = true;
@@ -41,9 +42,20 @@ export default function PartDetailsPage() {
     return () => { active = false; };
   }, [params.id]);
 
+  useEffect(() => {
+    if (!part?.seller_id) return;
+    let mounted = true;
+    void supabase.rpc('is_part_seller_available', { p_seller_id: part.seller_id })
+      .then(({ data, error: checkError }) => {
+        if (!mounted) return;
+        setSellerReady(checkError ? 'unavailable' : data === true ? 'active' : 'inactive');
+      });
+    return () => { mounted = false; };
+  }, [part?.seller_id]);
+
   async function placeOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!part || !user || submitting) return;
+    if (!part || !user || submitting || sellerReady !== 'active') return;
     setError('');
     setSubmitting(true);
     const fields = new FormData(event.currentTarget);
@@ -117,6 +129,9 @@ export default function PartDetailsPage() {
               <span><strong>Commande pilote, sans débit.</strong> Le vendeur recevra une demande et pourra la confirmer. Aucun paiement en ligne, enlèvement ni livraison n’est automatiquement déclenché à cette étape.</span>
             </div>
             {isSeller ? <p className="mt-5 text-sm text-zinc-400">C’est votre annonce. Vous ne pouvez pas vous acheter cette pièce.</p> :
+            sellerReady === 'checking' ? <p role="status" className="mt-5 text-sm text-zinc-400">Vérification de la disponibilité du vendeur…</p> :
+            sellerReady === 'unavailable' ? <p role="status" className="mt-5 text-sm text-amber-200">La disponibilité du vendeur ne peut pas être vérifiée. Les demandes sont temporairement suspendues pour cette pièce.</p> :
+            sellerReady === 'inactive' ? <p role="status" className="mt-5 text-sm leading-6 text-amber-200">Ce vendeur n’a pas encore activé sa boutique VROOQ. Cette pièce reste consultable, mais une commande n’est pas possible pour le moment.</p> :
             part.quantity <= 0 || part.status !== 'active' ? <p className="mt-5 text-sm text-amber-200">Pièce indisponible.</p> :
             !user ? <Link href="/login" className="mt-5 inline-flex rounded-xl bg-orange-500 px-5 py-3 font-bold text-black">Se connecter pour commander</Link> :
             <form className="mt-5 space-y-4" onSubmit={placeOrder}>
