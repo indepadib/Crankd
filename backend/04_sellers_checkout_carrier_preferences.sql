@@ -71,6 +71,10 @@ ALTER TABLE public.part_orders
   ADD COLUMN IF NOT EXISTS requested_carrier text NOT NULL DEFAULT 'unassigned'
     CHECK (requested_carrier IN ('unassigned','cathedis','amana','pickup'));
 
+-- Retire old RPC access: otherwise a client could bypass seller onboarding by
+-- calling the legacy reservation endpoint directly.
+REVOKE EXECUTE ON FUNCTION public.request_part_order(uuid,uuid,text,jsonb) FROM authenticated, anon, PUBLIC;
+
 -- New request RPC prevents client writes to part_orders and uses the DB as source
 -- of truth for prices, quantity, listing owner, existing reservation, and eligibility.
 CREATE OR REPLACE FUNCTION public.request_part_order_v2(
