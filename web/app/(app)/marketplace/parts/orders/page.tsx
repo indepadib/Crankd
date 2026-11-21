@@ -33,7 +33,19 @@ export default function PartOrdersPage() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void supabase.from('part_orders').select('*')
+      .or('buyer_id.eq.' + user.id + ',seller_id.eq.' + user.id)
+      .order('created_at', { ascending: false }).limit(100).then(({ data, error: fetchError }) => {
+        if (!active) return;
+        if (fetchError) setError(readableError(fetchError));
+        else { setOrders((data || []) as PartOrder[]); setError(''); }
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [user]);
 
   async function transition(id: string, next: string) {
     if (busy) return;
