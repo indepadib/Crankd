@@ -307,26 +307,6 @@ function CreateFormContent() {
             text: body
         });
 
-        const userEmail = user.email || 'enthusiast';
-        const userUsername = `@${userEmail.split('@')[0]}`;
-
-        const localPost = {
-            id: `local-post-${Date.now()}`,
-            author_id: user.id,
-            title,
-            body: richBody,
-            image_url: finalImg,
-            content_type: contentType,
-            tags: cleanTags.length > 0 ? cleanTags : ['Build'],
-            community_id: communityId || null,
-            community: communityId ? { id: communityId, name: communityName } : null,
-            created_at: new Date().toISOString(),
-            like_count: 0,
-            view_count: 0,
-            comment_count: 0,
-            author: { id: user.id, username: userUsername, avatar_url: '', garage_rank: 1 }
-        };
-
         try {
             const { error } = await supabase.from('posts').insert({
                 author_id: user.id,
@@ -339,11 +319,11 @@ function CreateFormContent() {
             });
 
             if (error) throw error;
-        } catch (err: any) {
-            console.warn('[Post] DB write failed, saving to local storage:', err.message);
-            const saved = localStorage.getItem('local-posts');
-            const list = saved ? JSON.parse(saved) : [];
-            localStorage.setItem('local-posts', JSON.stringify([localPost, ...list]));
+        } catch (cause: unknown) {
+            console.error('[VROOQ] Publication failed', cause);
+            setError("Publication impossible pour le moment. Rien n’a été mis en ligne. Vérifie ta connexion et réessaie.");
+            setLoading(false);
+            return;
         }
 
         router.push('/feed');
@@ -372,25 +352,6 @@ function CreateFormContent() {
             vehicleId: selectedVehicleId || null
         });
 
-        const userEmail = user.email || 'enthusiast';
-        const userUsername = `@${userEmail.split('@')[0]}`;
-
-        const localListing = {
-            id: `local-list-${Date.now()}`,
-            seller_id: user.id,
-            make,
-            model,
-            year: parseInt(year),
-            price: parseFloat(price),
-            mileage: parseInt(mileage),
-            location,
-            description: richDescription,
-            images: [finalImg],
-            status: 'active',
-            created_at: new Date().toISOString(),
-            author: { id: user.id, username: userUsername, avatar_url: '', garage_rank: 1 }
-        };
-
         try {
             const { error } = await supabase.from('listings').insert({
                 seller_id: user.id,
@@ -405,11 +366,11 @@ function CreateFormContent() {
             });
 
             if (error) throw error;
-        } catch (err: any) {
-            console.warn('[Listing] DB write failed, saving to local storage:', err.message);
-            const saved = localStorage.getItem('local-listings');
-            const list = saved ? JSON.parse(saved) : [];
-            localStorage.setItem('local-listings', JSON.stringify([localListing, ...list]));
+        } catch (cause: unknown) {
+            console.error('[VROOQ] Publication failed', cause);
+            setError("Publication impossible pour le moment. Rien n’a été mis en ligne. Vérifie ta connexion et réessaie.");
+            setLoading(false);
+            return;
         }
 
         router.push('/marketplace');
@@ -447,24 +408,6 @@ function CreateFormContent() {
             text: body
         });
 
-        const userEmail = user.email || 'enthusiast';
-        const userUsername = `@${userEmail.split('@')[0]}`;
-
-        const localEvent = {
-            id: `local-post-${Date.now()}`,
-            author_id: user.id,
-            title,
-            body: richBody,
-            image_url: finalImg,
-            content_type: 'convoy',
-            tags: eventTags.length > 0 ? eventTags : ['Convoy', 'Drive'],
-            created_at: new Date().toISOString(),
-            like_count: 0,
-            view_count: 0,
-            comment_count: 0,
-            author: { id: user.id, username: userUsername, avatar_url: '', garage_rank: 1 }
-        };
-
         try {
             const { error } = await supabase.from('posts').insert({
                 author_id: user.id,
@@ -476,11 +419,11 @@ function CreateFormContent() {
             });
 
             if (error) throw error;
-        } catch (err: any) {
-            console.warn('[Event] DB write failed, saving to local storage:', err.message);
-            const saved = localStorage.getItem('local-posts');
-            const list = saved ? JSON.parse(saved) : [];
-            localStorage.setItem('local-posts', JSON.stringify([localEvent, ...list]));
+        } catch (cause: unknown) {
+            console.error('[VROOQ] Publication failed', cause);
+            setError("Publication impossible pour le moment. Rien n’a été mis en ligne. Vérifie ta connexion et réessaie.");
+            setLoading(false);
+            return;
         }
 
         router.push('/feed');
