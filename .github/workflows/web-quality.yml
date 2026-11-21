@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  web:
+  lint:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,11 +23,35 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: ESLint
-        run: npm run lint
-      - name: TypeScript
-        run: npx tsc --noEmit
-      - name: Production build
-        run: npm run build
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
