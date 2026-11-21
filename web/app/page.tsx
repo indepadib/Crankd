@@ -354,9 +354,9 @@ export default function Home() {
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-white">Concept visuel</span>
                                         </div>
 
-                                        {/* Price */}
-                                        <div className="absolute bottom-4 left-5 text-3xl font-black text-white italic tracking-tight">
-                                            ${activeCar.price.toLocaleString()}
+                                        {/* These are editorial examples, not cars listed for sale. */}
+                                        <div className="absolute bottom-4 left-5 rounded-full border border-white/15 bg-black/60 px-3 py-2 text-xs font-bold text-white">
+                                            Inspiration automobile · Visuel non contractuel
                                         </div>
                                     </div>
 
