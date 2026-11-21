@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -14,14 +14,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [envMissing, setEnvMissing] = useState(false);
-
-    useEffect(() => {
-        // Check if environment variables are missing
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-            setEnvMissing(true);
-        }
-    }, []);
+    const envMissing = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,8 +34,8 @@ export default function LoginPage() {
             } else {
                 router.push('/feed');
             }
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
             setLoading(false);
         }
     };
@@ -64,7 +57,7 @@ export default function LoginPage() {
                     <ShieldAlert className="h-5 w-5 shrink-0" />
                     <div>
                         <span className="font-bold block mb-1">Configuration Needed</span>
-                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify's Environment Variables.
+                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify&apos;s Environment Variables.
                     </div>
                 </div>
             )}
@@ -72,10 +65,11 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
+                    <label htmlFor="login-email" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="login-email"
                             type="email"
                             autoComplete="email"
                             value={email}
@@ -90,12 +84,13 @@ export default function LoginPage() {
                 {/* Password */}
                 <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
+                        <label htmlFor="login-password" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
                         <Link href="/forgot-password" className="text-[10px] font-bold text-signal-orange hover:text-orange-400 transition-colors">Forgot?</Link>
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="login-password"
                             type={showPassword ? 'text' : 'password'}
                             autoComplete="current-password"
                             value={password}
