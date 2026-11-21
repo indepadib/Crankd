@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -11,27 +11,14 @@ function SignupFormContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    const [username, setUsername] = useState('');
+    const [username, setUsername] = useState(() => searchParams.get('username')?.replace(/\s+/g, '') || '');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [envMissing, setEnvMissing] = useState(false);
-
-    useEffect(() => {
-        // Pre-populate username if present in the URL query
-        const urlUsername = searchParams.get('username');
-        if (urlUsername) {
-            setUsername(urlUsername);
-        }
-        
-        // Check if environment variables are missing
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-            setEnvMissing(true);
-        }
-    }, [searchParams]);
+    const envMissing = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -66,8 +53,8 @@ function SignupFormContent() {
                     setSuccess(true);
                 }
             }
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
             setLoading(false);
         }
     };
@@ -105,7 +92,7 @@ function SignupFormContent() {
                     <ShieldAlert className="h-5 w-5 shrink-0" />
                     <div>
                         <span className="font-bold block mb-1">Configuration Needed</span>
-                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify's Environment Variables.
+                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify&apos;s Environment Variables.
                     </div>
                 </div>
             )}
@@ -113,11 +100,13 @@ function SignupFormContent() {
             <form onSubmit={handleSignup} className="space-y-4">
                 {/* Username */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Username</label>
+                    <label htmlFor="signup-username" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Username</label>
                     <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="signup-username"
                             type="text"
+                            autoComplete="username"
                             value={username}
                             onChange={e => setUsername(e.target.value.replace(/\s+/g, ''))}
                             required
@@ -129,11 +118,13 @@ function SignupFormContent() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
+                    <label htmlFor="signup-email" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="signup-email"
                             type="email"
+                            autoComplete="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
@@ -145,11 +136,13 @@ function SignupFormContent() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
+                    <label htmlFor="signup-password" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="signup-password"
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
@@ -160,6 +153,7 @@ function SignupFormContent() {
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
