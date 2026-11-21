@@ -25,7 +25,18 @@ export default function MyPartListingsPage() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void supabase.from('part_listings').select('*').eq('seller_id', user.id)
+      .order('created_at', { ascending: false }).then(({ data, error: fetchError }) => {
+        if (!active) return;
+        if (fetchError) setError(readableError(fetchError));
+        else { setItems((data || []) as PartListing[]); setError(''); }
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [user]);
 
   function edit(id: string, key: 'price_mad' | 'quantity' | 'status', value: string, item: PartListing) {
     setChanges((previous) => ({ ...previous, [id]: {
