@@ -13,7 +13,7 @@ L’acheteur passe exclusivement par le parcours VROOQ. Un prestataire agréé r
 - Ne pas collecter CIN/RIB dans les champs publics ; le prestataire de paiement gère les justificatifs d’identité selon le contrat.
 
 ## Checkout et commandes
-1. Acheteur choisit pièce et lieu, transporteur préféré (Cathedis/Amana) et instrument souhaité (carte, wallet ou réseau de prépaiement).
+1. Acheteur choisit pièce et lieu, transporteur préféré (Cathedis/Amana) et instrument souhaité (carte ou wallet numérique).
 2. Le RPC v2 vérifie le vendeur, réserve un article de manière atomique et conserve les préférences. La commande est NON PAYÉE : le prix du transport n’est pas encore connu.
 3. Vendeur peut accepter ou refuser. L’expédition est bloquée sans confirmation du paiement par le PSP.
 4. Futur : VROOQ obtient un devis de livraison du partenaire ; affiche le total, déclenche une transaction par un serveur sécurisé, vérifie le webhook signé et le rapprochement, réserve l’enlèvement, reçoit le suivi, permet retours et remboursements.
