@@ -67,7 +67,7 @@ CREATE POLICY "parts_seller_insert" ON public.part_listings
 -- marked successful without server-side verified processor callbacks.
 ALTER TABLE public.part_orders
   ADD COLUMN IF NOT EXISTS requested_payment_channel text NOT NULL DEFAULT 'card'
-    CHECK (requested_payment_channel IN ('card','wallet','cash_network')),
+    CHECK (requested_payment_channel IN ('card','wallet')),
   ADD COLUMN IF NOT EXISTS requested_carrier text NOT NULL DEFAULT 'unassigned'
     CHECK (requested_carrier IN ('unassigned','cathedis','amana','pickup'));
 
@@ -103,7 +103,7 @@ BEGIN
     RAISE EXCEPTION 'Identifiant de commande invalide';
   END IF;
   IF p_shipping_method NOT IN ('delivery','pickup') OR
-     p_payment_channel NOT IN ('card','wallet','cash_network') OR
+     p_payment_channel NOT IN ('card','wallet') OR
      p_carrier NOT IN ('cathedis','amana','pickup') THEN
     RAISE EXCEPTION 'Preferences de commande invalides';
   END IF;
