@@ -20,7 +20,7 @@ export default function PartDetailsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [shipping, setShipping] = useState<'delivery' | 'pickup'>('delivery');
   const [mainImage, setMainImage] = useState(0);
-  const [paymentChannel, setPaymentChannel] = useState<'card' | 'wallet' | 'cash_network'>('card');
+  const [paymentChannel, setPaymentChannel] = useState<'card' | 'wallet'>('card');
   const [carrierChoice, setCarrierChoice] = useState<'cathedis' | 'amana'>('cathedis');
 
   useEffect(() => {
@@ -146,7 +146,6 @@ export default function PartDetailsPage() {
                   {([
                     ['card', 'Carte bancaire', 'Carte marocaine / internationale'],
                     ['wallet', 'Wallet numérique', 'Sous réserve de la passerelle sélectionnée'],
-                    ['cash_network', 'Paiement prépayé en agence', 'À confirmer avec un prestataire agréé'],
                   ] as const).map(([value, title, subtitle]) => (
                     <label key={value} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 p-3 text-white hover:border-orange-400/40">
                       <input type="radio" name="preferred_payment" checked={paymentChannel === value} onChange={() => setPaymentChannel(value)} className="mt-1 accent-orange-500" />
