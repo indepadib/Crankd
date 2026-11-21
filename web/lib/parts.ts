@@ -53,7 +53,7 @@ export interface PartOrder {
   order_status: 'pending_seller' | 'accepted' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: 'unconfigured' | 'cod' | 'online';
   payment_status: string;
-  requested_payment_channel?: 'card' | 'wallet' | 'cash_network';
+  requested_payment_channel?: 'card' | 'wallet';
   requested_carrier?: 'unassigned' | 'cathedis' | 'amana' | 'pickup';
   shipping_fee_mad?: number | null;
   carrier: string | null;
@@ -83,7 +83,6 @@ export function readableError(error: unknown): string {
 export const PAYMENT_CHANNEL_LABELS: Record<string, string> = {
   card: 'Carte bancaire',
   wallet: 'Wallet numérique',
-  cash_network: 'Paiement prépayé en agence',
 };
 
 export const CARRIER_LABELS: Record<string, string> = {
