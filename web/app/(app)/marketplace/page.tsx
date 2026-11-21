@@ -8,15 +8,6 @@ import { supabase } from '@/lib/supabase';
 import { DetailModal } from '@/components/ui/DetailModal';
 import { usePreferences } from '@/hooks/usePreferences';
 
-const MOCK_LISTINGS = [
-    { id: 'mock-1', make: 'Nissan', model: 'GT-R R35', year: 2012, price: 85000, mileage: 28000, location: 'Dubai, UAE', image_url: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80', verified: true, seller_username: '@NightRacerJP' },
-    { id: 'mock-2', make: 'BMW', model: 'M4 CSL', year: 2023, price: 135000, mileage: 4200, location: 'London, UK', image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80', verified: true, seller_username: '@UKSpeed' },
-    { id: 'mock-3', make: 'Porsche', model: '911 GT2 RS', year: 2019, price: 310000, mileage: 1800, location: 'Monaco', image_url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80', verified: true, seller_username: '@MonacoMoves' },
-    { id: 'mock-4', make: 'Toyota', model: 'Supra GR', year: 2021, price: 58000, mileage: 12000, location: 'Tokyo, JP', image_url: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600&q=80', verified: false, seller_username: '@JDMKing' },
-    { id: 'mock-5', make: 'Ferrari', model: '488 Pista', year: 2019, price: 380000, mileage: 5500, location: 'Milan, IT', image_url: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=600&q=80', verified: true, seller_username: '@FerrariLife' },
-    { id: 'mock-6', make: 'McLaren', model: '720S', year: 2020, price: 245000, mileage: 7800, location: 'LA, USA', image_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80', verified: true, seller_username: '@LACars' },
-];
-
 export default function MarketplacePage() {
     const [search, setSearch] = useState('');
     const [listings, setListings] = useState<any[]>([]);
@@ -47,7 +38,7 @@ export default function MarketplacePage() {
                     }));
                 }
             } catch (err) {
-                console.warn('[Marketplace] DB fetch failed, using local storage fallback:', err);
+                console.warn('[Marketplace] DB fetch failed:', err);
             }
 
             // Retrieve local listings
@@ -101,9 +92,9 @@ export default function MarketplacePage() {
             </section>
             {/* Header */}
             <div>
-                <p className="text-text-dim text-sm font-bold uppercase tracking-wider mb-1">Buy & Sell</p>
+                <p className="text-text-dim text-sm font-bold uppercase tracking-wider mb-1">Marché automobile</p>
                 <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">Marketplace</h1>
-                <p className="text-text-dim mt-2">Verified builds from trusted sellers worldwide.</p>
+                <p className="text-text-dim mt-2">Véhicules publiés par les membres. Vérifiez les informations directement dans chaque annonce.</p>
             </div>
 
             {/* Search + Filter */}
@@ -113,7 +104,7 @@ export default function MarketplacePage() {
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Search make, model, year..."
+                        placeholder="Rechercher make, model, year..."
                         className="w-full pl-11 pr-4 py-3 bg-steel border border-white/8 rounded-2xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/50 transition-all font-semibold"
                     />
                 </div>
