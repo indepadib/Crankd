@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Shield, MapPin, Gauge } from 'lucide-react';
+import { Search, X, Shield, MapPin, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DetailModal } from '@/components/ui/DetailModal';
 import { usePreferences } from '@/hooks/usePreferences';
@@ -13,64 +13,56 @@ export default function MarketplacePage() {
     const [listings, setListings] = useState<any[]>([]);
     const { formatCurrency, formatDistance } = usePreferences();
     const [loading, setLoading] = useState(true);
+    const [catalogError, setCatalogError] = useState('');
+    const [unpublishedLocalCount, setUnpublishedLocalCount] = useState(0);
 
     // Modal details
     const [selectedListing, setSelectedListing] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
-        const fetchListings = async () => {
-            setLoading(true);
-            let dbListings: any[] = [];
+        let mounted = true;
+        async function loadListings() {
             try {
-                // Fetch listings and join profiles to get the seller's username
-                const { data, error } = await supabase
-                    .from('listings')
+                const { data, error } = await supabase.from('listings')
                     .select('*, profiles:seller_id(username)')
-                    .order('created_at', { ascending: false });
-
-                if (!error && data) {
-                    dbListings = data.map(l => ({
-                        ...l,
-                        image_url: l.images?.[0] || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80',
-                        seller_username: l.profiles?.username ? `@${l.profiles.username}` : '@Anonymous',
-                        verified: false
-                    }));
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+                if (error) throw error;
+                if (!mounted) return;
+                setListings((data || []).map((listing) => ({
+                    ...listing,
+                    image_url: listing.images?.[0] || '',
+                    seller_username: listing.profiles?.username ? '@' + listing.profiles.username : 'Vendeur VROOQ',
+                    verified: false,
+                })));
+                setCatalogError('');
+            } catch (cause) {
+                console.warn('[VROOQ Marketplace] Real catalog unavailable:', cause);
+                if (mounted) {
+                    setCatalogError('Impossible de charger les annonces actuellement. Réessaie dans un instant.');
+                    setListings([]);
                 }
-            } catch (err) {
-                console.warn('[Marketplace] DB fetch failed:', err);
+            } finally {
+                if (mounted) setLoading(false);
             }
 
-            // Retrieve local listings
-            const savedLocal = localStorage.getItem('local-listings');
-            const localList = savedLocal ? JSON.parse(savedLocal) : [];
-            const parsedLocal = localList.map((l: any) => ({
-                ...l,
-                image_url: l.images?.[0] || l.image_url || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80',
-                seller_username: l.author?.username || l.seller_username || '@Anonymous',
-                verified: false
-            }));
-
-            const combined = [...parsedLocal, ...dbListings];
-
-            // Retrieve combined list directly (Removed mock listings default)
-            const uniqueListings = combined;
-
-            // Filter out duplicate IDs
-            const deduped = uniqueListings.reduce((acc: any[], current) => {
-                const x = acc.find(item => item.id === current.id);
-                if (!x) {
-                    return acc.concat([current]);
-                } else {
-                    return acc;
-                }
-            }, []);
-
-            setListings(deduped);
-            setLoading(false);
-        };
-
-        fetchListings();
+            // Old versions stored failed publishes locally. These were never public.
+            try {
+                const raw = localStorage.getItem('local-listings');
+                const parsed: unknown = raw ? JSON.parse(raw) : [];
+                if (mounted) setUnpublishedLocalCount(
+                    Array.isArray(parsed)
+                        ? parsed.filter((item) => item && typeof item === 'object' && typeof item.id === 'string' && item.id.startsWith('local-list-')).length
+                        : 0
+                );
+            } catch {
+                if (mounted) setUnpublishedLocalCount(0);
+            }
+        }
+        void loadListings();
+        return () => { mounted = false; };
     }, []);
 
     const filtered = listings.filter(l =>
@@ -104,27 +96,34 @@ export default function MarketplacePage() {
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Rechercher make, model, year..."
+                        placeholder="Marque, modèle ou année…"
                         className="w-full pl-11 pr-4 py-3 bg-steel border border-white/8 rounded-2xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/50 transition-all font-semibold"
                     />
                 </div>
-                <button className="px-4 py-3 glass-panel rounded-2xl text-text-dim hover:text-white transition-colors flex items-center gap-2 border border-white/8">
-                    <SlidersHorizontal className="h-4 w-4" />
-                    <span className="text-sm font-bold hidden sm:block">Filter</span>
+                <button type="button" disabled={!search} onClick={() => setSearch('')} className="px-4 py-3 glass-panel rounded-2xl text-text-dim hover:text-white transition-colors flex items-center gap-2 border border-white/8 disabled:opacity-40">
+                    <X className="h-4 w-4" />
+                    <span className="text-sm font-bold hidden sm:block">Effacer</span>
                 </button>
             </div>
 
+            {unpublishedLocalCount > 0 && (
+                <div role="status" className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+                    {unpublishedLocalCount} ancienne(s) annonce(s) stockée(s) uniquement dans ce navigateur ne sont pas visibles par les acheteurs.
+                    <Link href="/create" className="ml-1 font-bold underline underline-offset-4">Publier réellement une annonce</Link>
+                </div>
+            )}
+            {catalogError && <div role="alert" className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4 text-sm text-red-200">{catalogError}</div>}
             {/* Content Display */}
             {loading ? (
-                <div className="py-20 text-center text-zinc-500 font-bold">Scanning Marketplace...</div>
+                <div className="py-20 text-center text-zinc-500 font-bold">Chargement des annonces…</div>
             ) : filtered.length === 0 ? (
                 <div className="glass-panel p-12 rounded-3xl border border-white/5 text-center space-y-4 max-w-xl mx-auto mt-8">
                     <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto text-signal-orange">
                         <Search className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-black text-white uppercase italic">No Listings Found</h3>
+                    <h3 className="text-xl font-black text-white uppercase italic">Aucune annonce trouvée</h3>
                     <p className="text-sm text-text-dim max-w-sm mx-auto">
-                        There are currently no active listings for sale in the marketplace. Check back later or create a listing from the console.
+                        Aucun véhicule ne correspond à ta recherche pour le moment. Modifie ta recherche ou publie une annonce.
                     </p>
                 </div>
             ) : (
@@ -143,11 +142,17 @@ export default function MarketplacePage() {
                         >
                             <div>
                                 <div className="aspect-[16/10] relative overflow-hidden">
-                                    <img
-                                        src={listing.image_url || listing.image}
-                                        alt={listing.model}
-                                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-700"
-                                    />
+                                    {listing.image_url ? (
+                                        <img
+                                            src={listing.image_url}
+                                            alt={listing.model}
+                                            className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-700"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-zinc-400">
+                                            Photo non disponible
+                                        </div>
+                                    )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-steel/80 via-transparent to-transparent" />
                                     {listing.verified && (
                                         <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-blue-300 text-[10px] font-bold backdrop-blur-sm">
