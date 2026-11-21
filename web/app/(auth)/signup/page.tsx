@@ -44,10 +44,11 @@ function SignupFormContent() {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
+                    emailRedirectTo: `${window.location.origin}/login`,
                     data: { 
                         username, 
                         full_name: username 
@@ -59,8 +60,11 @@ function SignupFormContent() {
                 setError(error.message);
                 setLoading(false);
             } else {
-                setSuccess(true);
-                setTimeout(() => router.push('/feed'), 2000);
+                if (data.session) {
+                    router.replace('/feed');
+                } else {
+                    setSuccess(true);
+                }
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred.');
@@ -78,7 +82,7 @@ function SignupFormContent() {
                 <div className="text-5xl animate-bounce">🏎️</div>
                 <h3 className="text-2xl font-black text-white uppercase italic">Registration Sent!</h3>
                 <p className="text-zinc-400 text-sm max-w-xs mx-auto leading-relaxed">
-                    Check your email inbox to confirm your account. Redirecting you to your feed...
+                    Check your inbox and confirm your email address, then sign in to access your garage.
                 </p>
             </motion.div>
         );
