@@ -16,7 +16,6 @@ import {
     TrendingUp,
     Compass,
     ArrowUpRight,
-    Star,
     ArrowRight
 } from 'lucide-react';
 
@@ -88,33 +87,6 @@ const INVENTORY = [
         desc: 'Race-bred aerodynamics and coilover suspension setup developed on the Green Hell.',
         type: 'drive' as const,
         themeColor: 'from-emerald-500 to-teal-600'
-    }
-];
-
-const REVIEWS = [
-    {
-        id: 1,
-        author: 'Esther Howard',
-        role: 'Collector',
-        rating: 5,
-        review: 'Bought my first custom Porsche through the Vrooq portal and honestly the transparency was incredible. Zero friction, pure machine.',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80'
-    },
-    {
-        id: 2,
-        author: 'Robert Fox',
-        role: 'Track Enthusiast',
-        rating: 5,
-        review: 'The build log history verification solved my biggest concern. Real history, documented mods, and direct owner contact.',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80'
-    },
-    {
-        id: 3,
-        author: 'Jacob Jones',
-        role: 'Club Lead',
-        rating: 5,
-        review: 'Organizing weekend convoys became completely seamless. Map pins, live attendee logs, and direct route sharing.',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80'
     }
 ];
 
@@ -379,7 +351,7 @@ export default function Home() {
                                         {/* Status Badge */}
                                         <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1 bg-black/50 backdrop-blur rounded-full border border-white/10">
                                             <span className="h-1.5 w-1.5 rounded-full bg-signal-orange animate-pulse" />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-white">Active Build</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-white">Concept visuel</span>
                                         </div>
 
                                         {/* Price */}
@@ -430,75 +402,30 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* ── 4. TESTIMONIALS & STATS ── */}
+            {/* ── 4. MOROCCO LAUNCH / TRUST ── */}
             <section className="relative z-10 py-12 max-w-7xl mx-auto px-6 w-full">
-                <div className="rounded-[40px] bg-[#111113] border border-white/5 p-8 md:p-12 space-y-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest block mb-2">REVIEWS & FEEDBACK</span>
-                            <h2 className="text-4xl font-black uppercase italic tracking-tight leading-none text-white">
-                                EVERY REVIEW IS A STORY<br />WE ARE PROUD OF<span className="text-signal-orange">.</span>
-                            </h2>
-                        </div>
-                        <div className="flex gap-2">
-                            <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-300">
-                                95K+ Enthusiasts Connected
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Review Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {REVIEWS.map(rev => (
-                            <div 
-                                key={rev.id}
-                                className="bg-[#0b0b0c] border border-white/5 rounded-3xl p-6 flex flex-col justify-between space-y-6 hover:border-white/10 transition-all"
-                            >
-                                <div className="space-y-4">
-                                    {/* Star Rating */}
-                                    <div className="flex gap-1">
-                                        {[...Array(rev.rating)].map((_, i) => (
-                                            <Star key={i} className="h-3.5 w-3.5 fill-signal-orange text-signal-orange" />
-                                        ))}
-                                    </div>
-                                    <p className="text-sm text-zinc-300 leading-relaxed italic">
-                                        "{rev.review}"
-                                    </p>
-                                </div>
-
-                                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
-                                    <img 
-                                        src={rev.avatar} 
-                                        alt={rev.author} 
-                                        className="h-9 w-9 rounded-full object-cover border border-white/10"
-                                    />
-                                    <div>
-                                        <span className="block font-bold text-white text-xs">{rev.author}</span>
-                                        <span className="block text-[10px] text-zinc-500 font-semibold">{rev.role}</span>
-                                    </div>
-                                </div>
-                            </div>
+                <div className="rounded-[36px] border border-white/10 bg-[#111113] p-7 md:p-12">
+                    <span className="text-signal-orange text-xs font-bold uppercase tracking-widest">VROOQ commence au Maroc</span>
+                    <h2 className="mt-4 max-w-3xl text-3xl font-black tracking-tight text-white md:text-4xl">
+                        Ton garage, tes pièces, ta communauté.
+                    </h2>
+                    <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-400">
+                        Nous ouvrons progressivement la plateforme aux passionnés et vendeurs marocains.
+                        Les annonces affichées dans la marketplace proviennent des utilisateurs ;
+                        les exemples visuels de cette page ne sont pas des offres vérifiées.
+                    </p>
+                    <div className="mt-8 grid gap-4 md:grid-cols-3">
+                        {[
+                            { title: 'Créer mon garage', detail: 'Enregistre ta voiture pour personnaliser ton expérience.', href: '/signup' },
+                            { title: 'Trouver une pièce', detail: 'Parcours les annonces d’occasion et vérifie la référence OEM.', href: '/marketplace/parts' },
+                            { title: 'Devenir vendeur', detail: 'Active ta boutique gratuitement et commence à publier.', href: '/marketplace/parts/sell' },
+                        ].map((action) => (
+                            <Link key={action.title} href={action.href} className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-orange-500/50">
+                                <span className="block text-base font-bold text-white">{action.title}</span>
+                                <span className="mt-2 block text-sm leading-6 text-zinc-400">{action.detail}</span>
+                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-orange-400">Découvrir <ArrowRight className="h-4 w-4" /></span>
+                            </Link>
                         ))}
-                    </div>
-
-                    {/* Core Metric Counters Row */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-white/5">
-                        <div>
-                            <span className="text-3xl font-black text-white italic tracking-tight">12K+</span>
-                            <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mt-1">Active Build Logs</span>
-                        </div>
-                        <div>
-                            <span className="text-3xl font-black text-white italic tracking-tight">600+</span>
-                            <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mt-1">Verified Sales</span>
-                        </div>
-                        <div>
-                            <span className="text-3xl font-black text-white italic tracking-tight">150+</span>
-                            <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mt-1">GPS Convoys Organized</span>
-                        </div>
-                        <div>
-                            <span className="text-3xl font-black text-white italic tracking-tight">100%</span>
-                            <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mt-1">Owner Verified History</span>
-                        </div>
                     </div>
                 </div>
             </section>
