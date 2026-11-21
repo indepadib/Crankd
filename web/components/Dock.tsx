@@ -13,21 +13,22 @@ export function Dock() {
             <div className="absolute inset-0 bg-carbon/80 backdrop-blur-xl border-t border-white/5" />
 
             <div className="relative flex items-center justify-around px-4 py-2 pb-safe">
-                <DockItem href="/feed" icon={Home} label="Feed" isActive={pathname === '/feed'} />
+                <DockItem href="/feed" icon={Home} label="Actu" isActive={pathname === '/feed'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
 
                 {/* Center Action */}
                 <div className="relative -top-5">
                     <Link
                         href="/create"
+                        aria-label="Créer une publication ou une annonce"
                         className="flex items-center justify-center h-14 w-14 rounded-full bg-signal-orange text-white shadow-[0_0_24px_rgba(249,115,22,0.6)] hover:bg-signal-orange-dim transition-all active:scale-95"
                     >
                         <Plus className="h-7 w-7" strokeWidth={2.5} />
                     </Link>
                 </div>
 
-                <DockItem href="/marketplace" icon={ShoppingBag} label="Market" isActive={pathname.startsWith('/marketplace')} />
-                <DockItem href="/profile" icon={User} label="Profile" isActive={pathname === '/profile'} />
+                <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />
+                <DockItem href="/profile" icon={User} label="Profil" isActive={pathname === '/profile'} />
             </div>
         </div>
     );
