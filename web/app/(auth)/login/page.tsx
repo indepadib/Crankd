@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -10,18 +10,11 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldAlert } from 'lucide-react';
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+    const [password, setMot de passe] = useState('');
+    const [showMot de passe, setShowMot de passe] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [envMissing, setEnvMissing] = useState(false);
-
-    useEffect(() => {
-        // Check if environment variables are missing
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-            setEnvMissing(true);
-        }
-    }, []);
+    const envMissing = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,15 +27,15 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const { error } = await supabase.auth.signInWithMot de passe({ email, password });
             if (error) {
                 setError(error.message);
                 setLoading(false);
             } else {
                 router.push('/feed');
             }
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
             setLoading(false);
         }
     };
@@ -55,8 +48,8 @@ export default function LoginPage() {
             className="space-y-6"
         >
             <div>
-                <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">Driver Login</h2>
-                <p className="text-zinc-500 text-sm mt-1">Authenticate to access your garage command center.</p>
+                <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">Connexion VROOQ</h2>
+                <p className="text-zinc-500 text-sm mt-1">Retrouve ton garage, tes annonces et la communauté.</p>
             </div>
 
             {envMissing && (
@@ -64,7 +57,7 @@ export default function LoginPage() {
                     <ShieldAlert className="h-5 w-5 shrink-0" />
                     <div>
                         <span className="font-bold block mb-1">Configuration Needed</span>
-                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify's Environment Variables.
+                        This deploy is running in offline mock mode. To connect, define your Supabase credentials in Netlify&apos;s Environment Variables.
                     </div>
                 </div>
             )}
@@ -72,11 +65,13 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
+                    <label htmlFor="login-email" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email</label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
+                            id="login-email"
                             type="email"
+                            autoComplete="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
@@ -86,28 +81,31 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Password */}
+                {/* Mot de passe */}
                 <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
-                        <a href="#" className="text-[10px] font-bold text-signal-orange hover:text-orange-400 transition-colors">Forgot?</a>
+                        <label htmlFor="login-password" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mot de passe</label>
+                        <Link href="/forgot-password" className="text-[10px] font-bold text-signal-orange hover:text-orange-400 transition-colors">Mot de passe oublié ?</Link>
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
-                            type={showPassword ? 'text' : 'password'}
+                            id="login-password"
+                            type={showMot de passe ? 'text' : 'password'}
+                            autoComplete="current-password"
                             value={password}
-                            onChange={e => setPassword(e.target.value)}
+                            onChange={e => setMot de passe(e.target.value)}
                             required
                             placeholder="••••••••"
                             className="w-full pl-11 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 focus:bg-white/10 transition-all font-semibold"
                         />
                         <button
                             type="button"
-                            onClick={() => setShowPassword(!showPassword)}
+                            onClick={() => setShowMot de passe(!showMot de passe)}
+                            aria-label={showMot de passe ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showMot de passe ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
                 </div>
@@ -126,7 +124,7 @@ export default function LoginPage() {
                     {loading ? (
                         <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                        <>Sign In <ArrowRight className="h-4 w-4" /></>
+                        <>Se connecter <ArrowRight className="h-4 w-4" /></>
                     )}
                 </button>
             </form>
