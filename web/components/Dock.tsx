@@ -1,8 +1,9 @@
 'use client';
 
-import { Home, Car, ShoppingBag, Users, Plus, User } from 'lucide-react';
+import { Home, Car, ShoppingBag, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { QuickCreateMenu } from '@/components/QuickCreateMenu';
 
 export function Dock() {
     const pathname = usePathname();
@@ -16,15 +17,9 @@ export function Dock() {
                 <DockItem href="/feed" icon={Home} label="Actu" isActive={pathname === '/feed'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
 
-                {/* Center Action */}
+                {/* Central action opens explicit options instead of a generic form. */}
                 <div className="relative -top-5">
-                    <Link
-                        href="/create"
-                        aria-label="Créer une publication ou une annonce"
-                        className="flex items-center justify-center h-14 w-14 rounded-full bg-signal-orange text-white shadow-[0_0_24px_rgba(249,115,22,0.6)] hover:bg-signal-orange-dim transition-all active:scale-95"
-                    >
-                        <Plus className="h-7 w-7" strokeWidth={2.5} />
-                    </Link>
+                    <QuickCreateMenu />
                 </div>
 
                 <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />
