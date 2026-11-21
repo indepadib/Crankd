@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Box, Check, ClipboardList, Loader2, Truck } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { PartOrder, moneyMAD, readableError } from '@/lib/parts';
+import { PartOrder, moneyMAD, readableError, PAYMENT_CHANNEL_LABELS, CARRIER_LABELS } from '@/lib/parts';
 
 const ORDER_LABELS: Record<PartOrder['order_status'], string> = {
   pending_seller: 'En attente du vendeur',
@@ -88,6 +88,7 @@ export default function PartOrdersPage() {
           const isSeller = user?.id === order.seller_id;
           const isBuyer = user?.id === order.buyer_id;
           const input = shippingInputs[order.id] || { carrier: '', tracking: '' };
+          const paymentConfirmed = order.payment_status === 'paid';
           return (
             <article key={order.id} className="space-y-5 rounded-2xl border border-white/10 bg-[#1b1c1e] p-5 md:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -102,19 +103,28 @@ export default function PartOrdersPage() {
                 <div><p className="mb-1 text-xs uppercase tracking-wider text-zinc-500">Remise</p><p className="text-white">{order.shipping_method === 'delivery' ? 'Livraison à organiser' : 'Remise en main propre'}</p><p className="mt-1 text-zinc-400">{order.buyer_contact.city} · {order.buyer_contact.address}</p></div>
                 <div><p className="mb-1 text-xs uppercase tracking-wider text-zinc-500">Coordonnées acheteur</p><p className="text-white">{order.buyer_contact.name}</p><p className="text-zinc-400">{order.buyer_contact.phone}</p></div>
               </div>
+              <div className="grid gap-2 rounded-xl border border-white/10 bg-black/20 p-4 text-xs text-zinc-300 sm:grid-cols-2">
+                <p>Mode souhaité : <strong className="text-white">{PAYMENT_CHANNEL_LABELS[order.requested_payment_channel || 'card']}</strong></p>
+                <p>Transport : <strong className="text-white">{CARRIER_LABELS[order.requested_carrier || 'unassigned']}</strong></p>
+                <p>Encaissement : <strong className={paymentConfirmed ? 'text-emerald-300' : 'text-amber-200'}>{paymentConfirmed ? 'Confirmé par la plateforme' : 'En attente du paiement VROOQ'}</strong></p>
+                <p>Frais de livraison : <strong className="text-white">{order.shipping_fee_mad == null ? 'À confirmer' : moneyMAD(order.shipping_fee_mad)}</strong></p>
+              </div>
               {order.tracking_number && <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3 text-sm text-zinc-300"><Truck className="h-4 w-4 text-orange-400" /> Suivi déclaré : {order.carrier} · {order.tracking_number}</div>}
               <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+                {isSeller && order.order_status === 'accepted' && !paymentConfirmed && (
+                  <p className="text-xs text-amber-200">Expédition bloquée : le paiement n’a pas été confirmé par VROOQ. Ne remettez pas la pièce avant la confirmation officielle.</p>
+                )}
                 {isSeller && order.order_status === 'pending_seller' && <button disabled={busy === order.id} onClick={() => transition(order.id, 'accepted')} className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black"><Check className="h-4 w-4" /> Accepter</button>}
-                {isSeller && order.order_status === 'accepted' && order.shipping_method === 'delivery' && <div className="flex w-full flex-wrap items-center gap-2">
+                {isSeller && order.order_status === 'accepted' && order.shipping_method === 'delivery' && paymentConfirmed && <div className="flex w-full flex-wrap items-center gap-2">
                   <input aria-label="Transporteur" placeholder="Transporteur" maxLength={80} value={input.carrier} onChange={(e) => changeShipping(order.id, 'carrier', e.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-white/10 bg-[#292a2d] px-3 text-sm text-white" />
                   <input aria-label="Numéro de suivi" placeholder="N° de suivi réel" maxLength={120} value={input.tracking} onChange={(e) => changeShipping(order.id, 'tracking', e.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-white/10 bg-[#292a2d] px-3 text-sm text-white" />
                   <button disabled={busy === order.id || input.carrier.trim().length < 2 || input.tracking.trim().length < 4} onClick={() => transition(order.id, 'shipped')} className="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-50">Marquer expédié</button>
                 </div>}
-                {isBuyer && (order.order_status === 'shipped' || (order.order_status === 'accepted' && order.shipping_method === 'pickup')) && <button disabled={busy === order.id} onClick={() => transition(order.id, 'delivered')} className="rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black">Confirmer la réception</button>}
+                {isBuyer && (order.order_status === 'shipped' || (order.order_status === 'accepted' && order.shipping_method === 'pickup')) && paymentConfirmed && <button disabled={busy === order.id} onClick={() => transition(order.id, 'delivered')} className="rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black">Confirmer la réception</button>}
                 {(isBuyer || isSeller) && ['pending_seller','accepted'].includes(order.order_status) && <button disabled={busy === order.id} onClick={() => { if (window.confirm('Annuler cette demande ? Le stock sera restitué.')) void transition(order.id, 'cancelled'); }} className="rounded-xl border border-white/15 px-4 py-2.5 text-sm text-zinc-300 hover:text-white">{isSeller ? 'Refuser / annuler' : 'Annuler la demande'}</button>}
                 {busy === order.id && <Loader2 className="h-4 w-4 animate-spin text-orange-400" />}
               </div>
-              <p className="text-xs text-zinc-500">Paiement : non initié · Transport : non intégré à un opérateur · VROOQ ne confirme pas les encaissements sur cette version.</p>
+              <p className="text-xs text-zinc-500">Aucune transaction ne peut être réglée directement au vendeur. La réservation ne vaut ni paiement ni commande de transport.</p>
             </article>
           );
         })}
