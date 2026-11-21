@@ -5,9 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Box, MapPin, PackageSearch, Plus, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthProvider';
 import { PART_CATEGORIES, PART_CONDITIONS, PartListing, moneyMAD, partConditionLabel, readableError } from '@/lib/parts';
 
 export default function PartsMarketplacePage() {
+  const { user } = useAuth();
+  const [garageVehicles, setGarageVehicles] = useState<{ id: string; make: string; model: string; year: number }[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState('');
   const [parts, setParts] = useState<PartListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,19 +36,35 @@ export default function PartsMarketplacePage() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!user) { setGarageVehicles([]); setSelectedVehicle(''); return; }
+    let active = true;
+    void supabase.from('vehicles').select('id,make,model,year').eq('owner_id', user.id).then(({ data }) => {
+      if (active) setGarageVehicles((data || []) as { id: string; make: string; model: string; year: number }[]);
+    });
+    return () => { active = false; };
+  }, [user]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
+    const garageVehicle = garageVehicles.find((vehicle) => vehicle.id === selectedVehicle);
     const results = parts.filter((part) => {
+      const matchesVehicle = !garageVehicle || (
+        part.compatible_make.toLocaleLowerCase() === garageVehicle.make.toLocaleLowerCase() &&
+        (part.compatible_model.toLocaleLowerCase().includes(garageVehicle.model.toLocaleLowerCase()) || garageVehicle.model.toLocaleLowerCase().includes(part.compatible_model.toLocaleLowerCase())) &&
+        (!part.compatible_year_from || garageVehicle.year >= part.compatible_year_from) &&
+        (!part.compatible_year_to || garageVehicle.year <= part.compatible_year_to)
+      );
       const searchable = [part.title, part.description, part.part_brand, part.oem_reference, part.compatible_make, part.compatible_model].join(' ').toLocaleLowerCase();
       return (!needle || searchable.includes(needle)) &&
         (!category || part.category === category) &&
         (!condition || part.part_condition === condition) &&
-        (!city || part.city.toLocaleLowerCase().includes(city.toLocaleLowerCase()));
+        (!city || part.city.toLocaleLowerCase().includes(city.toLocaleLowerCase())) && matchesVehicle;
     });
     if (sort === 'price-asc') results.sort((a, b) => a.price_mad - b.price_mad);
     if (sort === 'price-desc') results.sort((a, b) => b.price_mad - a.price_mad);
     return results;
-  }, [parts, query, category, condition, city, sort]);
+  }, [parts, query, category, condition, city, sort, garageVehicles, selectedVehicle]);
 
   const field = 'h-12 w-full rounded-xl border border-white/10 bg-white/[0.045] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-orange-500/60';
 
@@ -73,7 +93,7 @@ export default function PartsMarketplacePage() {
 
       <section aria-label="Rechercher des pièces" className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-bold text-white"><SlidersHorizontal className="h-4 w-4 text-orange-400" /> Trouver une pièce</div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
           <label className="relative lg:col-span-2">
             <span className="sr-only">Référence, pièce, marque ou modèle</span>
             <Search className="absolute left-4 top-4 h-4 w-4 text-zinc-400" />
@@ -82,7 +102,9 @@ export default function PartsMarketplacePage() {
           <select aria-label="Catégorie" className={field} value={category} onChange={(e) => setCategory(e.target.value)}><option value="">Toutes catégories</option>{PART_CATEGORIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
           <select aria-label="État" className={field} value={condition} onChange={(e) => setCondition(e.target.value)}><option value="">Tous états</option>{PART_CONDITIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
           <input className={field} aria-label="Ville" placeholder="Ville (Casablanca…)" value={city} onChange={(e) => setCity(e.target.value)} />
+          <select aria-label="Filtrer par voiture de mon garage" className={field} disabled={!garageVehicles.length} value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}><option value="">{garageVehicles.length ? "Mon garage : toutes" : "Mon garage : vide"}</option>{garageVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.year}</option>)}</select>
         </div>
+        <p className="text-xs text-zinc-500">Le filtre garage utilise la compatibilité déclarée par le vendeur ; confirmez la référence OEM avant achat.</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-400">{loading ? 'Chargement…' : error ? 'Catalogue indisponible' : filtered.length + ' pièce(s) trouvée(s)'}</p>
           <select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
