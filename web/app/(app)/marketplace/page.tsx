@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, Shield, MapPin, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -87,6 +88,17 @@ export default function MarketplacePage() {
 
     return (
         <div className="space-y-8">
+            <section className="rounded-3xl border border-orange-500/25 bg-gradient-to-r from-[#312114] via-[#22201d] to-[#191a1d] px-6 py-6 md:px-8 md:py-8">
+                <div className="flex flex-wrap items-center justify-between gap-5">
+                    <div>
+                        <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-300">Nouveau · VROOQ Parts</p>
+                        <h2 className="text-2xl font-black text-white md:text-3xl">Acheter & vendre des pièces auto d’occasion</h2>
+                        <p className="mt-2 max-w-2xl text-sm text-zinc-300">Moteur, carrosserie, accessoires : recherchez par modèle et référence, publiez vos pièces, organisez vos commandes.</p>
+                    </div>
+                    <Link href="/marketplace/parts" className="inline-flex items-center rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black hover:bg-orange-400">Explorer les pièces →</Link>
+                </div>
+                <p className="mt-4 text-xs text-zinc-400">Marketplace pilote · Paiement et livraison automatiques en cours d’intégration.</p>
+            </section>
             {/* Header */}
             <div>
                 <p className="text-text-dim text-sm font-bold uppercase tracking-wider mb-1">Buy & Sell</p>
