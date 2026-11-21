@@ -234,3 +234,5 @@ using (bucket_id = 'part-listing-images' and (storage.foldername(name))[1] = (se
 -- IMPORTANT: Before opening payments, implement PSP-signed webhook verification,
 -- server-side amounts and fulfilment reconciliation, buyer refunds/disputes,
 -- payout/commission ledger, and courier API; never set paid in the browser.
+-- Ask PostgREST to reload after a manual SQL Editor installation.
+NOTIFY pgrst, 'reload schema';
