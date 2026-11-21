@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Camera, CheckCircle2, Info, Loader2, ShieldCheck } from 'lucide-react';
@@ -16,13 +16,22 @@ export default function NewPartListingPage() {
   const [error, setError] = useState('');
   const [delivery, setDelivery] = useState(true);
   const [pickup, setPickup] = useState(false);
+  const [backendReady, setBackendReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.from('part_listings').select('id', { head: true }).limit(1).then(({ error: schemaError }) => {
+      if (mounted) setBackendReady(!schemaError);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   const field = 'mt-2 h-12 w-full rounded-xl border border-white/10 bg-[#252629] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-orange-500/60';
   const label = 'block text-sm font-semibold text-zinc-200';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || submitting) return;
+    if (!user || submitting || backendReady !== true) return;
     setError('');
     if (!delivery && !pickup) { setError('Sélectionnez au moins un mode de remise.'); return; }
     if (photos.length < 1 || photos.length > 8) { setError('Ajoutez entre 1 et 8 photos réelles de la pièce.'); return; }
@@ -98,6 +107,14 @@ export default function NewPartListingPage() {
       <header className="space-y-3"><p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">Vendre sur VROOQ</p><h1 className="text-4xl font-black text-white">Publier une pièce</h1><p className="text-sm text-zinc-400">Une annonce précise inspire confiance : photos réelles, référence et compatibilité comptent plus qu’un long discours.</p></header>
       {!authLoading && !user ? (
         <div className="rounded-2xl border border-white/10 bg-[#1d1e20] p-8 text-center"><p className="mb-5 text-zinc-300">Connectez-vous pour déposer votre annonce.</p><Link href="/login" className="rounded-xl bg-orange-500 px-5 py-3 font-bold text-black">Se connecter</Link></div>
+      ) : backendReady === null ? (
+        <div role="status" className="rounded-2xl border border-white/10 bg-[#1d1e20] p-8 text-center text-sm text-zinc-300">Vérification du service des annonces…</div>
+      ) : backendReady === false ? (
+        <div role="status" className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-8 text-center">
+          <h2 className="text-lg font-bold text-amber-100">Publication temporairement indisponible</h2>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-zinc-300">Nous finalisons la configuration de la marketplace de pièces. Votre formulaire ne peut pas encore être enregistré : revenez après la mise en service.</p>
+          <Link href="/marketplace/parts" className="mt-6 inline-flex rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white">Retour au catalogue</Link>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-7">
           <section className="space-y-5 rounded-3xl border border-white/10 bg-[#1a1b1d] p-6">
