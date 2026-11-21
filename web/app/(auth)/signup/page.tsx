@@ -13,8 +13,8 @@ function SignupFormContent() {
     
     const [username, setUsername] = useState(() => searchParams.get('username')?.replace(/\s+/g, '') || '');
     const [email, setEmail] = useState('');
-    const [password, setMot de passe] = useState('');
-    const [showMot de passe, setShowMot de passe] = useState(false);
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowMot de passe] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -141,10 +141,10 @@ function SignupFormContent() {
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
                             id="signup-password"
-                            type={showMot de passe ? 'text' : 'password'}
+                            type={showPassword ? 'text' : 'password'}
                             autoComplete="new-password"
                             value={password}
-                            onChange={e => setMot de passe(e.target.value)}
+                            onChange={e => setPassword(e.target.value)}
                             required
                             minLength={6}
                             placeholder="Min. 6 characters"
@@ -152,11 +152,11 @@ function SignupFormContent() {
                         />
                         <button
                             type="button"
-                            onClick={() => setShowMot de passe(!showMot de passe)}
-                            aria-label={showMot de passe ? "Hide password" : "Show password"}
+                            onClick={() => setShowMot de passe(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
-                            {showMot de passe ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
                 </div>
