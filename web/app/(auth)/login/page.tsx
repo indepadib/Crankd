@@ -10,8 +10,8 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldAlert } from 'lucide-react';
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
-    const [password, setMot de passe] = useState('');
-    const [showMot de passe, setShowMot de passe] = useState(false);
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowMot de passe] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const envMissing = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -91,21 +91,21 @@ export default function LoginPage() {
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
                             id="login-password"
-                            type={showMot de passe ? 'text' : 'password'}
+                            type={showPassword ? 'text' : 'password'}
                             autoComplete="current-password"
                             value={password}
-                            onChange={e => setMot de passe(e.target.value)}
+                            onChange={e => setPassword(e.target.value)}
                             required
                             placeholder="••••••••"
                             className="w-full pl-11 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 focus:bg-white/10 transition-all font-semibold"
                         />
                         <button
                             type="button"
-                            onClick={() => setShowMot de passe(!showMot de passe)}
-                            aria-label={showMot de passe ? "Hide password" : "Show password"}
+                            onClick={() => setShowMot de passe(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
-                            {showMot de passe ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
                 </div>
