@@ -14,7 +14,7 @@ function SignupFormContent() {
     const [username, setUsername] = useState(() => searchParams.get('username')?.replace(/\s+/g, '') || '');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowMot de passe] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -152,7 +152,7 @@ function SignupFormContent() {
                         />
                         <button
                             type="button"
-                            onClick={() => setShowMot de passe(!showPassword)}
+                            onClick={() => setShowPassword(!showPassword)}
                             aria-label={showPassword ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
