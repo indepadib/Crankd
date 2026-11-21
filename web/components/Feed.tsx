@@ -31,50 +31,6 @@ import Link from 'next/link';
 import { VrooqTV } from './VrooqTV';
 import { usePreferences } from '@/hooks/usePreferences';
 
-function FeedTuner() {
-    const [dismissed, setDismissed] = useState(false);
-
-    if (dismissed) return null;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            className="w-full bg-gradient-to-br from-carbon to-black rounded-3xl border border-white/5 p-6 relative overflow-hidden group"
-        >
-            <div className="absolute top-0 right-0 p-4">
-                <button onClick={() => setDismissed(true)} className="text-white/30 hover:text-white transition-colors">
-                    <X className="h-5 w-5" />
-                </button>
-            </div>
-
-            <div className="relative z-10 h-full flex flex-col justify-between">
-                <div>
-                    <div className="flex items-center gap-2 text-signal-orange mb-2">
-                        <Sparkles className="h-4 w-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Vrooq Intelligence</span>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Fine-tune your feed</h3>
-                    <p className="text-sm text-text-dim">Our algorithm adapts to your garage.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
-                    {['More Track Builds', 'Less Stance', 'Euro Parts'].map(opt => (
-                        <button key={opt} className="text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-signal-orange/30 text-sm text-white transition-all flex items-center justify-between group/btn">
-                            {opt}
-                            <Sliders className="h-3 w-3 text-white/30 group-hover/btn:text-signal-orange transition-colors" />
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Background Decoration */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-signal-orange/10 rounded-full blur-3xl group-hover:bg-signal-orange/20 transition-colors" />
-        </motion.div>
-    );
-}
-
 function FeedItem({ 
     post, 
     layoutType,
@@ -749,7 +705,7 @@ export function Feed() {
     const [layoutType, setLayoutType] = useState<'social' | 'grid'>('social');
     const [activeTag, setActiveTag] = useState<string | null>(null);
     const { user } = useAuth();
-    const { posts, loading, logView } = useFeed(user?.id);
+    const { posts, loading, error, unpublishedCount, logView } = useFeed(user?.id);
 
     // Modal states
     const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -772,7 +728,7 @@ export function Feed() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
-                            {view === 'following' ? 'Driver Feed' : 'Discover'}
+                            {view === 'following' ? 'Fil des passionnés' : 'Discover'}
                         </h1>
                         {activeTag && (
                             <div className="flex items-center gap-1.5 px-3 py-1 bg-signal-orange/10 border border-signal-orange/20 text-signal-orange text-[10px] font-mono font-bold uppercase tracking-wider rounded-lg animate-in zoom-in-95 select-none">
@@ -844,6 +800,17 @@ export function Feed() {
                 </div>
             </header>
 
+            {(error || unpublishedCount > 0) && (
+                <div role="status" className="mb-6 space-y-2 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+                    {error && <p>{error}</p>}
+                    {unpublishedCount > 0 && (
+                        <p>
+                            {unpublishedCount} ancienne(s) publication(s) se trouvent uniquement sur cet appareil et n’ont jamais été mises en ligne.
+                            <Link href="/create" className="ml-1 font-bold underline underline-offset-4">Créer une vraie publication</Link>
+                        </p>
+                    )}
+                </div>
+            )}
             {/* Content Switcher */}
             {view === 'following' ? (
                 <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -855,13 +822,11 @@ export function Feed() {
                             : "grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-min"
                     )}>
                         {loading && filteredPosts.length === 0 ? (
-                            <div className="col-span-full py-20 text-center text-white/50 font-mono uppercase tracking-widest animate-pulse">Scanning frequencies...</div>
+                            <div className="col-span-full py-20 text-center text-white/50 font-mono uppercase tracking-widest animate-pulse">Chargement du fil…</div>
                         ) : (
                             <>
-                                {layoutType === 'social' && <FeedTuner />}
                                 {filteredPosts.map((post, idx) => (
                                     <React.Fragment key={post.id}>
-                                        {layoutType === 'grid' && idx === 1 && <FeedTuner key="tuner" />}
                                         <FeedItem 
                                             post={post} 
                                             layoutType={layoutType}
