@@ -41,6 +41,22 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
 
+  auth-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Lint modified auth screens
+        run: npx eslint 'app/(auth)/login/page.tsx' 'app/(auth)/signup/page.tsx' 'app/(auth)/forgot-password/page.tsx' 'app/(auth)/reset-password/page.tsx'
+
   build:
     runs-on: ubuntu-latest
     defaults:
