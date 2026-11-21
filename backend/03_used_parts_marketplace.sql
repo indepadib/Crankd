@@ -64,7 +64,7 @@ create table if not exists public.part_orders (
   quantity integer not null default 1 check (quantity = 1),
   shipping_method text not null check (shipping_method in ('delivery','pickup')),
   buyer_contact jsonb not null,
-  shipping_fee_mad integer not null default 0 check (shipping_fee_mad >= 0),
+  shipping_fee_mad integer check (shipping_fee_mad >= 0),
   payment_method text not null default 'unconfigured' check (payment_method in ('unconfigured','cod','online')),
   payment_status text not null default 'not_initiated' check (payment_status in ('not_initiated','awaiting_payment','paid','failed','refunded')),
   order_status text not null default 'pending_seller' check (order_status in ('pending_seller','accepted','shipped','delivered','cancelled')),
@@ -120,6 +120,9 @@ begin
     where buyer_id = v_buyer and client_request_id = p_client_request_id;
   if v_existing is not null then return v_existing; end if;
 
+  if p_client_request_id is null then
+    raise exception 'Identifiant de demande requis';
+  end if;
   if p_shipping_method not in ('delivery','pickup') then
     raise exception 'Mode de remise invalide';
   end if;
