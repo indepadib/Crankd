@@ -17,6 +17,7 @@ export default function NewPartListingPage() {
   const [delivery, setDelivery] = useState(true);
   const [pickup, setPickup] = useState(false);
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
+  const [sellerStatus, setSellerStatus] = useState<'checking' | 'active' | 'missing' | 'suspended' | 'unavailable'>('checking');
 
   useEffect(() => {
     let mounted = true;
@@ -26,12 +27,25 @@ export default function NewPartListingPage() {
     return () => { mounted = false; };
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    void supabase.from('part_sellers').select('status').eq('seller_id', user.id).maybeSingle()
+      .then(({ data, error: sellerError }) => {
+        if (!mounted) return;
+        if (sellerError) setSellerStatus('unavailable');
+        else if (!data) setSellerStatus('missing');
+        else setSellerStatus(data.status === 'active' ? 'active' : 'suspended');
+      });
+    return () => { mounted = false; };
+  }, [user]);
+
   const field = 'mt-2 h-12 w-full rounded-xl border border-white/10 bg-[#252629] px-4 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-orange-500/60';
   const label = 'block text-sm font-semibold text-zinc-200';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || submitting || backendReady !== true) return;
+    if (!user || submitting || backendReady !== true || sellerStatus !== 'active') return;
     setError('');
     if (!delivery && !pickup) { setError('Sélectionnez au moins un mode de remise.'); return; }
     if (photos.length < 1 || photos.length > 8) { setError('Ajoutez entre 1 et 8 photos réelles de la pièce.'); return; }
@@ -114,6 +128,20 @@ export default function NewPartListingPage() {
           <h2 className="text-lg font-bold text-amber-100">Publication temporairement indisponible</h2>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-zinc-300">Nous finalisons la configuration de la marketplace de pièces. Votre formulaire ne peut pas encore être enregistré : revenez après la mise en service.</p>
           <Link href="/marketplace/parts" className="mt-6 inline-flex rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white">Retour au catalogue</Link>
+        </div>
+      ) : sellerStatus === 'checking' ? (
+        <div role="status" className="rounded-2xl border border-white/10 bg-[#1d1e20] p-8 text-center text-sm text-zinc-300">Vérification de votre compte vendeur…</div>
+      ) : sellerStatus !== 'active' ? (
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/10 p-7 text-center">
+          <h2 className="text-xl font-bold text-white">{sellerStatus === 'suspended' ? 'Boutique suspendue' : 'Activez votre boutique vendeur'}</h2>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-zinc-300">
+            {sellerStatus === 'missing'
+              ? 'Pour publier des pièces, créez gratuitement votre boutique VROOQ et confirmez les règles de vente.'
+              : sellerStatus === 'suspended'
+                ? 'Votre boutique est suspendue et ne peut pas créer de nouvelles annonces.'
+                : 'Le service des comptes vendeurs doit encore être activé sur VROOQ.'}
+          </p>
+          {sellerStatus === 'missing' && <Link href="/marketplace/parts/sell" className="mt-5 inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Créer mon compte vendeur</Link>}
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-7">

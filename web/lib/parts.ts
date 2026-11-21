@@ -53,6 +53,9 @@ export interface PartOrder {
   order_status: 'pending_seller' | 'accepted' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: 'unconfigured' | 'cod' | 'online';
   payment_status: string;
+  requested_payment_channel?: 'card' | 'wallet';
+  requested_carrier?: 'unassigned' | 'cathedis' | 'amana' | 'pickup';
+  shipping_fee_mad?: number | null;
   carrier: string | null;
   tracking_number: string | null;
   created_at: string;
@@ -77,3 +80,14 @@ export function readableError(error: unknown): string {
   }
   return 'Une erreur est survenue. Réessayez.';
 }
+export const PAYMENT_CHANNEL_LABELS: Record<string, string> = {
+  card: 'Carte bancaire',
+  wallet: 'Wallet numérique',
+};
+
+export const CARRIER_LABELS: Record<string, string> = {
+  cathedis: 'Cathedis (souhaité)',
+  amana: 'Amana (souhaité)',
+  pickup: 'Remise en main propre',
+  unassigned: 'Non sélectionné',
+};
