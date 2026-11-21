@@ -60,6 +60,7 @@ export default function PartsMarketplacePage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/marketplace/parts/new" className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-orange-400"><Plus className="h-4 w-4" /> Vendre une pièce</Link>
             <Link href="/marketplace/parts/orders" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Mes commandes <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/marketplace/parts/mine" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Mes annonces <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>
         <div className="pointer-events-none absolute -right-12 -top-16 h-72 w-72 rounded-full bg-orange-600/10 blur-3xl" />
