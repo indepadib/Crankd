@@ -77,6 +77,7 @@ export default function LoginPage() {
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
                             type="email"
+                            autoComplete="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
@@ -90,12 +91,13 @@ export default function LoginPage() {
                 <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
-                        <a href="#" className="text-[10px] font-bold text-signal-orange hover:text-orange-400 transition-colors">Forgot?</a>
+                        <Link href="/forgot-password" className="text-[10px] font-bold text-signal-orange hover:text-orange-400 transition-colors">Forgot?</Link>
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-signal-orange transition-colors" />
                         <input
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="current-password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
@@ -105,6 +107,7 @@ export default function LoginPage() {
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
