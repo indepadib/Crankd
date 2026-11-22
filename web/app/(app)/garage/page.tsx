@@ -38,6 +38,7 @@ export default function GaragePage() {
   const [logs,setLogs]=useState<Maintenance[]>([]);
   const [detailsError,setDetailsError]=useState('');
   const [showLogForm,setShowLogForm]=useState(false);
+  const [showOptionalFields,setShowOptionalFields]=useState(false);
   const [savingLog,setSavingLog]=useState(false);
   const [logError,setLogError]=useState('');
   const [serviceCode,setServiceCode]=useState('oil_change');
@@ -133,6 +134,7 @@ export default function GaragePage() {
       if(dbError||!data)throw new Error('L’entretien n’a pas pu être enregistré. Aucune information n’a été ajoutée.');
       setLogs(previous=>[data as Maintenance,...previous].sort((a,b)=>b.occurred_at.localeCompare(a.occurred_at)));
       setShowLogForm(false);
+      setShowOptionalFields(false);
       setLogSuccess(true);
     }catch(cause){setLogError(cause instanceof Error?cause.message:'Enregistrement impossible.');}
     finally{setSavingLog(false);}
@@ -202,12 +204,13 @@ export default function GaragePage() {
               <section className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div><h2 className="flex items-center gap-2 text-xl font-black text-white"><ClipboardList className="h-5 w-5 text-orange-400"/> Historique d’entretien</h2><p className="mt-1 text-xs text-zinc-400">Privé · saisi par le propriétaire · non certifié par VROOQ</p></div>
-                  <button type="button" onClick={()=>{setShowLogForm(v=>!v);setLogError('');}} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-white"><Plus className="h-4 w-4"/> Ajouter un entretien</button>
+                  <button type="button" onClick={()=>{setShowLogForm(v=>!v);setShowOptionalFields(false);setLogError('');}} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-white"><Plus className="h-4 w-4"/> Ajouter un entretien</button>
                 </div>
                 {logSuccess&&<p role="status" className="flex items-center gap-2 text-sm text-emerald-300"><CheckCircle2 className="h-4 w-4"/> Entretien enregistré dans ton historique privé.</p>}
                 {showLogForm&&(
                   <form onSubmit={addMaintenance} className="space-y-4 rounded-2xl border border-orange-500/25 bg-black/20 p-5">
-                    <h3 className="text-lg font-bold text-white">Nouvel entretien</h3>
+                    <h3 className="text-lg font-bold text-white">Ajouter un entretien en quelques secondes</h3>
+                    <p className="text-xs text-zinc-400">Choisis l’intervention, la date et le kilométrage si nécessaire. Le reste est facultatif.</p>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Quelle intervention ? *
                         <select className={field} name="service_code" value={serviceCode} onChange={e=>setServiceCode(e.target.value)}>
@@ -215,13 +218,16 @@ export default function GaragePage() {
                         </select>
                       </label>
                       <label className="text-sm font-bold text-zinc-300">Date de l’intervention *<input className={field} required type="date" name="date" max={new Date().toISOString().slice(0,10)} defaultValue={new Date().toISOString().slice(0,10)}/></label>
-                      <label className="text-sm font-bold text-zinc-300">Coût payé en DH<input className={field} type="number" min={0} step="0.01" name="cost" placeholder="Ex. 650"/></label>
                       {selectedService.odometer!=='not_needed'&&(
                         <label className="text-sm font-bold text-zinc-300 sm:col-span-2">
                           Kilométrage au moment de l’intervention{selectedService.odometer==='required'?' *':' (facultatif)'}
                           <input className={field} name="odometer" type="number" required={selectedService.odometer==='required'} min={0} step={1} placeholder="Ex. 150000 km"/>
                         </label>
                       )}
+                    </div>
+                    <button type="button" aria-expanded={showOptionalFields} onClick={()=>setShowOptionalFields(v=>!v)} className="min-h-11 rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-orange-500/40">{showOptionalFields?'Masquer les détails facultatifs':'Ajouter coût, échéance ou détails (facultatif)'}</button>
+                    {showOptionalFields&&<div className="grid gap-4 sm:grid-cols-2">
+                      <label className="text-sm font-bold text-zinc-300">Coût payé en DH<input className={field} type="number" min={0} step="0.01" name="cost" placeholder="Ex. 650"/></label>
                       {selectedService.nextDueKm&&(
                         <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Prochaine échéance prévue en km (facultatif)
                           <input className={field} name="next_due_km" type="number" min={0} step={1} placeholder="Selon carnet du constructeur"/>
@@ -230,9 +236,9 @@ export default function GaragePage() {
                       <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Précision ou référence (facultatif)
                         <input className={field} name="title" minLength={3} maxLength={140} placeholder="Ex. Huile 5W30, courroie + galets"/>
                       </label>
-                    </div>
+                    </div>}
                     {selectedService.guidance&&<p className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3 text-xs leading-6 text-orange-100">{selectedService.guidance}</p>}
-                    <label className="block text-sm font-bold text-zinc-300">Notes<textarea className={field} rows={3} name="description" maxLength={2500} placeholder="Travaux effectués, références, observations"/></label>
+                    {showOptionalFields&&<label className="block text-sm font-bold text-zinc-300">Notes<textarea className={field} rows={3} name="description" maxLength={2500} placeholder="Travaux effectués, références, observations"/></label>}
                     {logError&&<p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{logError}</p>}
                     <button disabled={savingLog} type="submit" className="w-full rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-black disabled:opacity-50">{savingLog?'Enregistrement…':'Enregistrer cet entretien'}</button>
                   </form>
