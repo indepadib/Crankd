@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpenCheck, CarFront, Check, ShieldAlert, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { VehicleMakeModelPicker } from '@/components/VehicleMakeModelPicker';
 
 type Club = { id: string; name: string; category: string | null };
 type Method = 'manual' | 'card_transcription';
@@ -146,8 +147,7 @@ export default function AddVehiclePage() {
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-semibold text-zinc-200">Marque *<input className={field} required minLength={2} maxLength={60} value={make} onChange={e=>setMake(e.target.value)} placeholder="Toyota"/></label>
-              <label className="text-sm font-semibold text-zinc-200">Modèle / type *<input className={field} required maxLength={80} value={model} onChange={e=>setModel(e.target.value)} placeholder="Auris"/></label>
+              <VehicleMakeModelPicker className="sm:col-span-2" make={make} model={model} onMakeChange={setMake} onModelChange={setModel} />
               <label className="text-sm font-semibold text-zinc-200">Année *<input className={field} required type="number" min={1950} max={new Date().getFullYear()+2} value={year} onChange={e=>setYear(e.target.value)} placeholder="2014"/></label>
               <label className="text-sm font-semibold text-zinc-200">Carburant
                 <select className={field} value={fuel} onChange={e=>setFuel(e.target.value as Fuel)}>
