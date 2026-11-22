@@ -19,10 +19,10 @@ export const Navbar = () => {
 
                 <div className="flex items-center gap-6">
                     <Link
-                        href="/dashboard"
+                        href="/marketplace/parts/sell"
                         className="text-sm font-bold text-text-dim hover:text-white transition-colors hidden md:block"
                     >
-                        Dealer Access
+                        Espace vendeur
                     </Link>
                     <AuthButton />
                 </div>
@@ -41,7 +41,7 @@ function AuthButton() {
     if (user) {
         return (
             <Link
-                href="/feed"
+                href="/start"
                 className="bg-signal-orange text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-signal-orange-dim transition-colors"
             >
                 Launch App →
