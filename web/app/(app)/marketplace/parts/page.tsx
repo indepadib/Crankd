@@ -73,6 +73,10 @@ export default function PartsMarketplacePage() {
     return () => { active = false; };
   }, [user]);
 
+  const activeGarageVehicle = garageVehicles.find(vehicle => vehicle.id === selectedVehicle);
+  const hasFilters = Boolean(query || category || condition || city || selectedVehicle);
+  function clearFilters(){setQuery('');setCategory('');setCondition('');setCity('');setSelectedVehicle('');}
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     const garageVehicle = user ? garageVehicles.find((vehicle) => vehicle.id === selectedVehicle) : undefined;
@@ -138,12 +142,21 @@ export default function PartsMarketplacePage() {
           <input className={field} aria-label="Ville" placeholder="Ville (Casablanca…)" value={city} onChange={(e) => setCity(e.target.value)} />
           <select aria-label="Filtrer par voiture de mon garage" className={field} disabled={!user || !garageVehicles.length} value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}><option value="">{garageVehicles.length ? "Mon garage : toutes" : "Mon garage : vide"}</option>{garageVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.year}</option>)}</select>
         </div>
+        {activeGarageVehicle && (!activeGarageVehicle.fuel_type || !activeGarageVehicle.engine_code) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+            <p className="text-xs leading-5 text-amber-100">Pour {activeGarageVehicle.make} {activeGarageVehicle.model}, {[
+              !activeGarageVehicle.fuel_type?'le carburant':null,
+              !activeGarageVehicle.engine_code?'le code moteur':null,
+            ].filter(Boolean).join(' et ')} {(!activeGarageVehicle.fuel_type && !activeGarageVehicle.engine_code)?'ne sont pas renseignés':'n’est pas renseigné'}. Certaines annonces exigeant ces informations sont donc masquées, sans présumer de leur compatibilité.</p>
+            <Link href="/garage" className="min-h-11 rounded-xl border border-amber-500/30 px-4 py-3 text-xs font-bold text-white">Compléter dans mon garage</Link>
+          </div>
+        )}
         <p className="text-xs text-zinc-500">Filtre conservateur : une pièce exigeant un carburant ou un code moteur ne sera pas présentée comme compatible si cette information manque dans votre garage. Confirme toujours la référence OEM avant tout achat.</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-400">{loading ? 'Chargement…' : error ? 'Catalogue indisponible' : filtered.length + ' pièce(s) trouvée(s)'}</p>
-          <select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
+          <div className="flex items-center gap-3">{hasFilters&&<button type="button" onClick={clearFilters} className="min-h-11 rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold text-white">Effacer les filtres</button>}<select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
             <option value="recent">Plus récentes</option><option value="price-asc">Prix croissant</option><option value="price-desc">Prix décroissant</option>
-          </select>
+          </select></div>
         </div>
       </section>
 
