@@ -31,4 +31,6 @@ for each row execute function public.sync_post_like_count();
 commit;
 
 -- REVIEW BEFORE APPLY: existing likes may be duplicated; deduplicate in staging first.
--- SECURITY REVIEW: this narrowly scoped SECURITY DEFINER trigger is privileged.\n-- Audit function owner, EXECUTE grants, trigger abuse, RLS, and cross-user inserts/deletes.\n-- DO NOT APPLY until cross-user tests pass.
+-- SECURITY REVIEW: this narrowly scoped SECURITY DEFINER trigger is privileged.
+-- Audit function owner, EXECUTE grants, trigger abuse, RLS, and cross-user inserts/deletes.
+-- DO NOT APPLY until cross-user tests pass.
