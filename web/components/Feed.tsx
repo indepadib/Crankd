@@ -48,6 +48,7 @@ function FeedItem({
     
     // States
     const [liked, setLiked] = useState(false);
+    const [likePending, setLikePending] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [flames, setFlames] = useState<{ id: number; x: number; y: number }[]>([]);
     const [showDoubleTapFlame, setShowDoubleTapFlame] = useState(false);
@@ -58,6 +59,21 @@ function FeedItem({
 
     const startTime = useRef<number>(0);
     const lastTap = useRef<number>(0);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLiked(false);
+        setLikeCount(post.like_count || 0);
+        const loadLike = async () => {
+            if (!user?.id) return;
+            const { data, error } = await supabase.from('post_interactions')
+                .select('id').eq('post_id', post.id).eq('user_id', user.id)
+                .eq('interaction_type', 'like').limit(1);
+            if (!cancelled && !error) setLiked(Boolean(data?.length));
+        };
+        void loadLike();
+        return () => { cancelled = true; };
+    }, [post.id, post.like_count, user?.id]);
 
     // Load RSVPs & Comments
     useEffect(() => {
@@ -79,22 +95,34 @@ function FeedItem({
         loadPostComments();
     }, [post.id, post.content_type, user]);
 
-    const handleLike = (e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        if (!liked) {
-            setLiked(true);
-            setLikeCount(prev => prev + 1);
-            // Trigger flying flame particles
-            const newFlames = Array.from({ length: 6 }).map((_, i) => ({
-                id: Date.now() + i,
-                x: Math.random() * 80 - 40,
-                y: -Math.random() * 80 - 40
-            }));
-            setFlames(newFlames);
-            setTimeout(() => setFlames([]), 1000);
-        } else {
-            setLiked(false);
-            setLikeCount(prev => prev - 1);
+    const handleLike = async (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        if (likePending) return;
+        if (!user?.id) {
+            alert('Connecte-toi pour aimer cette publication.');
+            return;
+        }
+        setLikePending(true);
+        try {
+            if (liked) {
+                const { error } = await supabase.from('post_interactions').delete()
+                    .eq('post_id', post.id).eq('user_id', user.id).eq('interaction_type', 'like');
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('post_interactions').insert({
+                    post_id: post.id, user_id: user.id, interaction_type: 'like'
+                });
+                if (error) throw error;
+            }
+            const { data: updated, error: refreshError } = await supabase.from('posts')
+                .select('like_count').eq('id', post.id).single();
+            if (refreshError) throw refreshError;
+            setLiked(!liked);
+            setLikeCount(updated?.like_count ?? likeCount);
+        } catch {
+            alert('Like non enregistré. Réessaie.');
+        } finally {
+            setLikePending(false);
         }
     };
 
@@ -104,10 +132,7 @@ function FeedItem({
         const DOUBLE_PRESS_DELAY = 300;
         if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
             // Trigger Double-Tap Rev
-            if (!liked) {
-                setLiked(true);
-                setLikeCount(prev => prev + 1);
-            }
+            if (!liked) void handleLike();
             // Trigger flame animation
             const newFlames = Array.from({ length: 12 }).map((_, i) => ({
                 id: Date.now() + i,
