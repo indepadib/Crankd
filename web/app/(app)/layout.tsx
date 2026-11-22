@@ -4,6 +4,7 @@ import React from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Dock } from '@/components/Dock';
 import { ActivationGuide } from '@/components/ActivationGuide';
+import { SessionHealthNotice } from '@/components/SessionHealthNotice';
 
 export default function AppLayout({
     children,
@@ -20,6 +21,8 @@ export default function AppLayout({
 
             {/* Show once per signed-in member; replay with the help icon. */}
             <ActivationGuide />
+
+            <SessionHealthNotice />
 
             {/* Main Content */}
             <main className="md:pl-24 pb-24 md:pb-0 min-h-screen">
