@@ -29,6 +29,8 @@ export interface PartListing {
   oem_reference: string | null;
   compatible_make: string;
   compatible_model: string;
+  compatible_fuel?: string | null;
+  compatible_engine_code?: string | null;
   compatible_year_from: number | null;
   compatible_year_to: number | null;
   city: string;
