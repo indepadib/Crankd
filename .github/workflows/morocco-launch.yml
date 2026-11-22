@@ -1,0 +1,42 @@
+name: VROOQ - Morocco-first full journey
+
+on:
+  push:
+    branches: [feat/vrooq-morocco-first-accounts-20261122]
+  pull_request:
+    paths:
+      - 'web/hooks/usePreferences.ts'
+      - 'web/app/(auth)/signup/page.tsx'
+      - 'web/app/(auth)/login/page.tsx'
+      - 'web/app/(app)/garage/add/page.tsx'
+      - 'web/app/(app)/marketplace/parts/**'
+      - 'web/app/(app)/start/page.tsx'
+      - 'web/components/ActivationGuide.tsx'
+      - 'web/components/Sidebar.tsx'
+      - 'web/components/Dock.tsx'
+      - 'web/app/(app)/settings/page.tsx'
+      - '.github/workflows/morocco-launch.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Lint changed product paths
+        run: npx eslint hooks/usePreferences.ts 'app/(auth)/signup/page.tsx' 'app/(app)/garage/add/page.tsx' 'app/(app)/start/page.tsx' 'components/ActivationGuide.tsx' 'app/(app)/marketplace/parts/page.tsx' 'app/(app)/marketplace/parts/new/page.tsx'
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production Next build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
