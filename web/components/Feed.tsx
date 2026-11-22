@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { VrooqTV } from './VrooqTV';
 import { usePreferences } from '@/hooks/usePreferences';
 import { PollCard } from './PollCard';
+import { PostGallery } from './PostGallery';
 
 function FeedItem({ 
     post, 
@@ -425,11 +426,7 @@ function FeedItem({
                             className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
                         />
                     ) : (
-                        <img
-                            src={getImage()!}
-                            alt={post.title || 'Feed Media'}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
-                        />
+                        <PostGallery postId={post.id} cover={getImage()!} />
                     )}
 
                     {/* Shimmer Overlay */}
