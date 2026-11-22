@@ -22,6 +22,12 @@ export function useGarage(userId?: string) {
 
     const fetchGarage = useCallback(async () => {
         if (authLoading || recovering) return;
+        if (userId && !session?.access_token) {
+            setVehicles([]);
+            setError('Ta session a expiré. Reconnecte-toi pour accéder au garage.');
+            setLoading(false);
+            return;
+        }
         if (!userId) {
             setVehicles([]);
             setLoading(false);
@@ -48,7 +54,7 @@ export function useGarage(userId?: string) {
                 }));
                 setVehicles(enrichedData as Vehicle[]);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error fetching garage:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch garage');
         } finally {
