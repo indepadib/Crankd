@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthProvider';
 import { ConvoysMap } from '@/components/ConvoysMap';
 import { EventCard } from '@/components/EventCard';
@@ -128,7 +129,7 @@ export default function ConvoysPage() {
                         {loading ? (
                             <div className="py-20 text-center text-zinc-500 font-bold">Chargement des événements…</div>
                         ) : events.length === 0 ? (
-                            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm text-zinc-300">Aucun convoi publié pour le moment. Proposez la première sortie à la communauté.</div>
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm text-zinc-300">Aucun convoi confirmé et daté pour le moment. Les idées de meetup du Feed sont des propositions, pas des événements ouverts aux inscriptions. <Link href="/feed" className="mt-3 block font-bold text-orange-300 underline underline-offset-4">Découvrir les idées dans le Feed</Link></div>
                         ) : (
                             events.map(event => (
                                 <EventCard 
