@@ -33,21 +33,18 @@ export function AddVehicleModal({ isOpen, onClose, onAdd }: AddVehicleModalProps
         setError(null);
     };
 
-    const handleVinSearch = async (e: React.FormEvent) => {
+    const handleVinSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        const normalizedVin = vin.trim().toUpperCase();
+        if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(normalizedVin)) {
+            setError('Le VIN doit contenir 17 caractères valides (sans I, O ou Q).');
+            return;
+        }
+        setVin(normalizedVin);
         setError(null);
-
-        // Simulate VIN decoding
-        setTimeout(() => {
-            setLoading(false);
-            // Mock result
-            setMake('Toyota');
-            setModel('Supra');
-            setYear('1994');
-            setImageUrl('https://images.unsplash.com/photo-1555215695-3004980adade?q=80&w=2600');
-            setStep('details');
-        }, 1500);
+        // VIN decoding is not available without a licensed, verified data provider.
+        // Never invent a make, model, year, or image from an entered VIN.
+        setStep('details');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +60,7 @@ export function AddVehicleModal({ isOpen, onClose, onAdd }: AddVehicleModalProps
                 reset();
             }, 2000);
         } catch (err) {
-            setError('Failed to add vehicle');
+            setError('Impossible d’ajouter le véhicule. Réessaie.');
             setLoading(false);
         }
     };
@@ -105,7 +102,7 @@ export function AddVehicleModal({ isOpen, onClose, onAdd }: AddVehicleModalProps
                                         <Search className="h-8 w-8 text-signal-orange" />
                                     </div>
                                     <h3 className="text-lg font-bold text-white">Decoder</h3>
-                                    <p className="text-sm text-zinc-400">Enter VIN to auto-populate specs.</p>
+                                    <p className="text-sm text-zinc-400">Saisis un VIN valide puis confirme manuellement les informations. Aucun décodage automatique n’est encore disponible.</p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -128,10 +125,10 @@ export function AddVehicleModal({ isOpen, onClose, onAdd }: AddVehicleModalProps
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={loading || vin.length < 5}
+                                        disabled={loading || vin.trim().length !== 17}
                                         className="flex-1 bg-signal-orange text-white font-bold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
-                                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Decode VIN'}
+                                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Continuer'}
                                     </button>
                                 </div>
                             </form>
