@@ -32,8 +32,7 @@ export default function LoginPage() {
                 setError(error.message);
                 setLoading(false);
             } else {
-                const intent = data.user?.user_metadata?.account_intent;
-                router.replace(intent === 'sell' ? '/marketplace/parts/sell' : intent === 'buy' ? '/marketplace/parts' : '/feed');
+                router.replace('/start');
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
