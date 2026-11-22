@@ -61,6 +61,8 @@ export default function SellerRFQInbox(){
     const message=String(form.get('message')||'').trim();
     const condition=String(form.get('part_condition')||'used');
     const reference=String(form.get('part_reference')||'').trim();
+    const requestedCondition=requests.find(r=>r.id===requestId)?.desired_condition;
+    if(requestedCondition&&requestedCondition!=='any'&&requestedCondition!==condition){setFormError('Cette demande accepte uniquement des pièces '+(requestedCondition==='new'?'neuves':'d’occasion')+'.');return;}
     const compatibilityAcknowledged=form.get('compatibility_acknowledged')==='on';
     if(!compatibilityAcknowledged){setFormError('Confirme avoir vérifié les caractéristiques du véhicule et indique les réserves éventuelles dans ton message.');return;}
     if(!Number.isInteger(price)||price<10||price>10000000||!Number.isInteger(delay)||delay<0||delay>45||
@@ -133,7 +135,7 @@ export default function SellerRFQInbox(){
                   <label className="text-sm text-zinc-300">Frais de livraison en DH (facultatifs)<input className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" name="shipping_fee" type="number" min={0} max={100000} step={1}/></label>
                   <label className="text-sm text-zinc-300">Disponibilité sous * (jours)<input required className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" name="availability_days" defaultValue={2} type="number" min={0} max={45}/></label>
                   <label className="text-sm text-zinc-300">État réel *
-                    <select className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" name="part_condition" required defaultValue="used"><option value="used">Occasion</option><option value="new">Neuf</option><option value="refurbished">Reconditionné</option></select></label>
+                    <select className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" name="part_condition" required defaultValue={request.desired_condition==='new'?'new':'used'}>{request.desired_condition!=='new'&&<option value="used">Occasion</option>}{request.desired_condition!=='used'&&<option value="new">Neuf</option>}{request.desired_condition==='any'&&<option value="refurbished">Reconditionné</option>}</select></label>
                   <label className="text-sm text-zinc-300 sm:col-span-2">Référence OEM / fabricant<input className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" name="part_reference" maxLength={100} placeholder="Référence sur la pièce"/></label>
                 </div>
                 <label className="block text-sm text-zinc-300">Ce que tu proposes *<textarea required name="message" minLength={10} maxLength={1500} rows={3} className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" placeholder="État, provenance, compatibilité à vérifier, garantie éventuelle…"/></label>
