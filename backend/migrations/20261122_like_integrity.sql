@@ -11,7 +11,7 @@ create policy "Users delete own interactions"
   using ((select auth.uid()) = user_id);
 
 create or replace function public.sync_post_like_count()
-returns trigger language plpgsql security invoker set search_path = ''
+returns trigger language plpgsql security definer set search_path = ''
 as $$
 begin
   if TG_OP = 'INSERT' and NEW.interaction_type = 'like' then
@@ -22,6 +22,8 @@ begin
   return null;
 end;
 $$;
+revoke all on function public.sync_post_like_count() from public, anon, authenticated;
+-- Trigger executes as function owner; confirm owner has only the necessary rights.
 drop trigger if exists post_interaction_like_counter on public.post_interactions;
 create trigger post_interaction_like_counter
 after insert or delete on public.post_interactions
@@ -29,7 +31,4 @@ for each row execute function public.sync_post_like_count();
 commit;
 
 -- REVIEW BEFORE APPLY: existing likes may be duplicated; deduplicate in staging first.
--- SECURITY: posts UPDATE RLS currently author-only, so SECURITY INVOKER trigger may
--- not be allowed to update another author's count. Use a narrowly privileged,
--- hardened server-side RPC or private trigger after threat modeling instead.
--- DO NOT APPLY until cross-user tests pass.
+-- SECURITY REVIEW: this narrowly scoped SECURITY DEFINER trigger is privileged.\n-- Audit function owner, EXECUTE grants, trigger abuse, RLS, and cross-user inserts/deletes.\n-- DO NOT APPLY until cross-user tests pass.
