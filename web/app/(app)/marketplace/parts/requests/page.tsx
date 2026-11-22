@@ -27,6 +27,7 @@ export default function MyPartRequestsPage(){
   const [changing,setChanging]=useState<string|null>(null);
   const [refresh,setRefresh]=useState(0);
   const [quoteSort,setQuoteSort]=useState<'total'|'availability'|'recent'>('total');
+  const [showExpired,setShowExpired]=useState(false);
   const reload=useCallback(()=>setRefresh(r=>r+1),[]);
   useEffect(()=>{
     if(!user||!session?.access_token||authError)return;
@@ -81,7 +82,9 @@ export default function MyPartRequestsPage(){
         <p className="mt-3 text-sm text-zinc-400">Une pièce introuvable ? Demande aux vendeurs qui traitent sa catégorie.</p>
         <Link href="/marketplace/parts/request" className="mt-5 inline-flex rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-black">Créer ma première demande</Link>
       </div>:requests.map(request=>{
-        const offers=[...(byRequest.get(request.id)||[])].sort((a,b)=>{
+        const allOffers=byRequest.get(request.id)||[];
+        const expiredCount=allOffers.filter(q=>new Date(q.expires_at).getTime()<=Date.now()).length;
+        const offers=allOffers.filter(q=>showExpired||new Date(q.expires_at).getTime()>Date.now()).sort((a,b)=>{
           if(quoteSort==='availability')return a.availability_days-b.availability_days;
           if(quoteSort==='recent')return new Date(b.created_at).getTime()-new Date(a.created_at).getTime();
           const total=(q:Quote)=>q.shipping_fee_mad===null?Number.POSITIVE_INFINITY:q.price_mad+q.shipping_fee_mad;
@@ -95,7 +98,7 @@ export default function MyPartRequestsPage(){
             </div>
             <span className="rounded-full border border-white/15 px-3 py-2 text-xs font-bold text-zinc-300">{statusLabels[request.status]||request.status}</span>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-bold text-white"><Store className="h-4 w-4 text-orange-400"/>{offers.length} devis reçu(s)</div>{offers.length>1&&<select aria-label="Trier les devis" className="min-h-11 rounded-xl border border-white/15 bg-[#242528] px-3 text-xs text-white" value={quoteSort} onChange={e=>setQuoteSort(e.target.value as typeof quoteSort)}><option value="total">Prix total connu</option><option value="availability">Délai annoncé</option><option value="recent">Devis récents</option></select>}</div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-bold text-white"><Store className="h-4 w-4 text-orange-400"/>{offers.length} devis affiché(s) · {allOffers.length} reçu(s)</div><div className="flex flex-wrap items-center gap-3">{expiredCount>0&&<label className="flex items-center gap-2 text-xs text-zinc-300"><input type="checkbox" checked={showExpired} onChange={e=>setShowExpired(e.target.checked)} className="accent-orange-500"/> Afficher les {expiredCount} devis expiré(s)</label>}{offers.length>1&&<select aria-label="Trier les devis" className="min-h-11 rounded-xl border border-white/15 bg-[#242528] px-3 text-xs text-white" value={quoteSort} onChange={e=>setQuoteSort(e.target.value as typeof quoteSort)}><option value="total">Prix total connu</option><option value="availability">Délai annoncé</option><option value="recent">Devis récents</option></select>}</div></div>
           {offers.length?(
             <div className="space-y-3">{offers.map(quote=>{
               const isExpired=new Date(quote.expires_at).getTime()<Date.now();
@@ -112,8 +115,8 @@ export default function MyPartRequestsPage(){
                 </div>
               </article>;
             })}</div>
-          ):<p className="flex items-start gap-2 rounded-xl bg-orange-500/5 p-4 text-xs leading-6 text-zinc-400"><CircleHelp className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Les commerçants concernés peuvent répondre depuis leur boîte à devis. Une réponse sous 24 h est un objectif, pas une garantie. Les notifications automatiques ne sont pas encore activées.</p>}
-          <p className="text-[11px] leading-5 text-zinc-500">Le tri par prix total place les devis sans frais de livraison renseignés à la fin. Les offres expirées restent visibles à titre indicatif. Comparer un devis n’engage ni paiement ni commande. Confirme la référence OEM, le prix total et l’état réel avant de poursuivre.</p>
+          ):<p className="flex items-start gap-2 rounded-xl bg-orange-500/5 p-4 text-xs leading-6 text-zinc-400"><CircleHelp className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> {expiredCount>0?'Tous les devis reçus ont expiré. Affiche les anciens devis pour référence ou crée une nouvelle demande.':'Les commerçants concernés peuvent répondre depuis leur boîte à devis.'} Une réponse sous 24 h est un objectif, pas une garantie. Les notifications automatiques ne sont pas encore activées.</p>}
+          <p className="text-[11px] leading-5 text-zinc-500">Le tri par prix total place les devis sans frais de livraison renseignés à la fin. Les offres expirées sont masquées par défaut et consultables sur demande. Comparer un devis n’engage ni paiement ni commande. Confirme la référence OEM, le prix total et l’état réel avant de poursuivre.</p>
           {request.status==='open'&&<div className="flex gap-4 text-xs">
             <button type="button" disabled={changing===request.id} onClick={()=>void updateStatus(request.id,'closed')} className="font-bold text-zinc-300 hover:text-white">Clôturer la demande</button>
             <button type="button" disabled={changing===request.id} onClick={()=>void updateStatus(request.id,'cancelled')} className="font-bold text-red-300 hover:text-red-200">Annuler</button>
