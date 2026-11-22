@@ -407,7 +407,10 @@ export function VrooqTV() {
                             <div className="flex flex-col items-center gap-4 pointer-events-auto shrink-0 pl-1">
                                 <div className="flex flex-col items-center">
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleLike(); }}
+                                        disabled={likePending}
+                                        aria-label={likedVideos[activeVideo?.id] ? 'Retirer le like' : 'Aimer cette vidéo'}
+                                        aria-pressed={Boolean(likedVideos[activeVideo?.id])}
                                         className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                     >
                                         <Heart className={`h-4.5 w-4.5 transition-colors ${likedVideos[activeVideo?.id] ? 'text-signal-orange fill-signal-orange' : 'text-white'}`} />
