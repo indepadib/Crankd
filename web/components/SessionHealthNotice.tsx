@@ -11,7 +11,7 @@ export function SessionHealthNotice() {
         <div role="alert" className="sticky top-0 z-[70] border-b border-amber-400/30 bg-[#292016] px-4 py-3 text-amber-100 md:ml-24">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 text-sm">
                 <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0 text-amber-400" />
-                <p className="min-w-0 flex-1 leading-5">{authError} Tes données n'ont pas été supprimées.</p>
+                <p className="min-w-0 flex-1 leading-5">{authError} Tes données n&apos;ont pas été supprimées.</p>
                 <button
                     type="button"
                     disabled={recovering}
