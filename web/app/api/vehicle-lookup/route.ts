@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const responseHeaders = { 'Cache-Control': 'no-store' };
+export async function GET() {
+  return NextResponse.json({ enabled: process.env.ENABLE_EXTERNAL_VIN_LOOKUP === 'true' }, { headers: responseHeaders });
+}
+
 type NhtsaVehicle = { Make?: string | null; Model?: string | null; ModelYear?: string | null; ErrorCode?: string | null };
 
 export async function POST(request: NextRequest) {
@@ -9,6 +13,9 @@ export async function POST(request: NextRequest) {
   try { payload = (await request.json()) as { vin?: string; consent?: boolean }; }
   catch { return NextResponse.json({ error: 'Demande invalide.' }, { status: 400, headers: responseHeaders }); }
 
+  if (process.env.ENABLE_EXTERNAL_VIN_LOOKUP !== 'true') {
+    return NextResponse.json({ error: 'Recherche VIN automatique en attente de validation de conformité et de couverture au Maroc.' }, { status: 503, headers: responseHeaders });
+  }
   const vin = (payload.vin || '').trim().toUpperCase();
   if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
     return NextResponse.json({ error: 'Le numéro VIN doit contenir exactement 17 caractères (sans I, O ni Q).' }, { status: 400, headers: responseHeaders });
