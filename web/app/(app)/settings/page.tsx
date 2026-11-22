@@ -27,8 +27,6 @@ export default function SettingsPage() {
     const [coverUrl, setCoverUrl] = useState('');
 
     // System Settings States
-    const [currency, setCurrency] = useState('MAD');
-    const [unit, setUnit] = useState('km');
 
     // Notifications Toggles
     const [revsAlert, setRevsAlert] = useState(true);
@@ -76,8 +74,6 @@ export default function SettingsPage() {
             setBio(profileData?.bio || 'Car enthusiast • Builder • Explorer');
             setAvatarUrl(profileData?.avatar_url || '');
             setCoverUrl(profileData?.cover_url || '');
-            setCurrency('MAD');
-            setUnit('km');
 
             // Notification local state
             const localAlertsKey = `user-alerts-${user.id}`;
