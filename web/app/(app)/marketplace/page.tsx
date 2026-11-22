@@ -10,7 +10,7 @@ import { usePreferences } from '@/hooks/usePreferences';
 import { useAuth } from '@/context/AuthProvider';
 
 export default function MarketplacePage() {
-    const { session, loading: authLoading, recovering } = useAuth();
+    const { session, loading: authLoading, recovering, authError } = useAuth();
     const [search, setSearch] = useState('');
     const [listings, setListings] = useState<any[]>([]);
     const { formatCurrency, formatDistance } = usePreferences();
@@ -23,7 +23,7 @@ export default function MarketplacePage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
-        if (authLoading || recovering) return;
+        if (authLoading || recovering || authError) return;
         let mounted = true;
         async function loadListings() {
             try {
@@ -66,7 +66,7 @@ export default function MarketplacePage() {
         }
         void loadListings();
         return () => { mounted = false; };
-    }, [authLoading, recovering, session?.access_token]);
+    }, [authLoading, recovering, authError, session?.access_token]);
 
     const filtered = listings.filter(l =>
         `${l.make} ${l.model} ${l.year}`.toLowerCase().includes(search.toLowerCase())

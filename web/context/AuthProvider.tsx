@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const recoveryInFlight = useRef<Promise<void> | null>(null);
     const profileSyncUser = useRef<string | null>(null);
     const hadUserSession = useRef(false);
+    const rejectedByServer = useRef(false);
 
     const syncState = useCallback((fresh: Session | null) => {
         // A cached expired access token must NEVER be treated as an authenticated session.
@@ -113,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (error) throw error;
 
                 let fresh = data.session;
-                if (requiresRefresh(fresh)) {
+                if (requiresRefresh(fresh) || rejectedByServer.current) {
                     // A single explicit refresh also covers inactive tabs which resumed after expiry.
                     const refreshed = await supabase.auth.refreshSession();
                     if (refreshed.error) throw refreshed.error;
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
                 if (requiresRefresh(fresh)) throw new Error('La session ne peut pas être renouvelée.');
 
+                rejectedByServer.current = false;
                 syncState(fresh);
                 setAuthError(!fresh && hadUserSession.current ? 'Ta session a expiré. Reconnecte-toi pour continuer.' : null);
             } catch (cause) {
@@ -163,10 +165,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (event === 'SIGNED_OUT') {
                 profileSyncUser.current = null;
                 hadUserSession.current = false;
+                rejectedByServer.current = false;
                 syncState(null);
                 setAuthError(null);
             } else if (nextSession && !requiresRefresh(nextSession)) {
                 syncState(nextSession);
+                rejectedByServer.current = false;
                 setAuthError(null);
                 if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                     scheduleProfileSync(nextSession.user);
@@ -184,6 +188,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // explicitly refreshes old tokens if auth initialization returned a stale JWT.
         void retryAuth();
 
+        // The API can reject a JWT even when the device clock says it has not
+        // expired. A PostgREST JWT-expired error takes precedence over local time.
+        const whenServerRejectsJwt = () => {
+            if (!mounted) return;
+            rejectedByServer.current = true;
+            syncState(null);
+            setAuthError('Ta session est expirée. Réessaie ou reconnecte-toi pour poursuivre.');
+            setLoading(false);
+        };
+        window.addEventListener('vrooq:auth-expired', whenServerRejectsJwt);
+
         let lastVisibilityCheck = 0;
         const whenVisible = () => {
             if (document.visibilityState !== 'visible') return;
@@ -198,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             mounted = false;
             subscription.unsubscribe();
             scheduledSyncs.forEach((id) => window.clearTimeout(id));
+            window.removeEventListener('vrooq:auth-expired', whenServerRejectsJwt);
             window.removeEventListener('focus', whenVisible);
             document.removeEventListener('visibilitychange', whenVisible);
         };
@@ -212,6 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             syncState(null);
             profileSyncUser.current = null;
             hadUserSession.current = false;
+            rejectedByServer.current = false;
             router.push('/login');
         }
     };

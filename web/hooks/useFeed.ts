@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthProvider';
 // Older versions wrote to localStorage after a failed publish and seeded fake posts.
 // We report unpublished local drafts separately, never as public community content.
 export function useFeed(userId?: string) {
-    const { session, loading: authLoading, recovering } = useAuth();
+    const { session, loading: authLoading, recovering, authError } = useAuth();
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -15,6 +15,12 @@ export function useFeed(userId?: string) {
 
     const fetchFeed = useCallback(async () => {
         if (authLoading || recovering) return;
+        if (authError) {
+            setPosts([]);
+            setError('La connexion a expiré. Reconnecte-toi avant de consulter le fil.');
+            setLoading(false);
+            return;
+        }
         if (userId && !session?.access_token) {
             setPosts([]);
             setError('Ta session a expiré. Reconnecte-toi pour actualiser le fil.');
@@ -59,7 +65,7 @@ export function useFeed(userId?: string) {
         } finally {
             setLoading(false);
         }
-    }, [userId, authLoading, recovering, session?.access_token]);
+    }, [userId, authLoading, recovering, authError, session?.access_token]);
 
     useEffect(() => { void fetchFeed(); }, [fetchFeed]);
 
