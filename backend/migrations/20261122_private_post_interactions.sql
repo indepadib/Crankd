@@ -12,4 +12,6 @@ create policy "Users insert own interactions"
   with check ((select auth.uid()) = user_id
     and interaction_type in ('view','like','comment','share')
     and (duration_seconds is null or (duration_seconds >= 0 and duration_seconds <= 86400)));
+-- Keep permissions least-privilege even when an existing GRANT was broad.
+-- SELECT/INSERT policies above apply only to authenticated users.
 commit;
