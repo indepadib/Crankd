@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CarFront, Check, Package, ShoppingBag, Store, UserRound } from 'lucide-react';
+import { ArrowRight, CarFront, Check, Package, ShoppingBag, Store, UserRound, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthProvider';
 
