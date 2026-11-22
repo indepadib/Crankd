@@ -43,7 +43,16 @@ export default function PartsMarketplacePage() {
     if (!user) return;
     let active = true;
     void supabase.from('vehicles').select('id,make,model,year').eq('owner_id', user.id).then(({ data }) => {
-      if (active) setGarageVehicles((data || []) as { id: string; make: string; model: string; year: number }[]);
+      if (active) {
+        setGarageVehicles((data || []) as { id: string; make: string; model: string; year: number }[]);
+        try {
+          const chosen = sessionStorage.getItem('vrooq-find-parts-vehicle');
+          if (chosen && (data || []).some(v=>v.id===chosen)) {
+            setSelectedVehicle(chosen);
+            sessionStorage.removeItem('vrooq-find-parts-vehicle');
+          }
+        } catch { /* Session storage blocked */ }
+      }
     });
     return () => { active = false; };
   }, [user]);
@@ -108,7 +117,7 @@ export default function PartsMarketplacePage() {
           <input className={field} aria-label="Ville" placeholder="Ville (Casablanca…)" value={city} onChange={(e) => setCity(e.target.value)} />
           <select aria-label="Filtrer par voiture de mon garage" className={field} disabled={!user || !garageVehicles.length} value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}><option value="">{garageVehicles.length ? "Mon garage : toutes" : "Mon garage : vide"}</option>{garageVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.year}</option>)}</select>
         </div>
-        <p className="text-xs text-zinc-500">Le filtre garage utilise la compatibilité déclarée par le vendeur ; confirmez la référence OEM avant achat.</p>
+        <p className="text-xs text-zinc-500">Le filtre garage utilise la compatibilité déclarée par le vendeur ; confirme la référence OEM et la motorisation avant tout achat.</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-400">{loading ? 'Chargement…' : error ? 'Catalogue indisponible' : filtered.length + ' pièce(s) trouvée(s)'}</p>
           <select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
