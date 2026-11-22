@@ -54,26 +54,12 @@ function FeedItem({
     const [comments, setComments] = useState<any[]>([]);
     const [commentText, setCommentText] = useState('');
     const [showComments, setShowComments] = useState(false);
-    const [rsvps, setRsvps] = useState<string[]>([]);
-    const [isJoined, setIsJoined] = useState(false);
 
     const startTime = useRef<number>(0);
     const lastTap = useRef<number>(0);
 
     // Load RSVPs & Comments
     useEffect(() => {
-        if (post.content_type === 'convoy') {
-            const localRsvpsKey = `rsvps-${post.id}`;
-            const savedRsvps = localStorage.getItem(localRsvpsKey);
-            const parsedRsvps = savedRsvps ? JSON.parse(savedRsvps) : ['@driver_one', '@canyon_blaster', '@m3_guy'];
-            setRsvps(parsedRsvps);
-
-            if (user?.email) {
-                const username = user.email.split('@')[0];
-                setIsJoined(parsedRsvps.includes(`@${username}`));
-            }
-        }
-
         const loadPostComments = async () => {
             const { data: dbData, error } = await supabase
                 .from('post_comments')
@@ -143,29 +129,6 @@ function FeedItem({
             }, DOUBLE_PRESS_DELAY);
         }
         lastTap.current = now;
-    };
-
-    const handleToggleRSVP = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!user) {
-            alert('You must be logged in to join a convoy.');
-            return;
-        }
-
-        const username = `@${user.email?.split('@')[0] || 'driver'}`;
-        const localRsvpsKey = `rsvps-${post.id}`;
-
-        let updated: string[];
-        if (isJoined) {
-            updated = rsvps.filter(u => u !== username);
-            setIsJoined(false);
-        } else {
-            updated = [...rsvps, username];
-            setIsJoined(true);
-        }
-
-        setRsvps(updated);
-        localStorage.setItem(localRsvpsKey, JSON.stringify(updated));
     };
 
     const handleSendComment = async (e: React.FormEvent) => {
@@ -495,7 +458,7 @@ function FeedItem({
                                     <span className="font-mono text-xs font-black uppercase tracking-widest">Convoy Briefing</span>
                                 </div>
                                 <span className="text-xs font-bold text-signal-orange bg-signal-orange/10 px-2.5 py-0.5 rounded border border-signal-orange/20 font-mono">
-                                    {rsvps.length} Drivers RSVP'd
+                                    Inscriptions non disponibles
                                 </span>
                             </div>
                             
@@ -542,25 +505,11 @@ function FeedItem({
                         <div className="p-4 bg-[#141311] border-t border-white/5 flex gap-3 items-center justify-between">
                             <div className="text-[10px] font-mono text-zinc-500 uppercase flex items-center gap-1">
                                 <Clock className="h-3.5 w-3.5 text-signal-orange" />
-                                {parsedConvoyDetails?.dateTime || 'Oct 28 • 10:00 PM'}
+                                {parsedConvoyDetails?.dateTime || 'Date à confirmer'}
                             </div>
-                            <button
-                                onClick={handleToggleRSVP}
-                                className={clsx(
-                                    "px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl border transition-all duration-300 flex items-center gap-1.5 active:scale-95",
-                                    isJoined
-                                        ? "bg-signal-orange/10 border-signal-orange/30 text-signal-orange shadow-[0_0_15px_rgba(249,115,22,0.05)]"
-                                        : "bg-signal-orange border-signal-orange text-white hover:bg-orange-600 shadow-lg shadow-orange-600/10"
-                                )}
-                            >
-                                {isJoined ? (
-                                    <>
-                                        <Check className="h-3.5 w-3.5" /> RSVP Active
-                                    </>
-                                ) : (
-                                    'Join Convoy'
-                                )}
-                            </button>
+                            <span className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-400" aria-label="Inscriptions bientôt disponibles">
+                                Inscriptions bientôt
+                            </span>
                         </div>
                     </div>
                 )}
