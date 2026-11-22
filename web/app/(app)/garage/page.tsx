@@ -129,7 +129,7 @@ export default function GaragePage() {
         vehicle_id:selectedId,performed_by_user_id:user.id,occurred_at:new Date(date+'T12:00:00').toISOString(),
         service_type:type,service_code:serviceCode,title,description:description||null,cost_amount:amount,cost_currency:'MAD',
         odometer_reading:odometer,odometer_unit:odometer!==null?'km':null,next_due_km:nextDueKm,is_verified:false,
-      }).select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading').single();
+      }).select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading,odometer_unit,service_code,next_due_km').single();
       if(dbError||!data)throw new Error('L’entretien n’a pas pu être enregistré. Aucune information n’a été ajoutée.');
       setLogs(previous=>[data as Maintenance,...previous].sort((a,b)=>b.occurred_at.localeCompare(a.occurred_at)));
       setShowLogForm(false);
