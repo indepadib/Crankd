@@ -100,7 +100,7 @@ function CreateFormContent() {
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
     const [tags, setTags] = useState('');
-    const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0]);
+    const [imageUrl, setImageUrl] = useState('');
     const [customImageUrl, setCustomImageUrl] = useState('');
 
     // Video states
@@ -302,6 +302,24 @@ function CreateFormContent() {
             ? (customVideoUrl.trim() || videoUrl)
             : (customImageUrl.trim() || imageUrl);
         const contentType = postMediaType === 'video' ? 'video' : 'media';
+        // Persist uploaded images in Storage instead of storing oversized data URLs in posts.
+        let persistedImage = finalImg;
+        if (postMediaType === 'photo' && finalImg.startsWith('data:image/')) {
+            try {
+                const response = await fetch(finalImg);
+                const blob = await response.blob();
+                if (blob.size > 5 * 1024 * 1024) throw new Error('Photo trop volumineuse (5 Mo maximum).');
+                const path = user.id + '/' + crypto.randomUUID() + '.jpg';
+                const { error: uploadError } = await supabase.storage.from('vrooq-post-media').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+                if (uploadError) throw uploadError;
+                persistedImage = supabase.storage.from('vrooq-post-media').getPublicUrl(path).data.publicUrl;
+            } catch (uploadCause) {
+                setError('Impossible d’envoyer la photo. Vérifie le fichier et réessaie.');
+                setLoading(false);
+                return;
+            }
+        }
+
 
         const richBody = JSON.stringify({
             chassis: chassisCode,
@@ -316,7 +334,7 @@ function CreateFormContent() {
                 author_id: user.id,
                 title,
                 body: richBody,
-                image_url: finalImg,
+                image_url: persistedImage,
                 content_type: contentType,
                 tags: cleanTags.length > 0 ? cleanTags : ['Build'],
                 community_id: communityId || null
