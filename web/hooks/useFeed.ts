@@ -15,6 +15,12 @@ export function useFeed(userId?: string) {
 
     const fetchFeed = useCallback(async () => {
         if (authLoading || recovering) return;
+        if (userId && !session?.access_token) {
+            setPosts([]);
+            setError('Ta session a expiré. Reconnecte-toi pour actualiser le fil.');
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError(null);
 
