@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowRight, Car, Check, ChevronLeft, CircleHelp, Compass, ShoppingBag, Store, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
@@ -60,10 +59,13 @@ export function ActivationGuide() {
     } catch { /* Storage can be unavailable on private devices. */ }
     const nextGoal = saved?.goal && journeys[saved.goal] ? saved.goal : null;
     const nextStep = nextGoal ? Math.min(Math.max(saved?.step ?? 0, 0), journeys[nextGoal].length - 1) : 0;
-    setGoal(nextGoal);
-    setStep(nextStep);
-    setOpened(!saved?.dismissed);
-    setReady(true);
+    const frame = window.requestAnimationFrame(() => {
+      setGoal(nextGoal);
+      setStep(nextStep);
+      setOpened(!saved?.dismissed);
+      setReady(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [loading, user]);
 
   function save(nextGoal: Goal | null, nextStep: number, dismissed: boolean) {
