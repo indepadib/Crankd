@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, BadgeCheck, BookOpenCheck, CarFront, Check, ChevronDown, ShieldAlert, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpenCheck, CarFront, Check, ShieldAlert, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 
