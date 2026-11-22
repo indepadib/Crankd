@@ -79,12 +79,12 @@ export default function PartsMarketplacePage() {
     const results = parts.filter((part) => {
       const matchesVehicle = !garageVehicle || (
         part.compatible_make.toLocaleLowerCase() === garageVehicle.make.toLocaleLowerCase() &&
-        (part.compatible_model.toLocaleLowerCase().includes(garageVehicle.model.toLocaleLowerCase()) || garageVehicle.model.toLocaleLowerCase().includes(part.compatible_model.toLocaleLowerCase())) &&
+        (part.compatible_model.trim().toLocaleLowerCase() === garageVehicle.model.trim().toLocaleLowerCase()) &&
         (!part.compatible_year_from || garageVehicle.year >= part.compatible_year_from) &&
         (!part.compatible_year_to || garageVehicle.year <= part.compatible_year_to) &&
-        (!part.compatible_fuel || !garageVehicle.fuel_type || part.compatible_fuel === garageVehicle.fuel_type) &&
-        (!part.compatible_engine_code || !garageVehicle.engine_code ||
-         part.compatible_engine_code.trim().toLocaleLowerCase() === garageVehicle.engine_code.trim().toLocaleLowerCase())
+        (!part.compatible_fuel || (garageVehicle.fuel_type && part.compatible_fuel.trim().toLocaleLowerCase() === garageVehicle.fuel_type.trim().toLocaleLowerCase())) &&
+        (!part.compatible_engine_code || (garageVehicle.engine_code &&
+         part.compatible_engine_code.trim().toLocaleLowerCase() === garageVehicle.engine_code.trim().toLocaleLowerCase()))
       );
       const searchable = [part.title, part.description, part.part_brand, part.oem_reference, part.compatible_make, part.compatible_model].join(' ').toLocaleLowerCase();
       return (!needle || searchable.includes(needle)) &&
@@ -111,7 +111,7 @@ export default function PartsMarketplacePage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/marketplace/parts/request" className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black hover:bg-orange-400"><Search className="h-4 w-4"/> Demander une pièce / des devis</Link>
             <Link href="/marketplace/parts/requests" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white">Mes demandes de devis</Link>
-            <Link href="/marketplace/parts/new" className="inline-flex items-center gap-2 rounded-xl border border-orange-500/30 bg-transparent px-5 py-3 text-sm font-bold text-black transition hover:bg-orange-400"><Plus className="h-4 w-4" /> Vendre une pièce</Link>
+            <Link href="/marketplace/parts/new" className="inline-flex items-center gap-2 rounded-xl border border-orange-500/30 bg-transparent px-5 py-3 text-sm font-bold text-orange-200 transition hover:bg-orange-500/10"><Plus className="h-4 w-4" /> Vendre une pièce</Link>
             <Link href="/marketplace/parts/orders" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Mes commandes <ArrowRight className="h-4 w-4" /></Link>
             <Link href="/marketplace/parts/mine" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Mes annonces <ArrowRight className="h-4 w-4" /></Link>
             <Link href="/marketplace/parts/sell" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Ma boutique <ArrowRight className="h-4 w-4" /></Link>
@@ -138,7 +138,7 @@ export default function PartsMarketplacePage() {
           <input className={field} aria-label="Ville" placeholder="Ville (Casablanca…)" value={city} onChange={(e) => setCity(e.target.value)} />
           <select aria-label="Filtrer par voiture de mon garage" className={field} disabled={!user || !garageVehicles.length} value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}><option value="">{garageVehicles.length ? "Mon garage : toutes" : "Mon garage : vide"}</option>{garageVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.year}</option>)}</select>
         </div>
-        <p className="text-xs text-zinc-500">Correspondance indicative avec les données déclarées par le vendeur. Le filtre tient compte du carburant et du code moteur lorsqu’ils sont renseignés des deux côtés. Confirme toujours la référence OEM avant tout achat.</p>
+        <p className="text-xs text-zinc-500">Filtre conservateur : une pièce exigeant un carburant ou un code moteur ne sera pas présentée comme compatible si cette information manque dans votre garage. Confirme toujours la référence OEM avant tout achat.</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-400">{loading ? 'Chargement…' : error ? 'Catalogue indisponible' : filtered.length + ' pièce(s) trouvée(s)'}</p>
           <select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
