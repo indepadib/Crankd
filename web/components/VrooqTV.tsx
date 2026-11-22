@@ -125,6 +125,34 @@ export function VrooqTV() {
         setCheckoutComplete(false);
     }, [activeIdx, videoStack]);
 
+    useEffect(() => {
+        if (!showComments || !activeVideo?.id) return;
+        const postId = activeVideo.id;
+        let cancelled = false;
+        const loadComments = async () => {
+            const { data, error } = await supabase.from('post_comments')
+                .select('id,author_username,comment_text,created_at')
+                .eq('post_id', postId)
+                .order('created_at', { ascending: false });
+            if (cancelled) return;
+            if (error) {
+                console.warn('VROOQ TV comments unavailable:', error.message);
+                return;
+            }
+            setVideoComments(prev => ({
+                ...prev,
+                [postId]: (data || []).map(row => ({
+                    id: row.id,
+                    username: '@' + row.author_username.replace(/^@/, ''),
+                    text: row.comment_text,
+                    created_at: row.created_at
+                }))
+            }));
+        };
+        void loadComments();
+        return () => { cancelled = true; };
+    }, [showComments, activeVideo?.id]);
+
     const togglePlayback = () => {
         if (!videoRef.current) return;
         if (isPlaying) {
@@ -406,6 +434,7 @@ export function VrooqTV() {
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto py-3 space-y-3 custom-scrollbar text-[10px]">
+                                    {getCommentsList().length === 0 && <p className="text-zinc-400 text-center py-6">Aucun commentaire pour le moment.</p>}
                                     {getCommentsList().map((c: any) => (
                                         <div key={c.id} className="bg-white/2 p-2 rounded-lg border border-white/5">
                                             <p className="font-bold text-signal-orange">{c.username}</p>
@@ -419,7 +448,7 @@ export function VrooqTV() {
                                         type="text" 
                                         value={commentInput}
                                         onChange={e => setCommentInput(e.target.value)}
-                                        placeholder="Add comment..." 
+                                        placeholder="Écrire un commentaire…" 
                                         className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-white placeholder-text-muted text-[10px] focus:outline-none focus:border-signal-orange/30"
                                     />
                                     <button type="submit" className="p-2 bg-signal-orange hover:bg-orange-600 text-white rounded-xl active:scale-95 transition-all">
