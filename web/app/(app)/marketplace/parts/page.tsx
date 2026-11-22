@@ -8,9 +8,14 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthProvider';
 import { PART_CATEGORIES, PART_CONDITIONS, PartListing, moneyMAD, partConditionLabel } from '@/lib/parts';
 
+type GarageCar = {
+  id: string; make: string; model: string; year: number;
+  fuel_type?: string | null; engine_code?: string | null;
+};
+
 export default function PartsMarketplacePage() {
   const { user } = useAuth();
-  const [garageVehicles, setGarageVehicles] = useState<{ id: string; make: string; model: string; year: number }[]>([]);
+  const [garageVehicles, setGarageVehicles] = useState<GarageCar[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [parts, setParts] = useState<PartListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,18 +47,28 @@ export default function PartsMarketplacePage() {
   useEffect(() => {
     if (!user) return;
     let active = true;
-    void supabase.from('vehicles').select('id,make,model,year').eq('owner_id', user.id).then(({ data }) => {
-      if (active) {
-        setGarageVehicles((data || []) as { id: string; make: string; model: string; year: number }[]);
-        try {
-          const chosen = sessionStorage.getItem('vrooq-find-parts-vehicle');
-          if (chosen && (data || []).some(v=>v.id===chosen)) {
-            setSelectedVehicle(chosen);
-            sessionStorage.removeItem('vrooq-find-parts-vehicle');
-          }
-        } catch { /* Session storage blocked */ }
-      }
-    });
+    async function loadGarage() {
+      const {data:cars,error:carsError} = await supabase.from('vehicles')
+        .select('id,make,model,year').eq('owner_id',user.id);
+      if (!active || carsError) return;
+      const ids = (cars || []).map(v=>v.id);
+      const {data:specs} = ids.length ? await supabase.from('vehicle_specs')
+        .select('vehicle_id,fuel_type,engine_code').in('vehicle_id',ids) : {data:[]};
+      if (!active) return;
+      const byVehicle = new Map((specs || []).map(v=>[v.vehicle_id,v]));
+      setGarageVehicles((cars || []).map(v=>({
+        ...v, fuel_type:byVehicle.get(v.id)?.fuel_type ?? null,
+        engine_code:byVehicle.get(v.id)?.engine_code ?? null,
+      })));
+      try {
+        const chosen = sessionStorage.getItem('vrooq-find-parts-vehicle');
+        if (chosen && (cars || []).some(v=>v.id===chosen)) {
+          setSelectedVehicle(chosen);
+          sessionStorage.removeItem('vrooq-find-parts-vehicle');
+        }
+      } catch { /* Private mode */ }
+    }
+    void loadGarage();
     return () => { active = false; };
   }, [user]);
 
@@ -65,7 +80,10 @@ export default function PartsMarketplacePage() {
         part.compatible_make.toLocaleLowerCase() === garageVehicle.make.toLocaleLowerCase() &&
         (part.compatible_model.toLocaleLowerCase().includes(garageVehicle.model.toLocaleLowerCase()) || garageVehicle.model.toLocaleLowerCase().includes(part.compatible_model.toLocaleLowerCase())) &&
         (!part.compatible_year_from || garageVehicle.year >= part.compatible_year_from) &&
-        (!part.compatible_year_to || garageVehicle.year <= part.compatible_year_to)
+        (!part.compatible_year_to || garageVehicle.year <= part.compatible_year_to) &&
+        (!part.compatible_fuel || !garageVehicle.fuel_type || part.compatible_fuel === garageVehicle.fuel_type) &&
+        (!part.compatible_engine_code || !garageVehicle.engine_code ||
+         part.compatible_engine_code.trim().toLocaleLowerCase() === garageVehicle.engine_code.trim().toLocaleLowerCase())
       );
       const searchable = [part.title, part.description, part.part_brand, part.oem_reference, part.compatible_make, part.compatible_model].join(' ').toLocaleLowerCase();
       return (!needle || searchable.includes(needle)) &&
@@ -117,7 +135,7 @@ export default function PartsMarketplacePage() {
           <input className={field} aria-label="Ville" placeholder="Ville (Casablanca…)" value={city} onChange={(e) => setCity(e.target.value)} />
           <select aria-label="Filtrer par voiture de mon garage" className={field} disabled={!user || !garageVehicles.length} value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}><option value="">{garageVehicles.length ? "Mon garage : toutes" : "Mon garage : vide"}</option>{garageVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.year}</option>)}</select>
         </div>
-        <p className="text-xs text-zinc-500">Le filtre garage utilise la compatibilité déclarée par le vendeur ; confirme la référence OEM et la motorisation avant tout achat.</p>
+        <p className="text-xs text-zinc-500">Correspondance indicative avec les données déclarées par le vendeur. Le filtre tient compte du carburant et du code moteur lorsqu'ils sont renseignés des deux côtés. Confirme toujours la référence OEM avant tout achat.</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-400">{loading ? 'Chargement…' : error ? 'Catalogue indisponible' : filtered.length + ' pièce(s) trouvée(s)'}</p>
           <select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
