@@ -302,8 +302,8 @@ function CreateFormContent() {
             ? (customVideoUrl.trim() || videoUrl)
             : (customImageUrl.trim() || imageUrl);
         const contentType = postMediaType === 'video' ? 'video' : 'media';
-        if (!finalImg && !body.trim() && !title.trim()) {
-            setError('Ajoute un texte, un titre ou une photo avant de publier.');
+        if (!finalImg) {
+            setError('Ajoute une vraie photo de la voiture ou une vidéo avant de publier. Les publications du Feed doivent être illustrées.');
             setLoading(false);
             return;
         }
