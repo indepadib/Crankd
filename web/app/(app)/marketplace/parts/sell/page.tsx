@@ -90,12 +90,14 @@ export default function SellOnVrooq() {
         ? await supabase.from('part_sellers').update({ ...editable, updated_at: new Date().toISOString() }).eq('seller_id', user.id)
         : await supabase.from('part_sellers').insert({ seller_id: user.id, ...editable, accepts_seller_rules: true });
       if (result.error) throw result.error;
-      setSeller((current) => current ? ({...current,...editable,seller_kind:seller_kind as Seller['seller_kind']}) : ({
-        seller_id: user.id, ...editable,
-        seller_kind: seller_kind as Seller['seller_kind'],
-        status: 'active', verification_status: 'unverified',
-        plan_code: 'free', subscription_status: 'not_required',
-      }));
+      const {data:verified,error:verifyError}=await supabase.from('part_sellers')
+        .select('seller_id,shop_name,seller_kind,contact_phone,city,returns_policy,status,verification_status,plan_code,subscription_status')
+        .eq('seller_id',user.id).maybeSingle();
+      if (verifyError||!verified||verified.shop_name!==shop_name||verified.seller_kind!==seller_kind||
+        verified.contact_phone!==contact_phone||verified.city!==city||verified.returns_policy!==returns_policy) {
+        throw new Error('Enregistrement non confirmé. Vérifie ta boutique avant de réessayer.');
+      }
+      setSeller(verified as Seller);
       setSuccessMessage(seller ? 'Les informations de ta boutique ont été enregistrées.' : 'Ta boutique est activée ! Tu peux maintenant publier ta première pièce.');
     } catch (caught) { setError(readableError(caught)); }
     finally { setSaving(false); }
