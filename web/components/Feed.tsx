@@ -307,7 +307,10 @@ function FeedItem({
 
                         {post.content_type !== 'convoy' && (
                             <div className="flex items-center gap-6 pt-2">
-                                <button onClick={handleLike} className="flex items-center gap-2 action-button text-white/50 hover:text-signal-orange transition-colors">
+                                <button onClick={handleLike}
+                                    disabled={likePending}
+                                    aria-pressed={liked}
+                                    aria-label={liked ? 'Retirer le like' : 'Aimer la publication'} className="flex items-center gap-2 action-button text-white/50 hover:text-signal-orange transition-colors">
                                     <Heart className={clsx("h-5 w-5", liked && "fill-signal-orange text-signal-orange")} />
                                     <span className="text-xs font-mono font-bold">{likeCount}</span>
                                 </button>
@@ -545,6 +548,9 @@ function FeedItem({
             <div className="p-4 border-t border-white/5 flex items-center gap-6 bg-white/[0.01]">
                 <button
                     onClick={handleLike}
+                                    disabled={likePending}
+                                    aria-pressed={liked}
+                                    aria-label={liked ? 'Retirer le like' : 'Aimer la publication'}
                     className="flex items-center gap-2 group/btn relative action-button text-white/50 hover:text-signal-orange transition-colors"
                 >
                     <motion.div
