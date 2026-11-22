@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpenCheck, CarFront, Check, ShieldAlert, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { VehicleMakeModelPicker } from '@/components/VehicleMakeModelPicker';
 
 type Club = { id: string; name: string; category: string | null };
 type Method = 'manual' | 'card_transcription';
@@ -33,6 +34,8 @@ export default function AddVehiclePage() {
   const [fuel,setFuel] = useState<Fuel>('');
   const [engine,setEngine] = useState('');
   const [engineCode,setEngineCode] = useState('');
+  const [vin,setVin] = useState('');
+  const [vinConsent,setVinConsent] = useState(false);
   const [trim,setTrim] = useState('');
   const [fiscalPower,setFiscalPower] = useState('');
   const [firstRegistration,setFirstRegistration] = useState('');
@@ -65,6 +68,9 @@ export default function AddVehiclePage() {
     if (fiscalPower && (!Number.isInteger(Number(fiscalPower)) || Number(fiscalPower) < 1 || Number(fiscalPower) > 80)) {
       setError('La puissance fiscale doit être un nombre valide.'); return;
     }
+    if(vin && (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)||!vinConsent)){
+      setError('Vérifie les 17 caractères du VIN et confirme ton accord pour le stocker de manière privée.');return;
+    }
     setSaving(true);
     try {
       const {data:auth,error:authError} = await supabase.auth.getUser();
@@ -92,6 +98,13 @@ export default function AddVehiclePage() {
         if (specError) setNotice('La voiture est enregistrée, mais certaines caractéristiques techniques n’ont pas pu être sauvegardées.');
       }
 
+      if(vin&&vinConsent){
+        const {error:vinError}=await supabase.from('vehicle_private_identifiers').insert({
+          vehicle_id:id,owner_id:user.id,vin,consented_at:new Date().toISOString(),
+        });
+        if(vinError)setNotice('La voiture a été enregistrée, mais le VIN privé n’a pas pu être sauvegardé.');
+      }
+
       if (joinClubs && suggested.length) {
         const {error:membershipError} = await supabase.from('community_members')
           .upsert(suggested.map(c=>({community_id:c.id,user_id:user.id})),{onConflict:'community_id,user_id',ignoreDuplicates:true});
@@ -108,7 +121,7 @@ export default function AddVehiclePage() {
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">Mon garage · Maroc</p>
         <h1 className="mt-2 text-3xl font-black text-white">Ajoute ta voiture.</h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-400">Avec les données techniques de ta carte grise marocaine, ou simplement en indiquant le modèle. Aucune photo ni plaque d’immatriculation n’est demandée.</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">Avec les données techniques de ta carte grise marocaine, ou simplement en indiquant le modèle. Aucune photo de carte grise ni plaque d’immatriculation n’est demandée. Le VIN est facultatif et privé.</p>
       </div>
       {!authLoading && !user ? (
         <div className="rounded-2xl border border-white/10 p-6 text-zinc-300">Connecte-toi pour ajouter ta voiture. <Link href="/login" className="font-bold text-orange-400">Se connecter</Link></div>
@@ -142,12 +155,11 @@ export default function AddVehiclePage() {
             {method==='card_transcription' && (
               <div className="rounded-2xl border border-orange-500/20 bg-orange-500/10 p-4">
                 <p className="flex items-center gap-2 text-sm font-bold text-white"><BookOpenCheck className="h-4 w-4 text-orange-300"/> Recopie seulement les informations techniques</p>
-                <p className="mt-2 text-xs leading-6 text-zinc-300">Sur la carte grise marocaine : marque, modèle/type, carburant, puissance fiscale et numéro de châssis peuvent apparaître. Nous ne demandons ni nom du titulaire, ni adresse, ni immatriculation, ni numéro de châssis complet.</p>
+                <p className="mt-2 text-xs leading-6 text-zinc-300">Sur la carte grise marocaine : marque, modèle/type, carburant, puissance fiscale et numéro de châssis peuvent apparaître. Nous ne demandons ni nom du titulaire, ni adresse, ni immatriculation. Le VIN est facultatif dans un champ privé séparé, avec ton accord explicite.</p>
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-semibold text-zinc-200">Marque *<input className={field} required minLength={2} maxLength={60} value={make} onChange={e=>setMake(e.target.value)} placeholder="Toyota"/></label>
-              <label className="text-sm font-semibold text-zinc-200">Modèle / type *<input className={field} required maxLength={80} value={model} onChange={e=>setModel(e.target.value)} placeholder="Auris"/></label>
+              <VehicleMakeModelPicker className="sm:col-span-2" make={make} model={model} onMakeChange={setMake} onModelChange={setModel} />
               <label className="text-sm font-semibold text-zinc-200">Année *<input className={field} required type="number" min={1950} max={new Date().getFullYear()+2} value={year} onChange={e=>setYear(e.target.value)} placeholder="2014"/></label>
               <label className="text-sm font-semibold text-zinc-200">Carburant
                 <select className={field} value={fuel} onChange={e=>setFuel(e.target.value as Fuel)}>
@@ -163,6 +175,17 @@ export default function AddVehiclePage() {
                 <label className="text-sm font-semibold text-zinc-200 sm:col-span-2">Première mise en circulation (facultatif)<input className={field} type="date" value={firstRegistration} onChange={e=>setFirstRegistration(e.target.value)}/></label>
               </>}
             </div>
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p className="text-sm font-bold text-white">Numéro VIN / châssis (facultatif)</p>
+              <p className="text-xs leading-6 text-zinc-400">Tu peux enregistrer un VIN standard de 17 caractères, même pour un véhicule importé. Il restera privé, sera lié uniquement à ton garage et ne sera transmis à aucun fournisseur externe. Il n’identifie pas automatiquement la voiture aujourd’hui.</p>
+              <label className="block text-sm font-semibold text-zinc-200">VIN (17 caractères)
+                <input className={field+' uppercase'} value={vin} onChange={e=>setVin(e.target.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,''))} maxLength={17} placeholder="Ex. VF1XXXXXXXXXXXXXX" autoComplete="off"/>
+              </label>
+              {vin&&<label className="flex items-start gap-3 text-xs leading-6 text-zinc-300">
+                <input type="checkbox" checked={vinConsent} onChange={e=>setVinConsent(e.target.checked)} className="mt-1 accent-orange-500"/>
+                J’autorise l’enregistrement privé de ce VIN dans mon garage. Aucune recherche externe n’est exécutée.
+              </label>}
+            </section>
             {suggested.length > 0 && (
               <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                 <p className="flex items-center gap-2 text-sm font-bold text-white"><Users className="h-4 w-4 text-orange-400"/> Les clubs de ta voiture</p>
@@ -173,7 +196,7 @@ export default function AddVehiclePage() {
                 </label>
               </div>
             )}
-            <p className="flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldAlert className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Aucune base de VIN marocain ou catalogue OEM sous licence n’est encore connecté. Les caractéristiques et compatibilités restent déclaratives, jamais certifiées automatiquement.</p>
+            <p className="flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldAlert className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Aucune base de VIN marocain ou catalogue OEM sous licence n’est encore connectée. Les caractéristiques et compatibilités restent déclaratives, jamais certifiées automatiquement.</p>
             {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
             <button type="submit" disabled={saving||authLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-4 text-sm font-black text-black hover:bg-orange-400 disabled:opacity-40">
               {saving ? 'Enregistrement…' : 'Enregistrer ma voiture'}<ArrowRight className="h-4 w-4"/>

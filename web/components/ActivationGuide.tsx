@@ -17,12 +17,12 @@ const journeys: Record<Goal,Step[]> = {
   buy:[
     {title:'Choisis une pièce',why:'Dans Pièces, recherche par modèle ou référence OEM. Tu verras uniquement de vraies annonces.',href:'/marketplace/parts',button:'Ouvrir les pièces',check:'catalog'},
     {title:'Ajoute ta voiture',why:'Renseigne ton véhicule avec les informations techniques de sa carte grise marocaine.',href:'/garage/add',button:'Ajouter ma voiture',check:'vehicle'},
-    {title:'Retrouve tes demandes',why:'Toutes tes demandes de pièces se consultent ici. Aucun paiement réel n’est encore actif.',href:'/marketplace/parts/orders',button:'Mes demandes',check:'orders'},
+    {title:'Retrouve tes demandes',why:'Toutes tes demandes de pièces se consultent ici. Aucun paiement réel n’est encore actif.',href:'/marketplace/parts/requests',button:'Mes demandes de devis',check:'orders'},
   ],
   sell:[
     {title:'Active ta boutique',why:'Ton compte VROOQ peut aussi vendre des pièces. Crée gratuitement ton espace vendeur.',href:'/marketplace/parts/sell',button:'Activer ma boutique',check:'seller'},
     {title:'Publie ta première pièce',why:'Ajoute photos réelles, prix en DH, référence et compatibilité déclarée.',href:'/marketplace/parts/new',button:'Publier une pièce',check:'part'},
-    {title:'Gère ton activité',why:'Suis les demandes dans ton espace vendeur. N’expédie rien avant paiement confirmé.',href:'/marketplace/parts/orders',button:'Voir mes commandes',check:'orders'},
+    {title:'Gère ton activité',why:'Suis les demandes dans ton espace vendeur. N’expédie rien avant paiement confirmé.',href:'/marketplace/parts/inbox',button:'Boîte à devis',check:'orders'},
   ],
   explore:[
     {title:'Ajoute ta voiture',why:'Enregistre ton véhicule pour personnaliser le garage et les recommandations de clubs.',href:'/garage/add',button:'Mon garage',check:'vehicle'},
@@ -94,7 +94,7 @@ export function ActivationGuide() {
 
   useEffect(()=>{
     if(!user || !ready) return;
-    const visit = pathname.startsWith('/marketplace/parts/orders')?'orders':
+    const visit = (pathname.startsWith('/marketplace/parts/requests')||pathname.startsWith('/marketplace/parts/inbox'))?'orders':
       pathname==='/marketplace/parts'?'catalog':
       pathname.startsWith('/communities')?'communities':null;
     if(visit){

@@ -6,12 +6,15 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Camera, CheckCircle2, Info, Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthProvider';
+import { VehicleMakeModelPicker } from '@/components/VehicleMakeModelPicker';
 import { PART_CATEGORIES, PART_CONDITIONS, readableError } from '@/lib/parts';
 
 export default function NewPartListingPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [photos, setPhotos] = useState<File[]>([]);
+  const [compatibleMake,setCompatibleMake] = useState('');
+  const [compatibleModel,setCompatibleModel] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [delivery, setDelivery] = useState(true);
@@ -162,8 +165,7 @@ export default function NewPartListingPage() {
           <section className="space-y-5 rounded-3xl border border-white/10 bg-[#1a1b1d] p-6">
             <h2 className="text-lg font-bold text-white">02 · Compatibilité véhicule</h2>
             <div className="grid gap-5 sm:grid-cols-2">
-              <label className={label}>Constructeur compatible *<input required name="compatible_make" maxLength={100} className={field} placeholder="Toyota" /></label>
-              <label className={label}>Modèle compatible *<input required name="compatible_model" maxLength={100} className={field} placeholder="Auris" /></label>
+              <VehicleMakeModelPicker className="sm:col-span-2" make={compatibleMake} model={compatibleModel} onMakeChange={setCompatibleMake} onModelChange={setCompatibleModel} makeName="compatible_make" modelName="compatible_model" />
               <label className={label}>Carburant compatible
                 <select name="compatible_fuel" className={field}>
                   <option value="">Non précisé</option>

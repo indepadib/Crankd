@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CalendarDays, CarFront, CheckCircle2, ClipboardList, Gauge, Plus, RefreshCw, Search, ShieldCheck, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { MAINTENANCE_RULES, maintenanceRule } from '@/lib/maintenance';
 
 type Vehicle = { id:string; make:string; model:string; year:number; image_url:string|null };
 type VehicleSpec = {
@@ -16,6 +17,7 @@ type Maintenance = {
   id:string; vehicle_id:string; title:string; service_type:string;
   occurred_at:string; description:string|null; cost_amount:number|null;
   cost_currency:string|null; odometer_reading:number|null;
+  odometer_unit:string|null; service_code:string|null; next_due_km:number|null;
 };
 const field='mt-2 w-full rounded-xl border border-white/15 bg-[#242426] px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none';
 const fuelLabels:Record<string,string>={diesel:'Diesel',petrol:'Essence',hybrid:'Hybride',phev:'Hybride rechargeable',electric:'Électrique',lpg:'GPL',other:'Autre'};
@@ -31,11 +33,15 @@ export default function GaragePage() {
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const [specs,setSpecs]=useState<VehicleSpec|null>(null);
+  const [savedVin,setSavedVin]=useState<string|null>(null);
+  const [removingVin,setRemovingVin]=useState(false);
   const [logs,setLogs]=useState<Maintenance[]>([]);
   const [detailsError,setDetailsError]=useState('');
   const [showLogForm,setShowLogForm]=useState(false);
   const [savingLog,setSavingLog]=useState(false);
   const [logError,setLogError]=useState('');
+  const [serviceCode,setServiceCode]=useState('oil_change');
+  const selectedService=maintenanceRule(serviceCode);
   const [logSuccess,setLogSuccess]=useState(false);
 
   useEffect(()=>{
@@ -64,40 +70,56 @@ export default function GaragePage() {
     if(!selectedId || !user || !session?.access_token || authError)return;
     let mounted=true;
     void (async()=>{
-      const [specResult,logResult]=await Promise.all([
+      const [specResult,logResult,vinResult]=await Promise.all([
         supabase.from('vehicle_specs').select('vehicle_id,fuel_type,engine_description,engine_code,trim_name,fiscal_power,first_registration_date')
           .eq('vehicle_id',selectedId).maybeSingle(),
         supabase.from('maintenance_logs')
-          .select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading')
+          .select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading,odometer_unit,service_code,next_due_km')
           .eq('vehicle_id',selectedId).eq('performed_by_user_id',user.id)
           .order('occurred_at',{ascending:false}).limit(50),
+        supabase.from('vehicle_private_identifiers').select('vin').eq('vehicle_id',selectedId).maybeSingle(),
       ]);
       if(!mounted)return;
       setSpecs((specResult.data as VehicleSpec|null)||null);
+      setSavedVin(vinResult.data?.vin||null);
       setLogs((logResult.data||[]) as Maintenance[]);
-      setDetailsError(specResult.error||logResult.error
+      setDetailsError(specResult.error||logResult.error||vinResult.error
         ?'Les détails de cette voiture ne sont pas tous accessibles. Vérifie ta connexion.'
         :'');
     })();
     return()=>{mounted=false;};
   },[selectedId,user,session?.access_token,authError]);
 
+  async function removeVin(){
+    if(!user||!selectedId||removingVin)return;
+    setRemovingVin(true);
+    const {error:deleteError}=await supabase.from('vehicle_private_identifiers')
+      .delete().eq('vehicle_id',selectedId).eq('owner_id',user.id);
+    if(deleteError)setDetailsError('Impossible de supprimer ton VIN. Réessaie.');
+    else {setSavedVin(null);setDetailsError('');}
+    setRemovingVin(false);
+  }
+
   async function addMaintenance(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if(!selectedId||!user||savingLog)return;
     const form=new FormData(event.currentTarget);
-    const title=String(form.get('title')||'').trim();
+    const title = String(form.get('title')||'').trim() || selectedService.label;
     const date=String(form.get('date')||'');
-    const type=String(form.get('service_type')||'maintenance');
+    const type=selectedService.serviceType;
     const description=String(form.get('description')||'').trim();
     const costString=String(form.get('cost')||'').trim();
     const odoString=String(form.get('odometer')||'').trim();
+    const dueString=String(form.get('next_due_km')||'').trim();
     const amount=costString?Number(costString):null;
     const odometer=odoString?Number(odoString):null;
-    if(title.length<3||!date||!['maintenance','repair','modification','other'].includes(type) ||
+    const nextDueKm=selectedService.nextDueKm&&dueString?Number(dueString):null;
+    if(title.length<3||!date||
+       (selectedService.odometer==='required'&&odometer===null)||
        (amount!==null&&(!Number.isFinite(amount)||amount<0))||
-       (odometer!==null&&(!Number.isInteger(odometer)||odometer<0))) {
-      setLogError('Vérifie la date, le titre, le coût en DH et le kilométrage.');return;
+       (odometer!==null&&(!Number.isInteger(odometer)||odometer<0))||
+       (nextDueKm!==null&&(!Number.isInteger(nextDueKm)||nextDueKm<0|| (odometer!==null&&nextDueKm<=odometer)))) {
+      setLogError('Renseigne la date et, pour cette intervention, un kilométrage valide. La prochaine échéance doit dépasser le kilométrage actuel.');return;
     }
     setSavingLog(true);setLogError('');setLogSuccess(false);
     try{
@@ -105,8 +127,8 @@ export default function GaragePage() {
       if(authFailure||identity.user?.id!==user.id)throw new Error('Reconnecte-toi avant d’enregistrer cet entretien.');
       const {data,error:dbError}=await supabase.from('maintenance_logs').insert({
         vehicle_id:selectedId,performed_by_user_id:user.id,occurred_at:new Date(date+'T12:00:00').toISOString(),
-        service_type:type,title,description:description||null,cost_amount:amount,cost_currency:'MAD',
-        odometer_reading:odometer,is_verified:false,
+        service_type:type,service_code:serviceCode,title,description:description||null,cost_amount:amount,cost_currency:'MAD',
+        odometer_reading:odometer,odometer_unit:odometer!==null?'km':null,next_due_km:nextDueKm,is_verified:false,
       }).select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading').single();
       if(dbError||!data)throw new Error('L’entretien n’a pas pu être enregistré. Aucune information n’a été ajoutée.');
       setLogs(previous=>[data as Maintenance,...previous].sort((a,b)=>b.occurred_at.localeCompare(a.occurred_at)));
@@ -144,7 +166,7 @@ export default function GaragePage() {
         <>
           <section aria-label="Sélectionner sa voiture" className="flex gap-3 overflow-x-auto pb-1">
             {vehicles.map(car=>(
-              <button key={car.id} type="button" onClick={()=>{setSelectedId(car.id);setSpecs(null);setLogs([]);setLogSuccess(false);setShowLogForm(false);}} aria-pressed={selectedId===car.id}
+              <button key={car.id} type="button" onClick={()=>{setSelectedId(car.id);setSpecs(null);setSavedVin(null);setLogs([]);setLogSuccess(false);setShowLogForm(false);}} aria-pressed={selectedId===car.id}
                 className={'flex min-w-[210px] shrink-0 items-center gap-3 rounded-2xl border p-4 text-left '+(selectedId===car.id?'border-orange-500/50 bg-orange-500/10':'border-white/10 bg-[#1c1d20] hover:border-white/25')}>
                 <span className="rounded-xl bg-orange-500/10 p-3 text-orange-400"><CarFront className="h-6 w-6"/></span>
                 <span><strong className="block text-sm text-white">{car.make} {car.model}</strong><span className="block text-xs text-zinc-400">{car.year}</span></span>
@@ -171,7 +193,11 @@ export default function GaragePage() {
                     <div key={label} className="rounded-xl border border-white/10 bg-white/[0.025] p-4"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-sm font-bold text-white">{value}</p></div>
                   ))}
                 </div>
-                <p className="mt-4 flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Ces informations proviennent de ta saisie, pas d'une vérification officielle. Les pièces ne sont pas automatiquement certifiées compatibles ; vérifie toujours leur référence OEM.</p>
+                {savedVin&&<div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 p-4 text-xs text-zinc-300">
+                  <span>VIN privé enregistré : •••••••••••{savedVin.slice(-6)}</span>
+                  <button type="button" disabled={removingVin} onClick={()=>void removeVin()} className="font-bold text-red-300 hover:text-red-200 disabled:opacity-50">{removingVin?'Suppression…':'Supprimer mon VIN'}</button>
+                </div>}
+                <p className="mt-4 flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Ces informations proviennent de ta saisie, pas d’une vérification officielle. Les pièces ne sont pas automatiquement certifiées compatibles ; vérifie toujours leur référence OEM.</p>
               </section>
               <section className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -183,12 +209,29 @@ export default function GaragePage() {
                   <form onSubmit={addMaintenance} className="space-y-4 rounded-2xl border border-orange-500/25 bg-black/20 p-5">
                     <h3 className="text-lg font-bold text-white">Nouvel entretien</h3>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <label className="text-sm font-bold text-zinc-300">Intervention *<input className={field} required name="title" minLength={3} maxLength={140} placeholder="Ex. Vidange et filtre"/></label>
-                      <label className="text-sm font-bold text-zinc-300">Date *<input className={field} required type="date" name="date" defaultValue={new Date().toISOString().slice(0,10)}/></label>
-                      <label className="text-sm font-bold text-zinc-300">Type<select className={field} name="service_type"><option value="maintenance">Entretien</option><option value="repair">Réparation</option><option value="modification">Modification</option><option value="other">Autre</option></select></label>
-                      <label className="text-sm font-bold text-zinc-300">Coût en DH<input className={field} type="number" min={0} step="0.01" name="cost" placeholder="Ex. 650"/></label>
-                      <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Kilométrage au moment de l’entretien<input className={field} name="odometer" type="number" min={0} step={1} placeholder="Ex. 150000"/></label>
+                      <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Quelle intervention ? *
+                        <select className={field} name="service_code" value={serviceCode} onChange={e=>setServiceCode(e.target.value)}>
+                          {MAINTENANCE_RULES.map(rule=><option key={rule.code} value={rule.code}>{rule.group} · {rule.label}</option>)}
+                        </select>
+                      </label>
+                      <label className="text-sm font-bold text-zinc-300">Date de l’intervention *<input className={field} required type="date" name="date" max={new Date().toISOString().slice(0,10)} defaultValue={new Date().toISOString().slice(0,10)}/></label>
+                      <label className="text-sm font-bold text-zinc-300">Coût payé en DH<input className={field} type="number" min={0} step="0.01" name="cost" placeholder="Ex. 650"/></label>
+                      {selectedService.odometer!=='not_needed'&&(
+                        <label className="text-sm font-bold text-zinc-300 sm:col-span-2">
+                          Kilométrage au moment de l’intervention{selectedService.odometer==='required'?' *':' (facultatif)'}
+                          <input className={field} name="odometer" type="number" required={selectedService.odometer==='required'} min={0} step={1} placeholder="Ex. 150000 km"/>
+                        </label>
+                      )}
+                      {selectedService.nextDueKm&&(
+                        <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Prochaine échéance prévue en km (facultatif)
+                          <input className={field} name="next_due_km" type="number" min={0} step={1} placeholder="Selon carnet du constructeur"/>
+                        </label>
+                      )}
+                      <label className="text-sm font-bold text-zinc-300 sm:col-span-2">Précision ou référence (facultatif)
+                        <input className={field} name="title" minLength={3} maxLength={140} placeholder="Ex. Huile 5W30, courroie + galets"/>
+                      </label>
                     </div>
+                    {selectedService.guidance&&<p className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3 text-xs leading-6 text-orange-100">{selectedService.guidance}</p>}
                     <label className="block text-sm font-bold text-zinc-300">Notes<textarea className={field} rows={3} name="description" maxLength={2500} placeholder="Travaux effectués, références, observations"/></label>
                     {logError&&<p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{logError}</p>}
                     <button disabled={savingLog} type="submit" className="w-full rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-black disabled:opacity-50">{savingLog?'Enregistrement…':'Enregistrer cet entretien'}</button>
@@ -201,9 +244,9 @@ export default function GaragePage() {
                     <article key={log.id} className="flex flex-wrap items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
                       <span className="rounded-xl bg-orange-500/10 p-3 text-orange-400"><Wrench className="h-5 w-5"/></span>
                       <div className="min-w-[180px] flex-1"><h3 className="text-sm font-bold text-white">{log.title}</h3><p className="mt-1 flex items-center gap-1 text-xs text-zinc-400"><CalendarDays className="h-3.5 w-3.5"/>{new Date(log.occurred_at).toLocaleDateString('fr-MA')} · {log.service_type}</p>{log.description&&<p className="mt-2 text-xs leading-6 text-zinc-300">{log.description}</p>}</div>
-                      <div className="text-right text-xs text-zinc-400">{log.cost_amount!==null&&<p className="font-bold text-white">{money(Number(log.cost_amount),log.cost_currency||'USD')}</p>}{log.odometer_reading!==null&&<p className="mt-2 flex items-center justify-end gap-1"><Gauge className="h-3.5 w-3.5"/>{Number(log.odometer_reading).toLocaleString('fr-MA')} km*</p>}</div>
+                      <div className="text-right text-xs text-zinc-400">{log.cost_amount!==null&&<p className="font-bold text-white">{money(Number(log.cost_amount),log.cost_currency||'USD')}</p>}{log.odometer_reading!==null&&<p className="mt-2 flex items-center justify-end gap-1"><Gauge className="h-3.5 w-3.5"/>{Number(log.odometer_reading).toLocaleString('fr-MA')} {log.odometer_unit||'unité inconnue'}</p>}{log.next_due_km!==null&&<p className="mt-1 text-orange-300">Échéance indiquée : {Number(log.next_due_km).toLocaleString('fr-MA')} km</p>}</div>
                     </article>
-                  ))}<p className="text-[11px] leading-5 text-zinc-500">* Les anciens historiques peuvent avoir été saisis en miles. Vérifie l’unité des données historiques avant de les interpréter.</p></div>
+                  ))}<p className="text-[11px] leading-5 text-zinc-500">Les échéances proviennent de ta saisie, pas d’un calcul validé par le constructeur. Les anciennes données sans unité sont signalées comme telles.</p></div>
                 )}
               </section>
             </>

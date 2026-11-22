@@ -131,12 +131,15 @@ export default function SellOnVrooq() {
               <div className="flex flex-wrap gap-2">
                 <Link href="/marketplace/parts/new" className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-black hover:bg-orange-400">Publier une pièce</Link>
                 <Link href="/marketplace/parts/mine" className="rounded-xl border border-white/20 px-4 py-3 text-sm text-white hover:bg-white/10">Mes annonces</Link>
+                <Link href="/marketplace/parts/specialties" className="rounded-xl border border-white/20 px-4 py-3 text-sm text-white hover:bg-white/10">Mes spécialités</Link>
+                <Link href="/marketplace/parts/inbox" className="rounded-xl border border-orange-500/30 px-4 py-3 text-sm font-bold text-orange-300 hover:bg-orange-500/10">Demandes de pièces / devis</Link>
               </div>
             </div>
           )}
           {successMessage && <div role="status" className="space-y-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
             <p className="font-bold text-white">{successMessage}</p>
-            <Link href="/marketplace/parts/new" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Publier ma première pièce</Link>
+            <div className="flex flex-wrap gap-3"><Link href="/marketplace/parts/new" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Publier ma première pièce</Link>
+            <Link href="/marketplace/parts/specialties" className="inline-flex rounded-xl border border-orange-500/30 px-5 py-3 text-sm font-bold text-orange-300">Choisir mes catégories de demandes</Link></div>
           </div>}
           <form key={(seller?.seller_id || 'new')+'-'+(memberDefaults?.contact_phone || '')} onSubmit={register} className="space-y-6 rounded-3xl border border-white/10 bg-[#1b1c1e] p-6 md:p-8">
             <h2 className="flex items-center gap-3 text-xl font-bold text-white"><Building2 className="h-5 w-5 text-orange-400" /> {seller ? 'Informations de ma boutique' : 'Créer mon compte vendeur'}</h2>

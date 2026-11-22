@@ -39,12 +39,12 @@ export default function MySpacePage() {
   if(!user)return <div className="mx-auto max-w-xl space-y-5 py-10 text-center"><h1 className="text-2xl font-black text-white">Connecte-toi pour personnaliser VROOQ</h1><Link href="/login" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 font-bold text-black">Se connecter</Link></div>;
   const actions = tab==='driver' ? [
     {number:'1',title:'Ajoute ta voiture',detail:'Avec les caractéristiques de ta carte grise marocaine.',href:'/garage/add',done:snapshot.vehicleCount>0,button:'Mon garage'},
-    {number:'2',title:'Trouve une pièce',detail:'Recherche par marque, référence constructeur et motorisation déclarée.',href:'/marketplace/parts',done:false,button:'Voir les pièces'},
+    {number:'2',title:'Trouve une pièce ou demande plusieurs devis',detail:'Catalogue ou demande de pièce aux vendeurs spécialisés.',href:'/marketplace/parts/request',done:false,button:'Demander un devis'},
     {number:'3',title:'Rejoins des passionnés',detail:'Découvre les clubs en lien avec ton véhicule.',href:'/communities',done:false,button:'Les clubs'},
   ] : [
     {number:'1',title:'Active ta boutique',detail:'Gratuit pendant le pilote, sans abonnement ni paiement réel.',href:'/marketplace/parts/sell',done:snapshot.sellerActive,button:'Ma boutique'},
     {number:'2',title:'Dépose une pièce',detail:'Photo, état et référence OEM, prix obligatoirement en DH.',href:'/marketplace/parts/new',done:snapshot.listingCount>0,button:'Publier une pièce'},
-    {number:'3',title:'Suis les demandes',detail:'Les demandes sont enregistrées dans VROOQ. Pas encore d’encaissement.',href:'/marketplace/parts/orders',done:false,button:'Voir les demandes'},
+    {number:'3',title:'Réponds aux demandes de pièces',detail:'Définis tes catégories et envoie tes propres devis en dirhams.',href:'/marketplace/parts/inbox',done:false,button:'Boîte à devis'},
   ];
 
   return (
