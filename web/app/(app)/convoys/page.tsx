@@ -48,14 +48,7 @@ export default function ConvoysPage() {
             ...dbEvents
         ];
 
-        const toParse = combined;
-
-        const parsed = toParse.map(post => {
-            // If it's already in the final event format (like mock events), return as is
-            if (post.type && (post.type === 'meet' || post.type === 'drive' || post.type === 'track') && !post.content_type) {
-                return post;
-            }
-
+        const parsed = combined.map(post => {
             // Parse body to retrieve meeting location and description
             let location = 'Lieu à confirmer';
             if (post.body && post.body.startsWith('Location: ')) {
@@ -73,7 +66,7 @@ export default function ConvoysPage() {
                     const parsedJson = JSON.parse(post.body);
                     location = parsedJson.location || 'Lieu à confirmer';
                 } catch (e) {
-                    location = 'Local Meet';
+                    location = 'Lieu à confirmer';
                 }
             }
 
@@ -97,7 +90,7 @@ export default function ConvoysPage() {
 
             return {
                 id: post.id,
-                title: post.title || 'Untitled Convoy',
+                title: post.title || 'Sortie sans titre',
                 date: dateStr,
                 time: timeStr,
                 location: location,
