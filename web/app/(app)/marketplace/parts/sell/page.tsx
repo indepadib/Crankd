@@ -26,6 +26,7 @@ const labelClass = 'block text-sm font-semibold text-zinc-200';
 export default function SellOnVrooq() {
   const { user, loading: authLoading } = useAuth();
   const [seller, setSeller] = useState<Seller | null>(null);
+  const [specialtyCount,setSpecialtyCount]=useState<number|null>(null);
   const [loading, setLoading] = useState(true);
   const [serviceError, setServiceError] = useState('');
   const [error, setError] = useState('');
@@ -45,6 +46,13 @@ export default function SellOnVrooq() {
       });
     return () => { mounted = false; };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    void supabase.from('part_seller_specialties').select('category',{head:true,count:'exact'}).eq('seller_id',user.id).then(({count,error})=>{if(mounted&&!error)setSpecialtyCount(count??0);});
+    return ()=>{mounted=false;};
+  },[user]);
 
   useEffect(() => {
     if (!user) return;
@@ -136,6 +144,8 @@ export default function SellOnVrooq() {
               </div>
             </div>
           )}
+          {seller?.status==='active'&&specialtyCount===0&&<section className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-5" aria-label="Finaliser la réception des demandes"><p className="text-sm font-black text-white">Dernière étape : recevoir des demandes de pièces</p><p className="mt-2 text-xs leading-6 text-zinc-300">Ta boutique est active, mais aucune famille de pièces n’est sélectionnée. Tu ne peux pas encore recevoir de demandes ciblées. Choisis uniquement les catégories que tu sais réellement fournir.</p><Link href="/marketplace/parts/specialties" className="mt-4 inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Configurer mes spécialités</Link></section>}
+          {seller?.status==='active'&&specialtyCount!==null&&specialtyCount>0&&<p className="text-xs text-emerald-300">Demandes de devis activées pour {specialtyCount} catégorie(s) de pièces.</p>}
           {successMessage && <div role="status" className="space-y-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
             <p className="font-bold text-white">{successMessage}</p>
             <div className="flex flex-wrap gap-3"><Link href="/marketplace/parts/new" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Publier ma première pièce</Link>
