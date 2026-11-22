@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthProvider';
+import { VehicleMakeModelPicker } from '@/components/VehicleMakeModelPicker';
 import { supabase } from '@/lib/supabase';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import { MOCK_COMMUNITIES } from '@/lib/constants';
@@ -840,27 +841,8 @@ function CreateFormContent() {
                         )}
 
                         <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Make</label>
-                                <input
-                                    type="text"
-                                    value={make}
-                                    onChange={e => setMake(e.target.value)}
-                                    required
-                                    placeholder="Nissan"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Model</label>
-                                <input
-                                    type="text"
-                                    value={model}
-                                    onChange={e => setModel(e.target.value)}
-                                    required
-                                    placeholder="GT-R R35"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
-                                />
+                            <div className="col-span-2">
+                                <VehicleMakeModelPicker make={make} model={model} onMakeChange={setMake} onModelChange={setModel} />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Year</label>
