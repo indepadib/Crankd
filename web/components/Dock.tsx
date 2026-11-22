@@ -14,7 +14,7 @@ export function Dock() {
             <div className="absolute inset-0 bg-carbon/80 backdrop-blur-xl border-t border-white/5" />
 
             <div className="relative flex items-center justify-around px-4 py-2 pb-safe">
-                <DockItem href="/feed" icon={Home} label="Actu" isActive={pathname === '/feed'} />
+                <DockItem href="/start" icon={Home} label="Espace" isActive={pathname === '/start'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
 
                 {/* Central action opens explicit options instead of a generic form. */}
