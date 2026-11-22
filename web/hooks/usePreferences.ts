@@ -47,11 +47,12 @@ export function usePreferences() {
     }, [user]);
 
     useEffect(() => {
-        readPreferences();
+        const frame = window.requestAnimationFrame(readPreferences);
         const onStorage = () => readPreferences();
         window.addEventListener('storage', onStorage);
         window.addEventListener('profile-updated', onStorage);
         return () => {
+            window.cancelAnimationFrame(frame);
             window.removeEventListener('storage', onStorage);
             window.removeEventListener('profile-updated', onStorage);
         };
