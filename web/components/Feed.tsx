@@ -409,6 +409,7 @@ function FeedItem({
                     </h3>
                 )}
                 {bodyText && <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{bodyText}</p>}
+                {post.content_type === "poll" && <PollCard postId={post.id} />}
             </div>
 
             {/* 2.3 Media Upload with double tap to rev */}
