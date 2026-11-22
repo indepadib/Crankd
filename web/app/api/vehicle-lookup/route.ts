@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 const responseHeaders = { 'Cache-Control': 'no-store' };
 type NhtsaVehicle = { Make?: string | null; Model?: string | null; ModelYear?: string | null; ErrorCode?: string | null };
@@ -14,6 +15,18 @@ export async function POST(request: NextRequest) {
   }
   if (payload.consent !== true) {
     return NextResponse.json({ error: 'Ton accord est nécessaire pour consulter ce service externe.' }, { status: 403, headers: responseHeaders });
+  }
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!token || !supabaseUrl || !publicKey) {
+    return NextResponse.json({ error: 'Connecte-toi avant de rechercher un VIN.' }, { status: 401, headers: responseHeaders });
+  }
+  const supabase = createClient(supabaseUrl, publicKey, { auth: { persistSession: false } });
+  const { data: identity, error: identityError } = await supabase.auth.getUser(token);
+  if (identityError || !identity.user) {
+    return NextResponse.json({ error: 'Session expirée. Reconnecte-toi.' }, { status: 401, headers: responseHeaders });
   }
   // NHTSA vPIC is a US public vehicle decoder. This is only a provisional
   // identification aid, NOT an OEM part-fitment or title/registration check.
