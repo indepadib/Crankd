@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CircleHelp, ClipboardList, Plus, RefreshCw, Store } from 'lucide-react';
+import { ArrowLeft, CircleHelp, ClipboardList, Plus, RefreshCw, Store } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { moneyMAD, PART_CATEGORIES } from '@/lib/parts';
