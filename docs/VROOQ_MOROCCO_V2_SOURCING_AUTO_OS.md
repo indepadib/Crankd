@@ -20,7 +20,7 @@ Un compte VROOQ permet les deux usages.
 
 ## Entretien
 
-- 35 règles dans web/lib/maintenance.ts, avec obligation de kilométrage différenciée.
+- 36 règles dans web/lib/maintenance.ts, avec obligation de kilométrage différenciée.
 - Vidange moteur / courroie de distribution : kilométrage obligatoire. Carrosserie/lavage/accessoire : non demandé. Autres cas selon type.
 - Echéance future kilométrique facultative fournie par l'utilisateur ; **pas de calendrier constructeur inventé**.
 - Historique maintenance_logs avec code d'intervention, unité kilométrique pour les nouvelles saisies. Les anciennes lignes sans unité restent inconnues.
@@ -54,7 +54,7 @@ L'objectif d’obtenir des devis dans les 24h est seulement un objectif opérati
 ## Équipe et tickets
 
 - Data auto / VIN Maroc et imports sous licence : #27, #31.
-- Maintenance mécanique / revue des 35 règles / rappels légitimes : #32.
+- Maintenance mécanique / revue des 36 règles / rappels légitimes : #32.
 - Commercial/Seller Ops + notifications/mesure de 2 devis en 24h : #33, #29.
 - Validation QA mobile et profils authentifiés : #26.
 - Sécurité Supabase et comptes : #34.
