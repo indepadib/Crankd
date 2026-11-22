@@ -39,13 +39,15 @@ export default function CreatePartRequestPage(){
       ]);
       if(!mounted)return;
       setCars((v.data||[]) as Car[]);
-      setCity(details.data?.city||'Casablanca');
+      setCity(details.data?.city||'');
       try{
         const suggested=sessionStorage.getItem('vrooq-find-parts-vehicle');
         const picked=(v.data||[]).find(c=>c.id===suggested);
         if(picked){
           setVehicleId(picked.id);setMake(picked.make);setModel(picked.model);setYear(String(picked.year));
           sessionStorage.removeItem('vrooq-find-parts-vehicle');
+          const {data:spec}=await supabase.from('vehicle_specs').select('fuel_type,engine_code').eq('vehicle_id',picked.id).maybeSingle();
+          if(mounted){setFuel(spec?.fuel_type||'');setEngineCode(spec?.engine_code||'');}
         }
       }catch{}
     })();
