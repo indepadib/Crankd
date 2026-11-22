@@ -1,0 +1,10 @@
+create table if not exists public.vrooq_post_media(post_id uuid not null references public.posts(id) on delete cascade,position int not null check(position between 0 and 9),url text not null check(length(url) between 10 and 2048),primary key(post_id,position));
+alter table public.vrooq_post_media enable row level security;
+drop policy if exists media_public_read on public.vrooq_post_media;
+create policy media_public_read on public.vrooq_post_media for select using(true);
+drop policy if exists media_owner_insert on public.vrooq_post_media;
+create policy media_owner_insert on public.vrooq_post_media for insert to authenticated with check(exists(select 1 from public.posts p where p.id=post_id and p.author_id=auth.uid()) and url like '%/storage/v1/object/public/vrooq-post-media/%');
+drop policy if exists media_owner_delete on public.vrooq_post_media;
+create policy media_owner_delete on public.vrooq_post_media for delete to authenticated using(exists(select 1 from public.posts p where p.id=post_id and p.author_id=auth.uid()));
+grant select on public.vrooq_post_media to anon,authenticated;
+grant insert,delete on public.vrooq_post_media to authenticated;
