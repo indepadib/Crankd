@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -9,146 +9,211 @@ interface AuthContextType {
     user: User | null;
     session: Session | null;
     loading: boolean;
+    authError: string | null;
+    recovering: boolean;
+    retryAuth: () => Promise<void>;
     signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     session: null,
-    loading: false,
-    signOut: async () => { },
+    loading: true,
+    authError: null,
+    recovering: false,
+    retryAuth: async () => {},
+    signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
+
+// Profile synchronization is deliberately OUTSIDE onAuthStateChange.
+// Supabase warns that asynchronous Supabase API calls from inside that callback
+// can deadlock the auth lock and prevent token refresh.
+async function ensureProfileExists(currentUser: User): Promise<boolean> {
+    try {
+        const { data, error } = await supabase.from('profiles')
+            .select('id').eq('id', currentUser.id).maybeSingle();
+        if (error) throw error; // Never try an insert after a failed SELECT (e.g., 401).
+
+        if (!data) {
+            const rawUsername = String(currentUser.user_metadata?.username ||
+                currentUser.email?.split('@')[0] || 'user_' + currentUser.id.substring(0, 5));
+            const baseUsername = rawUsername.trim().replace(/[^a-zA-Z0-9_.]/g, '_').slice(0, 28)
+                || 'user_' + currentUser.id.substring(0, 5);
+            const fullName = String(currentUser.user_metadata?.full_name || baseUsername);
+            const avatarUrl = String(currentUser.user_metadata?.avatar_url || '');
+            let inserted = false;
+
+            for (let suffix = 0; suffix < 8; suffix++) {
+                const username = suffix === 0 ? baseUsername : baseUsername.slice(0, 24) + '_' + suffix;
+                const { error: insertError } = await supabase.from('profiles').insert({
+                    id: currentUser.id, username, full_name: fullName, avatar_url: avatarUrl,
+                });
+                if (!insertError) { inserted = true; break; }
+                if (insertError.code !== '23505') throw insertError;
+            }
+            if (!inserted) throw new Error('Aucun pseudo disponible pour ce compte.');
+        }
+
+        const meta = currentUser.user_metadata || {};
+        const firstName = typeof meta.first_name === 'string' ? meta.first_name.trim() : '';
+        const lastName = typeof meta.last_name === 'string' ? meta.last_name.trim() : '';
+        const contactPhone = typeof meta.contact_phone === 'string' ? meta.contact_phone.trim() : '';
+        const city = typeof meta.city === 'string' ? meta.city.trim() : '';
+        const intent = ['buy', 'sell', 'explore'].includes(meta.account_intent)
+            ? meta.account_intent : 'explore';
+
+        if (firstName.length >= 2 && lastName.length >= 2 && contactPhone.length >= 9 && city.length >= 2) {
+            const { error: memberError } = await supabase.from('member_details').upsert({
+                user_id: currentUser.id, first_name: firstName, last_name: lastName,
+                contact_phone: contactPhone, city, account_intent: intent,
+                marketing_opt_in: meta.marketing_opt_in === true,
+            }, { onConflict: 'user_id', ignoreDuplicates: true });
+            if (memberError) console.warn('[Auth] Optional member detail sync failed:', memberError.code);
+        }
+        return true;
+    } catch (cause) {
+        console.warn('[Auth] Profile sync failed:', cause);
+        return false;
+    }
+}
+
+const EXPIRY_BUFFER_SECONDS = 90;
+function requiresRefresh(session: Session | null): boolean {
+    return !!session?.expires_at && session.expires_at <= Math.floor(Date.now() / 1000) + EXPIRY_BUFFER_SECONDS;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState<string | null>(null);
+    const [recovering, setRecovering] = useState(false);
     const router = useRouter();
+    const recoveryInFlight = useRef<Promise<void> | null>(null);
+    const profileSyncUser = useRef<string | null>(null);
 
-    const ensureProfileExists = async (currentUser: User) => {
-        if (!currentUser) return;
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('id', currentUser.id)
-                .maybeSingle();
+    const syncState = useCallback((fresh: Session | null) => {
+        // A cached expired access token must NEVER be treated as an authenticated session.
+        const valid = fresh && !requiresRefresh(fresh) ? fresh : null;
+        setSession(valid);
+        setUser(valid?.user ?? null);
+    }, []);
 
-            if (!data) {
-                const baseUsername = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || `user_${currentUser.id.substring(0, 5)}`;
-                const fullName = currentUser.user_metadata?.full_name || baseUsername;
-                const avatarUrl = currentUser.user_metadata?.avatar_url || '';
+    const retryAuth = useCallback(async () => {
+        if (recoveryInFlight.current) return recoveryInFlight.current;
 
-                let success = false;
-                let suffix = 0;
-                let triedUsername = baseUsername;
+        const task = (async () => {
+            setRecovering(true);
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                if (error) throw error;
 
-                while (!success && suffix < 10) {
-                    const { error: insertError } = await supabase.from('profiles').insert({
-                        id: currentUser.id,
-                        username: triedUsername,
-                        full_name: fullName,
-                        avatar_url: avatarUrl
-                    });
-
-                    if (!insertError) {
-                        success = true;
-                        console.log(`[Auth] Profile automatically created with username: ${triedUsername}`);
-                    } else if (insertError.code === '23505') {
-                        // Unique violation (username taken), try appending suffix
-                        suffix++;
-                        triedUsername = `${baseUsername}_${suffix}`;
-                    } else {
-                        throw insertError;
-                    }
+                let fresh = data.session;
+                if (requiresRefresh(fresh)) {
+                    // A single explicit refresh also covers inactive tabs which resumed after expiry.
+                    const refreshed = await supabase.auth.refreshSession();
+                    if (refreshed.error) throw refreshed.error;
+                    fresh = refreshed.data.session;
                 }
+                if (requiresRefresh(fresh)) throw new Error('La session ne peut pas être renouvelée.');
+
+                syncState(fresh);
+                setAuthError(null);
+            } catch (cause) {
+                console.warn('[Auth] Session renewal failed:', cause);
+                // Do not revoke tokens on a transient network/Auth service outage.
+                // Do not claim the user is authenticated while their JWT is expired.
+                syncState(null);
+                setAuthError('La session ne peut pas être vérifiée. Réessaie ou reconnecte-toi.');
+            } finally {
+                setLoading(false);
+                setRecovering(false);
             }
-            // Private contact details are never copied into public.profiles.
-            // When email verification is required, this runs at the first successful login.
-            const meta = currentUser.user_metadata || {};
-            const firstName = typeof meta.first_name === 'string' ? meta.first_name.trim() : '';
-            const lastName = typeof meta.last_name === 'string' ? meta.last_name.trim() : '';
-            const contactPhone = typeof meta.contact_phone === 'string' ? meta.contact_phone.trim() : '';
-            const city = typeof meta.city === 'string' ? meta.city.trim() : '';
-            const intent = ['buy','sell','explore'].includes(meta.account_intent) ? meta.account_intent : 'explore';
-            if (firstName.length >= 2 && lastName.length >= 2 && contactPhone.length >= 9 && city.length >= 2) {
-                const { error: memberError } = await supabase.from('member_details').upsert({
-                    user_id: currentUser.id,
-                    first_name: firstName,
-                    last_name: lastName,
-                    contact_phone: contactPhone,
-                    city,
-                    account_intent: intent,
-                    marketing_opt_in: meta.marketing_opt_in === true,
-                }, { onConflict: 'user_id', ignoreDuplicates: true });
-                if (memberError) console.warn('[Auth] Member details sync failed:', memberError.code);
-            }
-        } catch (e) {
-            console.warn('[Auth] Auto profile creation failed:', e);
-        }
-    };
+        })();
+
+        recoveryInFlight.current = task;
+        try { await task; } finally { recoveryInFlight.current = null; }
+    }, [syncState]);
 
     useEffect(() => {
         let mounted = true;
+        const scheduledSyncs: number[] = [];
 
-        const checkSession = async () => {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
+        const scheduleProfileSync = (currentUser: User) => {
+            if (profileSyncUser.current === currentUser.id) return;
+            profileSyncUser.current = currentUser.id;
+            // Never start a database request synchronously in onAuthStateChange.
+            const id = window.setTimeout(() => {
                 if (!mounted) return;
-                if (error) {
-                    console.warn('[Auth] Session check failed:', error.message);
-                } else {
-                    setSession(session);
-                    setUser(session?.user ?? null);
-                    if (session?.user) {
-                        ensureProfileExists(session.user);
+                void ensureProfileExists(currentUser).then((ok) => {
+                    if (!ok && profileSyncUser.current === currentUser.id) {
+                        profileSyncUser.current = null; // Allow retry after an actual later sign-in.
                     }
-                }
-            } catch (error) {
-                console.warn('[Auth] Unexpected error during session check:', error);
-            } finally {
-                if (mounted) setLoading(false);
-            }
+                });
+            }, 0);
+            scheduledSyncs.push(id);
         };
 
-        checkSession();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
             if (!mounted) return;
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-            if (session?.user) {
-                ensureProfileExists(session.user);
+            if (event === 'SIGNED_OUT') {
+                profileSyncUser.current = null;
+                syncState(null);
+                setAuthError(null);
+            } else if (nextSession && !requiresRefresh(nextSession)) {
+                syncState(nextSession);
+                setAuthError(null);
+                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                    scheduleProfileSync(nextSession.user);
+                }
+            } else if (nextSession && requiresRefresh(nextSession)) {
+                syncState(null);
+                setAuthError('Session expirée. Renouvelle la connexion.');
+            } else {
+                syncState(null);
             }
+            setLoading(false);
         });
 
-        // Safety net: always resolve loading after 3s max
-        const timeout = setTimeout(() => {
-            if (mounted) setLoading(false);
-        }, 3000);
+        // getSession refreshes cached sessions on load; our own preflight also
+        // explicitly refreshes old tokens if auth initialization returned a stale JWT.
+        void retryAuth();
+
+        let lastVisibilityCheck = 0;
+        const whenVisible = () => {
+            if (document.visibilityState !== 'visible') return;
+            if (Date.now() - lastVisibilityCheck < 15_000) return;
+            lastVisibilityCheck = Date.now();
+            void retryAuth();
+        };
+        window.addEventListener('focus', whenVisible);
+        document.addEventListener('visibilitychange', whenVisible);
 
         return () => {
             mounted = false;
             subscription.unsubscribe();
-            clearTimeout(timeout);
+            scheduledSyncs.forEach((id) => window.clearTimeout(id));
+            window.removeEventListener('focus', whenVisible);
+            document.removeEventListener('visibilitychange', whenVisible);
         };
-    }, []);
+    }, [retryAuth, syncState]);
 
     const signOut = async () => {
         try {
-            await supabase.auth.signOut();
-        } catch (e) {
-            console.warn('[Auth] Sign out error:', e);
+            await supabase.auth.signOut({ scope: 'local' });
+        } catch (cause) {
+            console.warn('[Auth] Sign out failed:', cause);
         } finally {
-            router.push('/');
+            syncState(null);
+            profileSyncUser.current = null;
+            router.push('/login');
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, authError, recovering, retryAuth, signOut }}>
             {children}
         </AuthContext.Provider>
     );
