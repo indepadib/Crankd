@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Box, Check, MapPin, Package, ShieldAlert, Truck } from 'lucide-react';
+import { ArrowLeft, Box, Check, MapPin, Package, ShieldAlert, Store, Truck } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { PartListing, moneyMAD, partCategoryLabel, partConditionLabel, readableError } from '@/lib/parts';
@@ -22,6 +22,7 @@ export default function PartDetailsPage() {
   const [mainImage, setMainImage] = useState(0);
   const [paymentChannel, setPaymentChannel] = useState<'card' | 'wallet'>('card');
   const [carrierChoice, setCarrierChoice] = useState<'cathedis' | 'amana'>('cathedis');
+  const [publicSellerName, setPublicSellerName] = useState('');
   const [sellerReady, setSellerReady] = useState<'checking' | 'active' | 'inactive' | 'unavailable'>('checking');
 
   useEffect(() => {
@@ -51,6 +52,16 @@ export default function PartDetailsPage() {
         setSellerReady(checkError ? 'unavailable' : data === true ? 'active' : 'inactive');
       });
     return () => { mounted = false; };
+  }, [part?.seller_id]);
+
+  useEffect(() => {
+    if (!part?.seller_id) return;
+    let active = true;
+    void supabase.rpc('get_public_part_seller', { p_seller_id: part.seller_id })
+      .then(({ data }) => {
+        if (active) setPublicSellerName(Array.isArray(data) ? (data[0]?.shop_name || '') : '');
+      });
+    return () => { active = false; };
   }, [part?.seller_id]);
 
   async function placeOrder(event: FormEvent<HTMLFormElement>) {
@@ -122,6 +133,7 @@ export default function PartDetailsPage() {
             </div>
           </div>
 
+          {publicSellerName && <Link href={"/marketplace/parts/sellers/" + part.seller_id} className="flex items-center justify-between gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/[0.06] p-5 transition hover:border-orange-500/50"><span className="flex items-center gap-3"><Store className="h-5 w-5 text-orange-400"/><span><span className="block text-xs text-zinc-400">Vendu par</span><strong className="block text-white">{publicSellerName}</strong></span></span><span className="text-xs font-bold text-orange-300">Voir la boutique →</span></Link>}
           <div className="rounded-3xl border border-white/10 bg-[#1b1c1e] p-6">
             <h2 className="text-xl font-bold text-white">Commander cette pièce</h2>
             <div className="mt-4 flex items-start gap-3 rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-xs leading-5 text-orange-100">
