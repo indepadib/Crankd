@@ -54,6 +54,7 @@ function FeedItem({
     const [comments, setComments] = useState<any[]>([]);
     const [commentText, setCommentText] = useState('');
     const [showComments, setShowComments] = useState(false);
+    const [shareStatus, setShareStatus] = useState<string | null>(null);
 
     const startTime = useRef<number>(0);
     const lastTap = useRef<number>(0);
@@ -562,16 +563,37 @@ function FeedItem({
                     <span className="text-xs font-mono font-bold">{comments.length}</span>
                 </button>
 
-                <button 
-                    onClick={(e) => {
+                <button
+                    type="button"
+                    onClick={async (e) => {
                         e.stopPropagation();
-                        navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
-                        alert('Copied link to clipboard!');
+                        const url = new URL('/feed', window.location.origin);
+                        url.searchParams.set('post', post.id);
+                        try {
+                            if (navigator.share) {
+                                await navigator.share({ title: post.title || 'Publication VROOQ', url: url.toString() });
+                                setShareStatus('Partage effectué');
+                            } else {
+                                await navigator.clipboard.writeText(url.toString());
+                                setShareStatus('Lien copié');
+                            }
+                        } catch (cause) {
+                            if (cause instanceof Error && cause.name === 'AbortError') return;
+                            try {
+                                await navigator.clipboard.writeText(url.toString());
+                                setShareStatus('Lien copié');
+                            } catch {
+                                setShareStatus('Impossible de copier le lien sur cet appareil');
+                            }
+                        }
                     }}
+                    aria-label="Partager cette publication"
                     className="flex items-center gap-2 group/btn ml-auto text-white/50 hover:text-white transition-colors"
                 >
                     <Share2 className="h-5 w-5" />
-                </button>
+                    <span className="text-xs">Partager</span>
+                                </button>
+                {shareStatus && <span role="status" className="text-xs text-zinc-300">{shareStatus}</span>}
             </div>
 
             {/* 2.6 Collapsible Inline Comments Section */}
@@ -635,6 +657,18 @@ export function Feed() {
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [modalType, setModalType] = useState<'post' | 'listing' | 'convoy'>('post');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (loading) return;
+        const postId = new URLSearchParams(window.location.search).get('post');
+        if (!postId) return;
+        const matchingPost = posts.find(item => item.id === postId);
+        if (matchingPost) {
+            setSelectedItem(matchingPost);
+            setModalType(matchingPost.content_type === 'convoy' ? 'convoy' : 'post');
+            setIsModalOpen(true);
+        }
+    }, [loading, posts]);
 
     const filteredPosts = activeTag 
         ? posts.filter(post => 
