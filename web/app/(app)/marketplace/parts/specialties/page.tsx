@@ -13,6 +13,8 @@ export default function SellerSpecialtiesPage(){
   const [shopActive,setShopActive]=useState<boolean|null>(null);
   const [selected,setSelected]=useState<string[]>([]);
   const [brandText,setBrandText]=useState('');
+  const [mixedBrandScopes,setMixedBrandScopes]=useState(false);
+  const [confirmBrandOverwrite,setConfirmBrandOverwrite]=useState(false);
   const [loadedSpecs,setLoadedSpecs]=useState<Spec[]>([]);
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState('');
@@ -36,6 +38,8 @@ export default function SellerSpecialtiesPage(){
       const first=rows[0]?.brands||[];
       const same=rows.every(row=>JSON.stringify(row.brands||[])===JSON.stringify(first));
       setBrandText(same?first.join(', '):'');
+      setMixedBrandScopes(!same);
+      setConfirmBrandOverwrite(false);
     })();
     return()=>{mounted=false;};
   },[user,session?.access_token,authError]);
@@ -43,6 +47,7 @@ export default function SellerSpecialtiesPage(){
   async function save(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
     if(!user||saving||!shopActive)return;
+    if(mixedBrandScopes&&!confirmBrandOverwrite){setError('Tes catégories ont des restrictions de marques différentes. Confirme leur remplacement avant d’enregistrer.');return;}
     const brands=Array.from(new Set(brandText.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean)));
     if(!selected.length){setError('Sélectionne au moins une catégorie de pièces.');return;}
     if(brands.length>40||brands.some(b=>b.length>90)){setError('Limite de 40 marques, 90 caractères par nom.');return;}
@@ -71,6 +76,8 @@ export default function SellerSpecialtiesPage(){
         actual.every(item=>JSON.stringify([...(item.brands||[])].sort())===JSON.stringify(expectedBrands));
       if(!persisted)throw new Error('Les catégories enregistrées ne correspondent pas à ta sélection. Actualise la page avant de réessayer.');
       setLoadedSpecs(actual);
+      setMixedBrandScopes(false);
+      setConfirmBrandOverwrite(false);
       setMessage('Spécialités enregistrées et vérifiées. Les nouvelles demandes correspondant à tes catégories seront visibles dans ta boîte à devis.');
     }catch(cause){setError('Enregistrement non confirmé : '+readableError(cause));}
     finally{setSaving(false);}
@@ -98,6 +105,7 @@ export default function SellerSpecialtiesPage(){
         </div>
         <label className="block text-sm font-semibold text-zinc-200">Marques prises en charge (facultatif)
           <textarea rows={3} className="mt-2 w-full rounded-xl border border-white/15 bg-[#242527] p-4 text-sm text-white outline-none focus:border-orange-500" value={brandText} onChange={e=>setBrandText(e.target.value)} placeholder="Ex. Toyota, Renault, Dacia, BMW"/></label>
+        {mixedBrandScopes&&<div className="space-y-3 rounded-xl border border-amber-400/40 bg-amber-500/10 p-4"><p role="alert" className="text-sm font-semibold text-amber-200">Attention : tes catégories ont actuellement des listes de marques différentes. Enregistrer cette page appliquera la même liste à toutes les catégories sélectionnées. Un champ vide autorisera toutes les marques.</p><label className="flex items-start gap-2 text-xs text-amber-100"><input type="checkbox" checked={confirmBrandOverwrite} onChange={e=>setConfirmBrandOverwrite(e.target.checked)} className="mt-0.5 accent-orange-500"/> Je confirme vouloir remplacer les restrictions de marques de toutes les catégories sélectionnées.</label></div>}
         <p className="text-xs leading-6 text-zinc-400"><strong>Champ vide :</strong> toutes les marques, y compris les imports. Une marque définie : les demandes doivent correspondre exactement à la marque saisie. Les devis sont saisis dans VROOQ ; l’envoi d’e-mails automatiques n’est pas encore activé.</p>
         {message&&<p role="status" className="flex items-start gap-2 rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0"/>{message}</p>}
         {error&&<p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
