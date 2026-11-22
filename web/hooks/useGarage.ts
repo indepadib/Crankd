@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthProvider';
 
 export interface Vehicle {
     id: string;
@@ -14,12 +15,21 @@ export interface Vehicle {
 }
 
 export function useGarage(userId?: string) {
+    const { session, loading: authLoading, recovering } = useAuth();
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchGarage = useCallback(async () => {
+        if (authLoading || recovering) return;
+        if (userId && !session?.access_token) {
+            setVehicles([]);
+            setError('Ta session a expiré. Reconnecte-toi pour accéder au garage.');
+            setLoading(false);
+            return;
+        }
         if (!userId) {
+            setVehicles([]);
             setLoading(false);
             return;
         }
@@ -44,13 +54,13 @@ export function useGarage(userId?: string) {
                 }));
                 setVehicles(enrichedData as Vehicle[]);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error fetching garage:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch garage');
         } finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, [userId, authLoading, recovering, session?.access_token]);
 
     useEffect(() => {
         fetchGarage();

@@ -7,8 +7,10 @@ import { Search, X, Shield, MapPin, Gauge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DetailModal } from '@/components/ui/DetailModal';
 import { usePreferences } from '@/hooks/usePreferences';
+import { useAuth } from '@/context/AuthProvider';
 
 export default function MarketplacePage() {
+    const { session, loading: authLoading, recovering } = useAuth();
     const [search, setSearch] = useState('');
     const [listings, setListings] = useState<any[]>([]);
     const { formatCurrency, formatDistance } = usePreferences();
@@ -21,6 +23,7 @@ export default function MarketplacePage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
+        if (authLoading || recovering) return;
         let mounted = true;
         async function loadListings() {
             try {
@@ -63,7 +66,7 @@ export default function MarketplacePage() {
         }
         void loadListings();
         return () => { mounted = false; };
-    }, []);
+    }, [authLoading, recovering, session?.access_token]);
 
     const filtered = listings.filter(l =>
         `${l.make} ${l.model} ${l.year}`.toLowerCase().includes(search.toLowerCase())
