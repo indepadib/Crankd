@@ -114,11 +114,12 @@ function FeedItem({
                 });
                 if (error) throw error;
             }
+            // Mutation succeeded: do not tell the user it failed if the counter refresh fails.
+            setLiked(!liked);
             const { data: updated, error: refreshError } = await supabase.from('posts')
                 .select('like_count').eq('id', post.id).single();
-            if (refreshError) throw refreshError;
-            setLiked(!liked);
-            setLikeCount(updated?.like_count ?? likeCount);
+            if (!refreshError && updated) setLikeCount(updated.like_count ?? 0);
+            else setLikeCount(current => Math.max(0, current + (liked ? -1 : 1)));
         } catch {
             alert('Like non enregistré. Réessaie.');
         } finally {
