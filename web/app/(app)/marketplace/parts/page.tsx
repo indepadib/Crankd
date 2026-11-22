@@ -45,11 +45,12 @@ export default function PartsMarketplacePage() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) return;
     let active = true;
     async function loadGarage() {
       const {data:cars,error:carsError} = await supabase.from('vehicles')
-        .select('id,make,model,year').eq('owner_id',user.id);
+        .select('id,make,model,year').eq('owner_id',userId);
       if (!active || carsError) return;
       const ids = (cars || []).map(v=>v.id);
       const {data:specs} = ids.length ? await supabase.from('vehicle_specs')
