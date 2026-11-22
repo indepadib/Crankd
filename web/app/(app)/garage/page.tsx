@@ -195,6 +195,17 @@ export default function GaragePage() {
                     <div key={label} className="rounded-xl border border-white/10 bg-white/[0.025] p-4"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-sm font-bold text-white">{value}</p></div>
                   ))}
                 </div>
+                <div className="mt-5 rounded-2xl border border-orange-500/20 bg-orange-500/[0.055] p-4 sm:p-5">
+                  <h3 className="text-sm font-bold text-white">Fiabiliser les informations de cette voiture</h3>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">Informations déclarées par le propriétaire, non vérifiées par VROOQ. Les détails suivants réduisent le risque d’erreur lors d’une recherche de pièces.</p>
+                  <ul className="mt-3 space-y-2 text-sm">
+                    <li className={specs?.fuel_type?'text-emerald-300':'text-amber-200'}>{specs?.fuel_type?'✓':'○'} Carburant {specs?.fuel_type?'renseigné':'à compléter'}</li>
+                    <li className={specs?.engine_description?'text-emerald-300':'text-amber-200'}>{specs?.engine_description?'✓':'○'} Motorisation {specs?.engine_description?'renseignée':'à compléter'}</li>
+                    <li className={specs?.engine_code?'text-emerald-300':'text-zinc-400'}>{specs?.engine_code?'✓':'○'} Code moteur {specs?.engine_code?'renseigné':'utile pour certaines pièces'}</li>
+                    <li className={savedVin?'text-emerald-300':'text-zinc-400'}>{savedVin?'✓':'○'} VIN privé {savedVin?'enregistré':'facultatif, avec consentement'}</li>
+                  </ul>
+                  <p className="mt-3 text-xs leading-5 text-zinc-400">Même avec ces données, confirme la compatibilité avec une référence OEM ou un professionnel avant l’achat. Aucun score de fiabilité artificiel n’est attribué.</p>
+                </div>
                 {savedVin&&<div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 p-4 text-xs text-zinc-300">
                   <span>VIN privé enregistré : •••••••••••{savedVin.slice(-6)}</span>
                   <button type="button" disabled={removingVin} onClick={()=>void removeVin()} className="font-bold text-red-300 hover:text-red-200 disabled:opacity-50">{removingVin?'Suppression…':'Supprimer mon VIN'}</button>
