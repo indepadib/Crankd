@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CalendarDays, CarFront, CheckCircle2, ClipboardList, Gauge, Plus, RefreshCw, Search, ShieldCheck, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -191,7 +192,7 @@ export default function GaragePage() {
             {vehicles.map(car=>(
               <button key={car.id} type="button" onClick={()=>{setSelectedId(car.id);setSpecs(null);setSavedVin(null);setLogs([]);setLogSuccess(false);setShowLogForm(false);setEditingSpecs(false);setSpecsError('');}} aria-pressed={selectedId===car.id}
                 className={'flex min-w-[210px] shrink-0 items-center gap-3 rounded-2xl border p-4 text-left '+(selectedId===car.id?'border-orange-500/50 bg-orange-500/10':'border-white/10 bg-[#1c1d20] hover:border-white/25')}>
-                <span className="rounded-xl bg-orange-500/10 p-3 text-orange-400"><CarFront className="h-6 w-6"/></span>
+                <span className="relative flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-500/10 text-orange-400">{car.image_url ? <Image src={car.image_url} alt={`Photo de ${car.make} ${car.model}`} fill sizes="80px" unoptimized className="object-cover" /> : <CarFront className="h-6 w-6"/>}</span>
                 <span><strong className="block text-sm text-white">{car.make} {car.model}</strong><span className="block text-xs text-zinc-400">{car.year}</span></span>
               </button>
             ))}
@@ -200,7 +201,7 @@ export default function GaragePage() {
             <>
               <section className="rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div><p className="text-xs font-bold uppercase tracking-widest text-orange-400">Mon véhicule</p><h2 className="mt-2 text-2xl font-black text-white">{selected.make} {selected.model}</h2><p className="mt-1 text-sm text-zinc-400">Année {selected.year} · Informations déclarées</p></div>
+                  <div className="flex items-center gap-4">{selected.image_url && <span className="relative block h-24 w-32 shrink-0 overflow-hidden rounded-2xl bg-white/5"><Image src={selected.image_url} alt={`Photo de ${selected.make} ${selected.model}`} fill sizes="128px" unoptimized className="object-cover" /></span>}<div><p className="text-xs font-bold uppercase tracking-widest text-orange-400">Mon véhicule</p><h2 className="mt-2 text-2xl font-black text-white">{selected.make} {selected.model}</h2><p className="mt-1 text-sm text-zinc-400">Année {selected.year} · Informations déclarées</p></div></div>
                   <Link href="/marketplace/parts" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-black"><Search className="h-4 w-4"/> Chercher des pièces</Link>
                 </div>
                 {detailsError&&<p role="alert" className="mt-4 rounded-xl bg-amber-500/10 p-3 text-xs text-amber-200">{detailsError}</p>}
