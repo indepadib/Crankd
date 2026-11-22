@@ -151,7 +151,7 @@ function SignupForm() {
           </label>
           <label className="flex items-start gap-3 text-xs leading-6 text-zinc-300"><input type="checkbox" checked={marketingConsent} onChange={e=>setMarketingConsent(e.target.checked)} className="mt-1 accent-orange-500"/>Je souhaite recevoir les nouveautés VROOQ. Facultatif.</label>
           <p className="flex items-start gap-2 text-xs leading-6 text-zinc-400"><LockKeyhole className="mt-1 h-4 w-4 shrink-0"/>Pays : Maroc · Devise : MAD · Distances : km. Tes coordonnées personnelles ne sont pas affichées sur ton profil public.</p>
-          {sellerIntent && <p className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3 text-xs text-orange-100">Ta boutique s’active gratuitement après la création du compte. L'inscription n'implique aucun abonnement payant.</p>}
+          {sellerIntent && <p className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3 text-xs text-orange-100">Ta boutique s’active gratuitement après la création du compte. L’inscription n’implique aucun abonnement payant.</p>}
           {error && <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
           <div className="flex gap-3">
             <button type="button" onClick={()=>{setError('');setStep(2);}} className="rounded-xl border border-white/15 px-4 py-3 text-white"><ArrowLeft className="h-4 w-4"/></button>
