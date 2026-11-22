@@ -2,16 +2,15 @@
 -- Existing database audit: no trigger or unique constraint on post_interactions.
 begin;
 -- Fail clearly if historic duplicate likes exist; never silently delete user data.
-do $
-begin
+DO 'begin
   if exists (
     select 1 from public.post_interactions
-    where interaction_type = 'like'
+    where interaction_type = ''like''
     group by user_id, post_id having count(*) > 1
   ) then
-    raise exception 'Duplicate likes detected: reconcile in staging before creating unique index';
+    raise exception ''Duplicate likes detected: reconcile in staging before creating unique index'';
   end if;
-end $;
+end;';
 create unique index if not exists post_interactions_unique_like
   on public.post_interactions (user_id, post_id)
   where interaction_type = 'like';
