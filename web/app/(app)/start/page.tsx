@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CarFront, Check, Package, ShoppingBag, Store, UserRound, Users } from 'lucide-react';
+import { ArrowRight, CarFront, Check, Compass, Package, ShoppingBag, Store, UserRound, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthProvider';
 
@@ -62,6 +62,7 @@ export default function MySpacePage() {
           <Store className="mt-1 h-6 w-6 text-orange-400"/><span><strong className="block text-lg text-white">Ma Boutique</strong><span className="mt-1 block text-xs leading-5 text-zinc-400">Vendeur · annonces · demandes</span><span className="mt-2 block text-xs text-orange-300">{snapshot.sellerActive?'Boutique active':'Boutique à activer'} · {snapshot.listingCount} annonce(s)</span></span>
         </button>
       </div>
+      <Link href="/feed" className="flex items-center justify-between gap-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5 text-white transition-colors hover:bg-orange-500/15"><span className="flex items-center gap-3"><Compass className="h-6 w-6 text-orange-400"/><span><strong className="block text-base">Ouvrir mon fil d’actualité</strong><span className="mt-1 block text-xs text-zinc-300">Publications, passionnés et communauté VROOQ</span></span></span><ArrowRight className="h-5 w-5 shrink-0 text-orange-400"/></Link>
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-black text-white">{tab==='driver'?'Mes prochaines actions':'Mon parcours vendeur'}</h2><span className="text-xs text-zinc-400">{snapshot.loading?'Actualisation…':'Informations de mon compte'}</span></div>
         {actions.map(item=>(
