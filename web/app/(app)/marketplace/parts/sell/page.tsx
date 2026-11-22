@@ -82,7 +82,7 @@ export default function SellOnVrooq() {
         ? await supabase.from('part_sellers').update({ ...editable, updated_at: new Date().toISOString() }).eq('seller_id', user.id)
         : await supabase.from('part_sellers').insert({ seller_id: user.id, ...editable, accepts_seller_rules: true });
       if (result.error) throw result.error;
-      setSeller((current) => current ? ({...current,...editable}) : ({
+      setSeller((current) => current ? ({...current,...editable,seller_kind:seller_kind as Seller['seller_kind']}) : ({
         seller_id: user.id, ...editable,
         seller_kind: seller_kind as Seller['seller_kind'],
         status: 'active', verification_status: 'unverified',
