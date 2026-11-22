@@ -6,7 +6,6 @@ import { ConvoysMap } from '@/components/ConvoysMap';
 import { EventCard } from '@/components/EventCard';
 import { Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { DetailModal } from '@/components/ui/DetailModal';
 
 export default function ConvoysPage() {
     const { user } = useAuth();
@@ -21,6 +20,7 @@ export default function ConvoysPage() {
     // Modal details
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [rsvpStatus, setRsvpStatus] = useState('');
 
     const fetchEvents = async () => {
         setLoading(true);
@@ -45,6 +45,25 @@ export default function ConvoysPage() {
             };
         }));
         setLoading(false);
+    };
+
+    const openEvent = async (event: any) => {
+        setSelectedEvent(event); setIsModalOpen(true); setRsvpStatus('');
+        if (user) {
+            const { data } = await supabase.from('vrooq_event_rsvps').select('status')
+                .eq('event_id', event.id).eq('user_id', user.id).maybeSingle();
+            setRsvpStatus(data?.status || '');
+        }
+    };
+
+    const updateRsvp = async (status: 'going' | 'interested' | 'leave') => {
+        if (!user || !selectedEvent) { setFeedback('Connectez-vous pour participer.'); return; }
+        const result = status === 'leave'
+            ? await supabase.from('vrooq_event_rsvps').delete().eq('event_id',selectedEvent.id).eq('user_id',user.id)
+            : await supabase.from('vrooq_event_rsvps').upsert({event_id:selectedEvent.id,user_id:user.id,status},{onConflict:'event_id,user_id'});
+        if (result.error) { setFeedback('Inscription impossible : ' + result.error.message); return; }
+        setRsvpStatus(status === 'leave' ? '' : status);
+        setFeedback(status === 'leave' ? 'Participation retirée.' : 'Votre réponse a été enregistrée.');
     };
 
     const createEvent = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -116,8 +135,7 @@ export default function ConvoysPage() {
                                     key={event.id} 
                                     event={event} 
                                     onClick={() => {
-                                        setSelectedEvent(event);
-                                        setIsModalOpen(true);
+                                        void openEvent(event);
                                     }}
                                 />
                             ))
@@ -132,14 +150,20 @@ export default function ConvoysPage() {
 
             </div>
 
-            {/* Dynamic Event Details Modal */}
-            <DetailModal 
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                type="convoy"
-                data={selectedEvent}
-                onActionSuccess={fetchEvents}
-            />
+            {isModalOpen && selectedEvent && <div role="dialog" aria-modal="true" aria-label="Détails de la sortie" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/15 bg-zinc-900 p-6 text-white">
+                    <div className="flex items-start justify-between gap-4"><h2 className="text-xl font-black">{selectedEvent.title}</h2><button type="button" onClick={()=>setIsModalOpen(false)} className="rounded-lg border border-white/20 px-3 py-1">Fermer</button></div>
+                    <p className="text-sm text-zinc-300">{selectedEvent.date} à {selectedEvent.time}</p>
+                    <p className="text-sm text-zinc-300">Rendez-vous : {selectedEvent.location}</p>
+                    <p className="text-sm text-zinc-400">Chaque conducteur reste responsable du respect du code de la route. Aucun trajet ni point GPS n’est présumé.</p>
+                    <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={()=>void updateRsvp('going')} className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-black">Je participe</button>
+                        <button type="button" onClick={()=>void updateRsvp('interested')} className="rounded-xl border border-white/20 px-4 py-3 text-sm">Intéressé</button>
+                        {rsvpStatus && <button type="button" onClick={()=>void updateRsvp('leave')} className="rounded-xl border border-white/20 px-4 py-3 text-sm">Annuler ma réponse</button>}
+                    </div>
+                    <p role="status" className="text-xs text-zinc-400">{rsvpStatus ? 'Votre statut : ' + (rsvpStatus === 'going' ? 'Je participe' : 'Intéressé') : 'Aucune inscription enregistrée'}</p>
+                </div>
+            </div>}
         </div>
     );
 }
