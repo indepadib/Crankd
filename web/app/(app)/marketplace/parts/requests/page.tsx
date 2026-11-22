@@ -26,6 +26,7 @@ export default function MyPartRequestsPage(){
   const [error,setError]=useState('');
   const [changing,setChanging]=useState<string|null>(null);
   const [refresh,setRefresh]=useState(0);
+  const [quoteSort,setQuoteSort]=useState<'total'|'availability'|'recent'>('total');
   const reload=useCallback(()=>setRefresh(r=>r+1),[]);
   useEffect(()=>{
     if(!user||!session?.access_token||authError)return;
@@ -80,7 +81,12 @@ export default function MyPartRequestsPage(){
         <p className="mt-3 text-sm text-zinc-400">Une pièce introuvable ? Demande aux vendeurs qui traitent sa catégorie.</p>
         <Link href="/marketplace/parts/request" className="mt-5 inline-flex rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-black">Créer ma première demande</Link>
       </div>:requests.map(request=>{
-        const offers=byRequest.get(request.id)||[];
+        const offers=[...(byRequest.get(request.id)||[])].sort((a,b)=>{
+          if(quoteSort==='availability')return a.availability_days-b.availability_days;
+          if(quoteSort==='recent')return new Date(b.created_at).getTime()-new Date(a.created_at).getTime();
+          const total=(q:Quote)=>q.shipping_fee_mad===null?Number.POSITIVE_INFINITY:q.price_mad+q.shipping_fee_mad;
+          return total(a)-total(b);
+        });
         return <section key={request.id} className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><p className="text-[11px] uppercase tracking-widest text-orange-400">{PART_CATEGORIES.find(c=>c.value===request.category)?.label||request.category} · {new Date(request.created_at).toLocaleDateString('fr-MA')}</p>
@@ -89,7 +95,7 @@ export default function MyPartRequestsPage(){
             </div>
             <span className="rounded-full border border-white/15 px-3 py-2 text-xs font-bold text-zinc-300">{statusLabels[request.status]||request.status}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm font-bold text-white"><Store className="h-4 w-4 text-orange-400"/>{offers.length} devis reçu(s)</div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-bold text-white"><Store className="h-4 w-4 text-orange-400"/>{offers.length} devis reçu(s)</div>{offers.length>1&&<select aria-label="Trier les devis" className="min-h-11 rounded-xl border border-white/15 bg-[#242528] px-3 text-xs text-white" value={quoteSort} onChange={e=>setQuoteSort(e.target.value as typeof quoteSort)}><option value="total">Prix total connu</option><option value="availability">Délai annoncé</option><option value="recent">Devis récents</option></select>}</div>
           {offers.length?(
             <div className="space-y-3">{offers.map(quote=>{
               const isExpired=new Date(quote.expires_at).getTime()<Date.now();
@@ -101,12 +107,13 @@ export default function MyPartRequestsPage(){
                 </div>
                 <div className="text-right"><strong className="block text-xl text-white">{moneyMAD(quote.price_mad)}</strong>
                   <p className="mt-1 text-xs text-zinc-400">{quote.shipping_fee_mad===null?'Livraison à préciser':'+ '+moneyMAD(quote.shipping_fee_mad)+' livraison'}</p>
+                  <p className="mt-1 text-sm font-bold text-orange-200">{quote.shipping_fee_mad===null?'Total non calculable':'Total : '+moneyMAD(quote.price_mad+quote.shipping_fee_mad)}</p>
                   <p className={'mt-2 text-xs '+(isExpired?'text-amber-300':'text-emerald-300')}>{isExpired?'Devis expiré':'Devis indicatif'}</p>
                 </div>
               </article>;
             })}</div>
           ):<p className="flex items-start gap-2 rounded-xl bg-orange-500/5 p-4 text-xs leading-6 text-zinc-400"><CircleHelp className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Les commerçants concernés peuvent répondre depuis leur boîte à devis. Une réponse sous 24 h est un objectif, pas une garantie. Les notifications automatiques ne sont pas encore activées.</p>}
-          <p className="text-[11px] leading-5 text-zinc-500">Comparer un devis n’engage ni paiement ni commande. Confirme la référence OEM, le prix total et l’état réel avant de poursuivre.</p>
+          <p className="text-[11px] leading-5 text-zinc-500">Le tri par prix total place les devis sans frais de livraison renseignés à la fin. Les offres expirées restent visibles à titre indicatif. Comparer un devis n’engage ni paiement ni commande. Confirme la référence OEM, le prix total et l’état réel avant de poursuivre.</p>
           {request.status==='open'&&<div className="flex gap-4 text-xs">
             <button type="button" disabled={changing===request.id} onClick={()=>void updateStatus(request.id,'closed')} className="font-bold text-zinc-300 hover:text-white">Clôturer la demande</button>
             <button type="button" disabled={changing===request.id} onClick={()=>void updateStatus(request.id,'cancelled')} className="font-bold text-red-300 hover:text-red-200">Annuler</button>
