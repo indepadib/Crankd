@@ -27,7 +27,8 @@ function relevantClubs(make: string, model: string, clubs: Club[]): Club[] {
 
 export default function AddVehiclePage() {
   const { user, loading: authLoading } = useAuth();
-  const [method,setMethod] = useState<Method>('card_transcription');
+  const [method,setMethod] = useState<Method>('manual');
+  const [showAdvanced,setShowAdvanced] = useState(false);
   const [make,setMake] = useState('');
   const [model,setModel] = useState('');
   const [year,setYear] = useState('');
@@ -121,7 +122,7 @@ export default function AddVehiclePage() {
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">Mon garage · Maroc</p>
         <h1 className="mt-2 text-3xl font-black text-white">Ajoute ta voiture.</h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-400">Avec les données techniques de ta carte grise marocaine, ou simplement en indiquant le modèle. Aucune photo de carte grise ni plaque d’immatriculation n’est demandée. Le VIN est facultatif et privé.</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">Marque, modèle, année : c’est tout pour commencer. Tu peux ajouter les détails plus tard. Aucune photo de carte grise ni plaque d’immatriculation n’est demandée. Le VIN est facultatif et privé.</p>
       </div>
       {!authLoading && !user ? (
         <div className="rounded-2xl border border-white/10 p-6 text-zinc-300">Connecte-toi pour ajouter ta voiture. <Link href="/login" className="font-bold text-orange-400">Se connecter</Link></div>
@@ -140,27 +141,13 @@ export default function AddVehiclePage() {
         </section>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-[#1b1c1e] p-2" role="group" aria-label="Mode d'ajout du véhicule">
-            <button type="button" onClick={()=>setMethod('card_transcription')} aria-pressed={method==='card_transcription'}
-              className={'flex min-h-14 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold '+(method==='card_transcription'?'bg-orange-500 text-black':'text-zinc-300 hover:bg-white/5')}>
-              <BookOpenCheck className="h-4 w-4"/> Ma carte grise
-            </button>
-            <button type="button" onClick={()=>setMethod('manual')} aria-pressed={method==='manual'}
-              className={'flex min-h-14 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold '+(method==='manual'?'bg-orange-500 text-black':'text-zinc-300 hover:bg-white/5')}>
-              <CarFront className="h-4 w-4"/> Saisie rapide
-            </button>
-          </div>
-
           <form onSubmit={onSubmit} className="space-y-6 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
-            {method==='card_transcription' && (
-              <div className="rounded-2xl border border-orange-500/20 bg-orange-500/10 p-4">
-                <p className="flex items-center gap-2 text-sm font-bold text-white"><BookOpenCheck className="h-4 w-4 text-orange-300"/> Recopie seulement les informations techniques</p>
-                <p className="mt-2 text-xs leading-6 text-zinc-300">Sur la carte grise marocaine : marque, modèle/type, carburant, puissance fiscale et numéro de châssis peuvent apparaître. Nous ne demandons ni nom du titulaire, ni adresse, ni immatriculation. Le VIN est facultatif dans un champ privé séparé, avec ton accord explicite.</p>
-              </div>
-            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <VehicleMakeModelPicker className="sm:col-span-2" make={make} model={model} onMakeChange={setMake} onModelChange={setModel} />
               <label className="text-sm font-semibold text-zinc-200">Année *<input className={field} required type="number" min={1950} max={new Date().getFullYear()+2} value={year} onChange={e=>setYear(e.target.value)} placeholder="2014"/></label>
+            </div>
+            <button type="button" aria-expanded={showAdvanced} onClick={()=>{setShowAdvanced(v=>!v);setMethod('card_transcription');}} className="min-h-11 w-full rounded-xl border border-white/15 px-4 py-3 text-left text-sm font-bold text-zinc-200 hover:border-orange-500/40">{showAdvanced?'Masquer les informations facultatives':'Ajouter des informations techniques (facultatif)'}</button>
+            {showAdvanced&&<div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm font-semibold text-zinc-200">Carburant
                 <select className={field} value={fuel} onChange={e=>setFuel(e.target.value as Fuel)}>
                   <option value="">Non renseigné</option>
@@ -169,13 +156,13 @@ export default function AddVehiclePage() {
               </label>
               <label className="text-sm font-semibold text-zinc-200">Motorisation / cylindrée<input className={field} maxLength={100} value={engine} onChange={e=>setEngine(e.target.value)} placeholder="Ex. 1.4 D-4D"/></label>
               <label className="text-sm font-semibold text-zinc-200">Code moteur (si connu)<input className={field} maxLength={60} value={engineCode} onChange={e=>setEngineCode(e.target.value)} placeholder="Ex. 1ND-TV"/></label>
-              {method==='card_transcription' && <>
+              <>
                 <label className="text-sm font-semibold text-zinc-200">Version / finition<input className={field} maxLength={100} value={trim} onChange={e=>setTrim(e.target.value)} placeholder="Ex. Dynamic"/></label>
                 <label className="text-sm font-semibold text-zinc-200">Puissance fiscale (CV)<input className={field} type="number" min={1} max={80} value={fiscalPower} onChange={e=>setFiscalPower(e.target.value)} placeholder="Ex. 6"/></label>
                 <label className="text-sm font-semibold text-zinc-200 sm:col-span-2">Première mise en circulation (facultatif)<input className={field} type="date" value={firstRegistration} onChange={e=>setFirstRegistration(e.target.value)}/></label>
-              </>}
-            </div>
-            <section className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+              </>
+            </div>}
+            {showAdvanced&&            <section className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
               <p className="text-sm font-bold text-white">Numéro VIN / châssis (facultatif)</p>
               <p className="text-xs leading-6 text-zinc-400">Tu peux enregistrer un VIN standard de 17 caractères, même pour un véhicule importé. Il restera privé, sera lié uniquement à ton garage et ne sera transmis à aucun fournisseur externe. Il n’identifie pas automatiquement la voiture aujourd’hui.</p>
               <label className="block text-sm font-semibold text-zinc-200">VIN (17 caractères)
@@ -185,7 +172,7 @@ export default function AddVehiclePage() {
                 <input type="checkbox" checked={vinConsent} onChange={e=>setVinConsent(e.target.checked)} className="mt-1 accent-orange-500"/>
                 J’autorise l’enregistrement privé de ce VIN dans mon garage. Aucune recherche externe n’est exécutée.
               </label>}
-            </section>
+            </section>}
             {suggested.length > 0 && (
               <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                 <p className="flex items-center gap-2 text-sm font-bold text-white"><Users className="h-4 w-4 text-orange-400"/> Les clubs de ta voiture</p>
