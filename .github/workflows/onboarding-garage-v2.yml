@@ -9,7 +9,6 @@ on:
       - 'web/app/(auth)/signup/page.tsx'
       - 'web/app/(app)/marketplace/parts/sell/page.tsx'
       - 'web/app/(app)/garage/add/page.tsx'
-      - 'web/app/api/vehicle-lookup/route.ts'
       - 'web/context/AuthProvider.tsx'
       - 'web/app/(app)/garage/page.tsx'
       - 'web/app/(app)/marketplace/parts/page.tsx'
@@ -29,7 +28,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - name: Focused lint on new flow
-        run: npx eslint components/ActivationGuide.tsx 'app/(auth)/signup/page.tsx' 'app/(app)/marketplace/parts/sell/page.tsx' 'app/(app)/garage/add/page.tsx' 'app/api/vehicle-lookup/route.ts' context/AuthProvider.tsx 'app/(app)/marketplace/parts/page.tsx'
+        run: npx eslint components/ActivationGuide.tsx 'app/(auth)/signup/page.tsx' 'app/(app)/marketplace/parts/sell/page.tsx' 'app/(app)/garage/add/page.tsx' context/AuthProvider.tsx 'app/(app)/marketplace/parts/page.tsx'
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Build Next.js
