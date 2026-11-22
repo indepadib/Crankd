@@ -8,7 +8,6 @@ import {
     Heart, 
     MessageCircle, 
     Share2, 
-    ShoppingBag, 
     ChevronUp, 
     ChevronDown, 
     Send, 
@@ -17,7 +16,6 @@ import {
     Volume2, 
     VolumeX,
     X,
-    Check
 } from 'lucide-react';
 
 export function VrooqTV() {
@@ -35,9 +33,6 @@ export function VrooqTV() {
 
     // UI overlays
     const [showComments, setShowComments] = useState(false);
-    const [showCheckout, setShowCheckout] = useState(false);
-    const [checkoutComplete, setCheckoutComplete] = useState(false);
-    const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [likeExplosion, setLikeExplosion] = useState(false);
 
     // Ref for HTML video element
@@ -132,8 +127,6 @@ export function VrooqTV() {
             });
         }
         setShowComments(false);
-        setShowCheckout(false);
-        setCheckoutComplete(false);
     }, [activeIdx, videoStack]);
 
     useEffect(() => {
@@ -279,14 +272,6 @@ export function VrooqTV() {
         setCommentInput('');
     };
 
-    const performCheckout = () => {
-        setCheckoutLoading(true);
-        setTimeout(() => {
-            setCheckoutLoading(false);
-            setCheckoutComplete(true);
-        }, 1200);
-    };
-
     return (
         <div className="flex flex-col items-center justify-center py-6 w-full select-none">
             
@@ -370,7 +355,6 @@ export function VrooqTV() {
                         {/* Feed title */}
                         <div className="flex justify-center gap-4 text-[10px] font-black text-white/50 tracking-wider">
                             <span className="text-white border-b-2 border-signal-orange pb-0.5 font-mono">VROOQ TV</span>
-                            <span className="font-mono">LIVE</span>
                         </div>
 
                         {/* Description & Action panel */}
@@ -390,23 +374,6 @@ export function VrooqTV() {
                                     </div>
                                 </div>
 
-                                {/* Marketplace product badge */}
-                                {activeVideo?.marketplaceItem && (
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsPlaying(false);
-                                            videoRef.current?.pause();
-                                            setShowCheckout(true);
-                                        }}
-                                        className="w-full py-2 bg-gradient-to-r from-signal-orange to-signal-orange-dim text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg border border-white/10 animate-pulse pointer-events-auto"
-                                    >
-                                        <ShoppingBag className="h-3 w-3" />
-                                        Buy Part: ${activeVideo.marketplaceItem.price.toLocaleString()}
-                                    </motion.button>
-                                )}
                             </div>
 
                             {/* Vertically stacked action buttons */}
@@ -491,87 +458,6 @@ export function VrooqTV() {
                         )}
                     </AnimatePresence>
 
-                    {/* Nested Slide-up Checkout Drawer */}
-                    <AnimatePresence>
-                        {showCheckout && (
-                            <motion.div 
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                className="absolute inset-x-0 bottom-0 h-[85%] bg-carbon border-t border-white/10 rounded-t-[32px] z-20 p-5 flex flex-col justify-between pointer-events-auto"
-                            >
-                                <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-                                    <span className="text-[9px] font-black text-white font-mono uppercase tracking-wider">VROOQ TV CHECKOUT</span>
-                                    <button 
-                                        onClick={() => {
-                                            setShowCheckout(false);
-                                            setIsPlaying(true);
-                                            videoRef.current?.play();
-                                        }} 
-                                        className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-all"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                </div>
-
-                                {checkoutComplete ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3 p-4 animate-in zoom-in-95">
-                                        <div className="h-12 w-12 rounded-full bg-signal-orange/10 border border-signal-orange/30 flex items-center justify-center text-signal-orange">
-                                            <Check className="h-6 w-6" />
-                                        </div>
-                                        <h4 className="text-sm font-black text-white font-mono uppercase">Checkout Complete</h4>
-                                        <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
-                                            Order processed. Item registered under your chassis specifications registry.
-                                        </p>
-                                        <button 
-                                            onClick={() => {
-                                                setShowCheckout(false);
-                                                setIsPlaying(true);
-                                                videoRef.current?.play();
-                                            }}
-                                            className="w-full mt-2 py-2 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-xl text-[10px] uppercase font-bold transition-all"
-                                        >
-                                            Return to feed
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex-1 flex flex-col justify-between py-2 text-[10px]">
-                                        <div className="space-y-4">
-                                            <div className="p-3 bg-white/2 border border-white/5 rounded-xl space-y-1.5 font-mono">
-                                                <div className="flex justify-between text-zinc-500">
-                                                    <span>PRODUCT</span>
-                                                    <span className="text-white font-bold max-w-[140px] truncate">{activeVideo?.marketplaceItem?.name}</span>
-                                                </div>
-                                                <div className="flex justify-between text-zinc-500">
-                                                    <span>PRICE</span>
-                                                    <span className="text-signal-orange font-bold">${activeVideo?.marketplaceItem?.price.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between text-zinc-500">
-                                                    <span>SHIPPING</span>
-                                                    <span className="text-white font-bold">Complimentary</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-1 font-mono">
-                                                <span className="text-[8px] text-zinc-500 font-bold uppercase">LEDGER WALLET ADDRESS</span>
-                                                <p className="bg-black/40 border border-white/5 p-2 rounded-lg text-zinc-400 font-bold truncate text-[9px]">
-                                                    vrq_ledger_0x4f88127be51a90c29b71e16f
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            onClick={performCheckout}
-                                            disabled={checkoutLoading}
-                                            className="w-full py-3 bg-signal-orange hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10 active:scale-98 disabled:opacity-50"
-                                        >
-                                            {checkoutLoading ? 'Verifying ledger...' : 'Checkout with Vrooq Ledger'}
-                                        </button>
-                                    </div>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
 
                 </div>
 
