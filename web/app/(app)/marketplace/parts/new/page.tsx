@@ -95,6 +95,8 @@ export default function NewPartListingPage() {
         oem_reference: read('oem_reference') || null,
         compatible_make: read('compatible_make'),
         compatible_model: read('compatible_model'),
+        compatible_fuel: read('compatible_fuel') || null,
+        compatible_engine_code: read('compatible_engine_code') || null,
         compatible_year_from: yearFrom,
         compatible_year_to: yearTo,
         city: read('city'),
@@ -162,10 +164,23 @@ export default function NewPartListingPage() {
             <div className="grid gap-5 sm:grid-cols-2">
               <label className={label}>Constructeur compatible *<input required name="compatible_make" maxLength={100} className={field} placeholder="Toyota" /></label>
               <label className={label}>Modèle compatible *<input required name="compatible_model" maxLength={100} className={field} placeholder="Auris" /></label>
+              <label className={label}>Carburant compatible
+                <select name="compatible_fuel" className={field}>
+                  <option value="">Non précisé</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="petrol">Essence</option>
+                  <option value="hybrid">Hybride</option>
+                  <option value="phev">Hybride rechargeable</option>
+                  <option value="electric">Électrique</option>
+                  <option value="lpg">GPL</option>
+                  <option value="other">Autre</option>
+                </select>
+              </label>
+              <label className={label}>Code moteur compatible<input name="compatible_engine_code" maxLength={60} className={field} placeholder="Ex. 1ND-TV (facultatif)" /></label>
               <label className={label}>De l’année<input name="compatible_year_from" type="number" min={1950} max={2100} className={field} placeholder="2013" /></label>
               <label className={label}>À l’année<input name="compatible_year_to" type="number" min={1950} max={2100} className={field} placeholder="2018" /></label>
             </div>
-            <p className="flex items-start gap-2 text-xs leading-5 text-amber-200/80"><Info className="mt-0.5 h-4 w-4 shrink-0" />La compatibilité est déclarée par le vendeur. Les acheteurs doivent toujours confirmer la référence OEM ou le VIN avant la commande.</p>
+            <p className="flex items-start gap-2 text-xs leading-5 text-amber-200/80"><Info className="mt-0.5 h-4 w-4 shrink-0" />La compatibilité est déclarée par le vendeur. Aucun contrôle OEM officiel n’est encore connecté. Les acheteurs doivent confirmer la référence de la pièce auprès du vendeur avant toute transaction.</p>
           </section>
           <section className="space-y-5 rounded-3xl border border-white/10 bg-[#1a1b1d] p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-white"><Camera className="h-5 w-5 text-orange-400" /> 03 · Photos de la pièce</h2>
