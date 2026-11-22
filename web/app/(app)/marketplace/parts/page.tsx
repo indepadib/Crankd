@@ -107,9 +107,11 @@ export default function PartsMarketplacePage() {
             <Box className="h-4 w-4" /> VROOQ PARTS · MAROC
           </div>
           <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">La bonne pièce.<br /><span className="text-orange-400">La bonne voiture.</span></h1>
-          <p className="max-w-xl text-sm leading-6 text-zinc-300 md:text-base">Pièces automobiles d’occasion entre passionnés : trouvez une référence compatible, vérifiez son état et commandez sans quitter votre espace VROOQ.</p>
+          <p className="max-w-xl text-sm leading-6 text-zinc-300 md:text-base">Pièces automobiles d’occasion entre passionnés : trouvez une référence compatible, vérifiez son état et demandez plusieurs devis si vous ne trouvez pas la pièce.</p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Link href="/marketplace/parts/new" className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-orange-400"><Plus className="h-4 w-4" /> Vendre une pièce</Link>
+            <Link href="/marketplace/parts/request" className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black hover:bg-orange-400"><Search className="h-4 w-4"/> Demander une pièce / des devis</Link>
+            <Link href="/marketplace/parts/requests" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white">Mes demandes de devis</Link>
+            <Link href="/marketplace/parts/new" className="inline-flex items-center gap-2 rounded-xl border border-orange-500/30 bg-transparent px-5 py-3 text-sm font-bold text-black transition hover:bg-orange-400"><Plus className="h-4 w-4" /> Vendre une pièce</Link>
             <Link href="/marketplace/parts/orders" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Mes commandes <ArrowRight className="h-4 w-4" /></Link>
             <Link href="/marketplace/parts/mine" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Mes annonces <ArrowRight className="h-4 w-4" /></Link>
             <Link href="/marketplace/parts/sell" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">Ma boutique <ArrowRight className="h-4 w-4" /></Link>
@@ -156,7 +158,7 @@ export default function PartsMarketplacePage() {
           <PackageSearch className="mx-auto mb-4 h-10 w-10 text-orange-400" />
           <h2 className="text-xl font-bold text-white">Aucune pièce pour cette recherche</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">Modifiez vos filtres ou soyez parmi les premiers à publier une annonce. Nous n’affichons pas de fausses annonces.</p>
-          <Link href="/marketplace/parts/new" className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">Déposer une annonce</Link>
+          <div className="mt-6 flex flex-wrap justify-center gap-3"><Link href="/marketplace/parts/request" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">Faire une demande de devis</Link><Link href="/marketplace/parts/new" className="inline-flex rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">Déposer une annonce</Link></div>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
