@@ -98,7 +98,7 @@ export default function SellOnVrooq() {
         throw new Error('Enregistrement non confirmé. Vérifie ta boutique avant de réessayer.');
       }
       setSeller(verified as Seller);
-      setSuccessMessage(seller ? 'Les informations de ta boutique ont été enregistrées.' : 'Ta boutique est activée ! Tu peux maintenant publier ta première pièce.');
+      setSuccessMessage(seller ? 'Les informations de ta boutique ont été enregistrées et vérifiées.' : verified.status==='active' ? 'Ta boutique est activée ! Tu peux maintenant publier ta première pièce.' : 'Ton compte vendeur a été enregistré. La boutique n’est pas encore active.');
     } catch (caught) { setError(readableError(caught)); }
     finally { setSaving(false); }
   }
@@ -150,7 +150,7 @@ export default function SellOnVrooq() {
           {seller?.status==='active'&&specialtyCount!==null&&specialtyCount>0&&<p className="text-xs text-emerald-300">Demandes de devis activées pour {specialtyCount} catégorie(s) de pièces.</p>}
           {successMessage && <div role="status" className="space-y-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
             <p className="font-bold text-white">{successMessage}</p>
-            <div className="flex flex-wrap gap-3"><Link href="/marketplace/parts/new" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Publier ma première pièce</Link>
+            <div className="flex flex-wrap gap-3">{seller?.status==='active'&&<Link href="/marketplace/parts/new" className="inline-flex rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black">Publier ma première pièce</Link>}
             <Link href="/marketplace/parts/specialties" className="inline-flex rounded-xl border border-orange-500/30 px-5 py-3 text-sm font-bold text-orange-300">Choisir mes catégories de demandes</Link></div>
           </div>}
           <form key={(seller?.seller_id || 'new')+'-'+(memberDefaults?.contact_phone || '')} onSubmit={register} className="space-y-6 rounded-3xl border border-white/10 bg-[#1b1c1e] p-6 md:p-8">
