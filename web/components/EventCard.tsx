@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Calendar, Clock, Users, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 
 interface EventCardProps {
@@ -43,10 +43,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
                         }`}>
                         {event.type}
                     </span>
-                    <span className="flex items-center gap-1 text-xs font-mono text-text-dim">
-                        <Users className="h-3 w-3" />
-                        {event.attendees}
-                    </span>
+                    {/* RSVP counts are private until an aggregate count is implemented. */}
                 </div>
 
                 <h3 className="text-white font-bold truncate group-hover:text-signal-orange transition-colors mb-2">
