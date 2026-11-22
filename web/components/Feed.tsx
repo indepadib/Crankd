@@ -700,7 +700,7 @@ function FeedItem({
 }
 
 export function Feed() {
-    const [view, setView] = useState<'following' | 'discover' | 'vrooqtv'>('discover');
+    const [view, setView] = useState<'following' | 'discover' | 'vrooqtv'>('following');
     const [layoutType, setLayoutType] = useState<'social' | 'grid'>('social');
     const [activeTag, setActiveTag] = useState<string | null>(null);
     const { user } = useAuth();
@@ -727,7 +727,7 @@ export function Feed() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
-                            {view === 'following' ? 'Fil des passionnés' : 'Discover'}
+                            {view === 'following' ? 'Fil d’actualité' : view === 'discover' ? 'Explorer' : 'VROOQ TV'}
                         </h1>
                         {activeTag && (
                             <div className="flex items-center gap-1.5 px-3 py-1 bg-signal-orange/10 border border-signal-orange/20 text-signal-orange text-[10px] font-mono font-bold uppercase tracking-wider rounded-lg animate-in zoom-in-95 select-none">
@@ -745,7 +745,7 @@ export function Feed() {
                         </Link>
                     </div>
                     <p className="text-text-dim text-sm">
-                        {view === 'following' ? 'Command center for your garage.' : 'Trending stories and builds from the streets.'}
+                        {view === 'following' ? 'Les publications des membres, au même endroit.' : 'Découvre les clubs, voitures et sujets de la communauté.'}
                     </p>
                 </div>
                 
@@ -778,14 +778,14 @@ export function Feed() {
                             onClick={() => setView('following')}
                             className={`text-sm font-bold pb-2 transition-colors relative ${view === 'following' ? 'text-white' : 'text-text-dim hover:text-white'}`}
                         >
-                            Following
+                            Fil
                             {view === 'following' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
                         </button>
                         <button
                             onClick={() => setView('discover')}
                             className={`text-sm font-bold pb-2 transition-colors relative ${view === 'discover' ? 'text-white' : 'text-text-dim hover:text-white'}`}
                         >
-                            Discover
+                            Explorer
                             {view === 'discover' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-signal-orange" />}
                         </button>
                         <button
