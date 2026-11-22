@@ -30,6 +30,7 @@ export default function AddVehiclePage() {
   const [year, setYear] = useState('');
   const [vin, setVin] = useState('');
   const [lookupConsent, setLookupConsent] = useState(false);
+  const [lookupEnabled, setLookupEnabled] = useState(false);
   const [checking, setChecking] = useState(false);
   const [lookupMessage, setLookupMessage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -46,9 +47,18 @@ export default function AddVehiclePage() {
     });
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    let mounted = true;
+    void fetch('/api/vehicle-lookup', { cache: 'no-store' })
+      .then(r=>r.json()).then((result: {enabled?:boolean})=>{
+        if (mounted) setLookupEnabled(result.enabled === true);
+      }).catch(()=>{ /* Manual entry remains available. */ });
+    return () => { mounted = false; };
+  }, []);
   const suggestedClubs = useMemo(() => relevantClubs(make, model, clubs), [make,model,clubs]);
 
   async function lookupVin() {
+    if (!lookupEnabled) { setLookupMessage('La recherche VIN automatique est en cours de validation. Saisis ta voiture manuellement.'); return; }
     setLookupMessage('');
     setError('');
     if (!lookupConsent) { setLookupMessage('Coche d’abord ton accord pour utiliser le service externe.'); return; }
@@ -133,7 +143,7 @@ export default function AddVehiclePage() {
         <>
           <section className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
             <div className="flex items-center gap-2"><Search className="h-5 w-5 text-orange-400"/><h2 className="font-bold text-white">Tu as le VIN sur la carte grise ?</h2></div>
-            <p className="text-xs leading-6 text-zinc-400">Le VIN (17 caractères) permet parfois de retrouver des caractéristiques. L’outil utilise la base publique américaine NHTSA, dont les données peuvent être incomplètes pour les voitures marocaines. Aucun VIN n’est conservé dans ton profil.</p>
+            <p className="text-xs leading-6 text-zinc-400">Le VIN (17 caractères) peut aider à identifier un véhicule. La recherche automatique est désactivée tant que la couverture marocaine et le transfert vers un service externe ne sont pas validés. Tu peux déjà enregistrer ta voiture manuellement.</p>
             <label className="block text-xs font-semibold text-zinc-200">VIN (facultatif)
               <input className={field+' uppercase'} value={vin} onChange={e=>setVin(e.target.value.toUpperCase().replace(/\s/g,''))} maxLength={17} placeholder="Ex. VF1XXXXXXXXXXXXXX"/>
             </label>
@@ -141,8 +151,8 @@ export default function AddVehiclePage() {
               <input type="checkbox" checked={lookupConsent} onChange={e=>setLookupConsent(e.target.checked)} className="mt-1 accent-orange-500"/>
               J’autorise l’envoi ponctuel du VIN à la NHTSA (États-Unis) pour cette recherche. Je comprends qu’il ne s’agit ni d’un contrôle de propriété ni d’une garantie de compatibilité.
             </label>
-            <button type="button" onClick={lookupVin} disabled={checking || !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)} className="rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-bold text-orange-300 hover:bg-orange-500/10 disabled:opacity-40">
-              {checking?'Recherche en cours…':'Chercher avec ce VIN'}
+            <button type="button" onClick={lookupVin} disabled={!lookupEnabled || checking || !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)} className="rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-bold text-orange-300 hover:bg-orange-500/10 disabled:opacity-40">
+              {!lookupEnabled?'Identification VIN bientôt disponible':checking?'Recherche en cours…':'Chercher avec ce VIN'}
             </button>
             {lookupMessage && <p role="status" className="text-xs leading-6 text-amber-200">{lookupMessage}</p>}
           </section>
