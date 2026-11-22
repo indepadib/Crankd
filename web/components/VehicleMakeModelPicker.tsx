@@ -22,6 +22,7 @@ function SearchCombobox({label,value,name,required,disabled,options,placeholder,
   const listId=useId();
   const [open,setOpen]=useState(false);
   const [active,setActive]=useState(0);
+  const inputRef=useRef<HTMLInputElement>(null);
   const matches=useMemo(()=>{
     const q=normalized(value);
     const exact=options.find(s=>normalized(s)===q);
@@ -36,23 +37,24 @@ function SearchCombobox({label,value,name,required,disabled,options,placeholder,
     document.addEventListener('pointerdown',close);
     return()=>document.removeEventListener('pointerdown',close);
   },[]);
-  function choose(option:string){onChange(option);setOpen(false);setActive(0);}
+  function choose(option:string){onChange(option);setOpen(false);setActive(0);inputRef.current?.focus();}
   return(
     <div className="relative" ref={ref}>
       <label htmlFor={listId+'-input'} className="block text-sm font-semibold text-zinc-200">{label}{required?' *':''}</label>
       <div className="relative">
         <Search aria-hidden className="pointer-events-none absolute right-3 top-[50%] mt-0.5 h-4 w-4 text-orange-400"/>
         <input
-          id={listId+'-input'} name={name} className={inputClass} autoComplete="off"
-          role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId+'-options'}
+          ref={inputRef} id={listId+'-input'} name={name} className={inputClass} autoComplete="off"
+          role="combobox" aria-autocomplete="list" aria-expanded={open && !disabled} aria-controls={open && !disabled ? listId+'-options' : undefined}
+          aria-activedescendant={open && !disabled && matches.length ? listId+'-'+Math.min(active,matches.length-1) : undefined}
           value={value} placeholder={placeholder} disabled={disabled} required={required} maxLength={90}
           onFocus={()=>setOpen(true)}
           onChange={e=>{onChange(e.target.value);setActive(0);setOpen(true);}}
           onKeyDown={e=>{
             if(e.key==='Escape'){setOpen(false);return;}
-            if(e.key==='ArrowDown'){e.preventDefault();setOpen(true);setActive(v=>Math.min(v+1,matches.length-1));}
+            if(e.key==='ArrowDown'){e.preventDefault();setOpen(true);setActive(v=>matches.length ? Math.min(v+1,matches.length-1) : 0);}
             if(e.key==='ArrowUp'){e.preventDefault();setActive(v=>Math.max(0,v-1));}
-            if(e.key==='Enter' && open && matches.length){e.preventDefault();choose(matches[active]||matches[0]);}
+            if(e.key==='Enter' && open && matches.length){e.preventDefault();choose(matches[Math.min(active,matches.length-1)]||matches[0]);}
           }}
         />
       </div>
@@ -60,7 +62,7 @@ function SearchCombobox({label,value,name,required,disabled,options,placeholder,
         <div id={listId+'-options'} role="listbox" className="absolute z-40 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-white/15 bg-[#202124] p-1.5 text-sm shadow-2xl">
           {matches.length>0?matches.map((option,i)=>(
             <button key={option} id={listId+'-'+i} role="option" aria-selected={normalized(option)===normalized(value)}
-              type="button" onClick={()=>choose(option)}
+              type="button" tabIndex={-1} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(option)}
               className={'flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-zinc-100 hover:bg-orange-500/15 '+(active===i?'bg-orange-500/10':'')}>
               <span>{option}</span>{normalized(option)===normalized(value)&&<Check className="h-4 w-4 text-orange-400"/>}
             </button>
