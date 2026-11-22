@@ -183,7 +183,7 @@ export default function PartsMarketplacePage() {
               </div>
               <div className="space-y-3 p-5">
                 <div className="flex items-start justify-between gap-3"><h3 className="line-clamp-2 min-h-12 text-base font-bold text-white">{part.title}</h3><span className="whitespace-nowrap text-base font-black text-orange-400">{moneyMAD(part.price_mad)}</span></div>
-                <p className="text-xs text-zinc-400">Compatible : {part.compatible_make} {part.compatible_model}{part.compatible_year_from ? ' · ' + part.compatible_year_from : ''}{part.compatible_year_to ? '–' + part.compatible_year_to : ''}</p>
+                <p className="text-xs text-zinc-400">Véhicule indiqué par le vendeur : {part.compatible_make} {part.compatible_model}{part.compatible_year_from ? ' · ' + part.compatible_year_from : ''}{part.compatible_year_to ? '–' + part.compatible_year_to : ''}</p>
                 {part.oem_reference && <p className="truncate text-xs text-zinc-400">Réf. OEM : {part.oem_reference}</p>}
                 <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-zinc-400"><span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {part.city}</span><span className="flex items-center gap-1 font-bold text-orange-300">Voir la pièce <ArrowRight className="h-3 w-3" /></span></div>
               </div>
