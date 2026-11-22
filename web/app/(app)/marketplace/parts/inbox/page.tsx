@@ -2,10 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, ClipboardList, RefreshCw, Send, Settings2, Store } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ClipboardList, RefreshCw, Send, Settings2, } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthProvider';
-import { PART_CATEGORIES,moneyMAD } from '@/lib/parts';
+import { PART_CATEGORIES } from '@/lib/parts';
 
 type RFQ={id:string;make:string;model:string;year:number|null;category:string;part_name:string;
   fuel_type:string|null;engine_code:string|null;oem_reference:string|null;quantity:number;
