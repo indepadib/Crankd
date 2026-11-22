@@ -424,7 +424,7 @@ function FeedItem({
                 </div>
 
                 <div className="flex items-center gap-2 px-3 py-1 bg-white/2 border border-white/5 rounded-lg text-[10px] font-mono font-bold text-signal-orange/80">
-                    <Sparkles className="h-3 w-3" /> {matchScore}% Match
+                    <Sparkles className="h-3 w-3" /> {matchReason}
                 </div>
             </div>
 
