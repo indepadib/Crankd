@@ -417,7 +417,7 @@ function FeedItem({
             {getImage() && (
                 <div 
                     onClick={handleImageClick}
-                    className="relative w-full aspect-video md:aspect-[16/10] overflow-hidden bg-black/20 border-y border-white/5 cursor-pointer group/image"
+                    className={`relative w-full overflow-hidden bg-black/20 border-y border-white/5 group/image ${post.content_type === "video" ? "aspect-video" : ""}`}
                 >
                     {post.content_type === 'video' || getImage()!.includes('.mp4') || getImage()!.startsWith('data:video') ? (
                         <video

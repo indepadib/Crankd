@@ -302,6 +302,12 @@ function CreateFormContent() {
             ? (customVideoUrl.trim() || videoUrl)
             : (customImageUrl.trim() || imageUrl);
         const contentType = postMediaType === 'video' ? 'video' : 'media';
+        if (!finalImg && !body.trim() && !title.trim()) {
+            setError('Ajoute un texte, un titre ou une photo avant de publier.');
+            setLoading(false);
+            return;
+        }
+
         // Persist uploaded images in Storage instead of storing oversized data URLs in posts.
         let persistedImage = finalImg;
         if (postMediaType === 'photo' && finalImg.startsWith('data:image/')) {
@@ -486,7 +492,7 @@ function CreateFormContent() {
         setPace('Spirited');
         setRequiredGear([]);
         setCustomImageUrl('');
-        setImageUrl(PRESET_IMAGES[0]);
+        setImageUrl('');
         setPostMediaType('photo');
         setVideoUrl('');
         setCustomVideoUrl('');
