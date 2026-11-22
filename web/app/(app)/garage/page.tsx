@@ -179,7 +179,7 @@ export default function GaragePage() {
                     <div key={label} className="rounded-xl border border-white/10 bg-white/[0.025] p-4"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-sm font-bold text-white">{value}</p></div>
                   ))}
                 </div>
-                <p className="mt-4 flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Ces informations proviennent de ta saisie, pas d'une vérification officielle. Les pièces ne sont pas automatiquement certifiées compatibles ; vérifie toujours leur référence OEM.</p>
+                <p className="mt-4 flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Ces informations proviennent de ta saisie, pas d’une vérification officielle. Les pièces ne sont pas automatiquement certifiées compatibles ; vérifie toujours leur référence OEM.</p>
               </section>
               <section className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -228,7 +228,7 @@ export default function GaragePage() {
                       <div className="min-w-[180px] flex-1"><h3 className="text-sm font-bold text-white">{log.title}</h3><p className="mt-1 flex items-center gap-1 text-xs text-zinc-400"><CalendarDays className="h-3.5 w-3.5"/>{new Date(log.occurred_at).toLocaleDateString('fr-MA')} · {log.service_type}</p>{log.description&&<p className="mt-2 text-xs leading-6 text-zinc-300">{log.description}</p>}</div>
                       <div className="text-right text-xs text-zinc-400">{log.cost_amount!==null&&<p className="font-bold text-white">{money(Number(log.cost_amount),log.cost_currency||'USD')}</p>}{log.odometer_reading!==null&&<p className="mt-2 flex items-center justify-end gap-1"><Gauge className="h-3.5 w-3.5"/>{Number(log.odometer_reading).toLocaleString('fr-MA')} {log.odometer_unit||'unité inconnue'}</p>}{log.next_due_km!==null&&<p className="mt-1 text-orange-300">Échéance indiquée : {Number(log.next_due_km).toLocaleString('fr-MA')} km</p>}</div>
                     </article>
-                  ))}<p className="text-[11px] leading-5 text-zinc-500">Les échéances proviennent de ta saisie, pas d'un calcul validé par le constructeur. Les anciennes données sans unité sont signalées comme telles.</p></div>
+                  ))}<p className="text-[11px] leading-5 text-zinc-500">Les échéances proviennent de ta saisie, pas d’un calcul validé par le constructeur. Les anciennes données sans unité sont signalées comme telles.</p></div>
                 )}
               </section>
             </>
