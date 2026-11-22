@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthProvider';
 import { ConvoysMap } from '@/components/ConvoysMap';
 import { EventCard } from '@/components/EventCard';
 import { Plus } from 'lucide-react';
@@ -9,7 +9,12 @@ import { supabase } from '@/lib/supabase';
 import { DetailModal } from '@/components/ui/DetailModal';
 
 export default function ConvoysPage() {
-    const router = useRouter();
+    const { user } = useAuth();
+    const [creating, setCreating] = useState(false);
+    const [title, setTitle] = useState('');
+    const [meetingPlace, setMeetingPlace] = useState('');
+    const [startsAt, setStartsAt] = useState('');
+    const [feedback, setFeedback] = useState('');
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -19,101 +24,43 @@ export default function ConvoysPage() {
 
     const fetchEvents = async () => {
         setLoading(true);
-        let dbEvents: any[] = [];
-        try {
-            const { data, error } = await supabase
-                .from('posts')
-                .select('*, profiles:author_id(username)')
-                .eq('content_type', 'convoy')
-                .order('created_at', { ascending: false });
-
-            if (!error && data) {
-                dbEvents = data;
-            }
-        } catch (err) {
-            console.warn('[Convoys] Fetch failed:', err);
-        }
-
-        // Retrieve local posts
-        let localList: any[] = [];
-        try {
-            const savedLocal = localStorage.getItem('local-posts');
-            const parsedLocal = savedLocal ? JSON.parse(savedLocal) : [];
-            localList = Array.isArray(parsedLocal) ? parsedLocal : [];
-        } catch { /* Storage can be unavailable or malformed. */ }
-        const localConvoys = localList.filter((p: any) => p.content_type === 'convoy');
-
-        const combined = [
-            ...localConvoys,
-            ...dbEvents
-        ];
-
-        const parsed = combined.map(post => {
-            // Parse body to retrieve meeting location and description
-            let location = 'Lieu à confirmer';
-            if (post.body && post.body.startsWith('Location: ')) {
-                const parts = post.body.split('. Description: ');
-                if (parts.length >= 2) {
-                    location = parts[0].replace('Location: ', '');
-                } else {
-                    const parts2 = post.body.split('Location: ');
-                    if (parts2[1]) {
-                        location = parts2[1];
-                    }
-                }
-            } else if (post.body && post.body.startsWith('{')) {
-                try {
-                    const parsedJson = JSON.parse(post.body);
-                    location = parsedJson.location || 'Lieu à confirmer';
-                } catch (e) {
-                    location = 'Lieu à confirmer';
-                }
-            }
-
-            // Determine event type based on tags or title
-            let type: 'meet' | 'drive' | 'track' = 'drive';
-            const lowerTitle = (post.title || '').toLowerCase();
-            const tags = post.tags || [];
-            const hasTrack = tags.some((t: string) => t.toLowerCase().includes('track')) || lowerTitle.includes('track');
-            const hasMeet = tags.some((t: string) => t.toLowerCase().includes('meet') || t.toLowerCase().includes('coffee')) || lowerTitle.includes('meet') || lowerTitle.includes('coffee');
-            
-            if (hasTrack) {
-                type = 'track';
-            } else if (hasMeet) {
-                type = 'meet';
-            }
-
-            // A post's publication timestamp is not the event schedule.
-            // Do not present it as the convoy's date or departure time.
-            const dateStr = 'Date à confirmer';
-            const timeStr = 'Heure à confirmer';
-
+        const { data, error } = await supabase.from('vrooq_events')
+            .select('id,title,description,meeting_place,starts_at,capacity,status,organizer_id')
+            .eq('status', 'published').gte('starts_at', new Date().toISOString())
+            .order('starts_at', { ascending: true }).limit(100);
+        if (error) setFeedback('Les événements sont temporairement indisponibles.');
+        setEvents((data || []).map(event => {
+            const start = new Date(event.starts_at);
             return {
-                id: post.id,
-                title: post.title || 'Sortie sans titre',
-                date: dateStr,
-                time: timeStr,
-                location: location,
-                image: post.image_url || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
-                attendees: 0, // Likes are not RSVPs. Never invent participants.
-                type: type,
-                body: post.body,
-                author: post.profiles || post.author
+                id: event.id,
+                title: event.title,
+                date: start.toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' }),
+                time: start.toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' }),
+                location: event.meeting_place,
+                image: '',
+                attendees: 0,
+                type: 'drive' as const,
+                body: event.description,
+                organizer_id: event.organizer_id
             };
-        });
-
-        // Filter out duplicate IDs
-        const uniqueEvents = parsed.reduce((acc: any[], current) => {
-            const x = acc.find(item => item.id === current.id);
-            if (!x) {
-                return acc.concat([current]);
-            } else {
-                return acc;
-            }
-        }, []);
-
-        setEvents(uniqueEvents);
+        }));
         setLoading(false);
+    };
+
+    const createEvent = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!user) { setFeedback('Connectez-vous pour organiser un convoi.'); return; }
+        const start = new Date(startsAt);
+        if (!title.trim() || !meetingPlace.trim() || !startsAt || Number.isNaN(start.getTime()) || start <= new Date()) {
+            setFeedback('Renseignez un titre, un lieu et une date future.'); return;
+        }
+        const { error } = await supabase.from('vrooq_events').insert({
+            organizer_id: user.id, title: title.trim(), meeting_place: meetingPlace.trim(),
+            starts_at: start.toISOString()
+        });
+        if (error) { setFeedback('Création impossible : ' + error.message); return; }
+        setCreating(false); setTitle(''); setMeetingPlace(''); setStartsAt('');
+        setFeedback('Sortie publiée.'); await fetchEvents();
     };
 
     useEffect(() => {
@@ -134,7 +81,7 @@ export default function ConvoysPage() {
                     </p>
                 </div>
                 <button 
-                    onClick={() => router.push('/create')}
+                    onClick={() => setCreating(value => !value)}
                     className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
                 >
                     <Plus className="h-4 w-4" />
@@ -142,6 +89,13 @@ export default function ConvoysPage() {
                 </button>
             </div>
 
+            {feedback && <p role="status" className="mb-4 rounded-xl border border-white/15 p-3 text-sm text-white">{feedback}</p>}
+            {creating && <form onSubmit={createEvent} className="mb-5 grid gap-3 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
+                <label className="text-xs text-white">Titre<input required minLength={5} maxLength={160} value={title} onChange={e=>setTitle(e.target.value)} className="mt-1 w-full rounded-lg bg-zinc-800 p-3 text-white" /></label>
+                <label className="text-xs text-white">Lieu de rendez-vous<input required minLength={3} value={meetingPlace} onChange={e=>setMeetingPlace(e.target.value)} className="mt-1 w-full rounded-lg bg-zinc-800 p-3 text-white" /></label>
+                <label className="text-xs text-white">Départ (heure locale)<input required type="datetime-local" value={startsAt} onChange={e=>setStartsAt(e.target.value)} className="mt-1 w-full rounded-lg bg-zinc-800 p-3 text-white" /></label>
+                <button type="submit" className="self-end rounded-xl bg-orange-500 p-3 font-bold text-black">Publier la sortie</button>
+            </form>}
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
 
                 {/* LEFT: Event List (Scrollable) */}
