@@ -16,7 +16,8 @@ as $$
   with user_signals as (
     select pi.post_id, pi.interaction_type, pi.duration_seconds
     from public.post_interactions pi
-    where pi.user_id = p_user_id
+    where pi.user_id = (select auth.uid())
+      and p_user_id = (select auth.uid())
       and pi.created_at >= now() - interval '90 days'
   ),
   interest_tags as (
