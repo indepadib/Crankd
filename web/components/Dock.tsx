@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass, Car, ShoppingBag, User } from 'lucide-react';
+import { Compass, Car, ShoppingBag, User, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QuickCreateMenu } from '@/components/QuickCreateMenu';
@@ -22,7 +22,7 @@ export function Dock() {
                     <QuickCreateMenu />
                 </div>
 
-                <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />
+                <DockItem href="/voitures-neuves" icon={BadgeCheck} label="Neuf" isActive={pathname.startsWith("/voitures-neuves")} />
                 <DockItem href="/profile" icon={User} label="Profil" isActive={pathname === '/profile'} />
             </div>
         </div>
