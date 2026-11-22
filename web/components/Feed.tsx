@@ -236,8 +236,8 @@ function FeedItem({
         }
     }
 
-    const matchScore = post.tags?.includes('BMW') ? 99 : Math.floor(Math.random() * 30 + 70);
-    const matchReason = post.tags?.[0] ? `Matches ${post.tags[0]}` : 'Trending';
+    // No fabricated or random matching percentage: relevance scoring requires real signals.
+    const matchReason = post.tags?.[0] ? `#${post.tags[0]}` : 'Découvrir';
 
     // ────────────────────────────────────────────────────────
     // 1. CLASSIC GRID CARD VIEW
@@ -292,8 +292,7 @@ function FeedItem({
                 <div className="absolute top-4 right-4 z-10">
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] font-medium text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <Sparkles className="h-3 w-3 text-signal-orange" />
-                        <span className="text-white font-bold">{matchScore}%</span>
-                        <span className="text-white/60">{matchReason}</span>
+                        <span className="text-white/80">{matchReason}</span>
                     </div>
                 </div>
 
