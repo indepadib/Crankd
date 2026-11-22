@@ -75,6 +75,7 @@ export default function MySpacePage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <Link href="/garage" className="flex items-center gap-2 rounded-xl border border-white/10 p-4 text-xs font-bold text-zinc-300 hover:text-white"><CarFront className="h-4 w-4"/> Garage</Link>
         <Link href="/marketplace/parts" className="flex items-center gap-2 rounded-xl border border-white/10 p-4 text-xs font-bold text-zinc-300 hover:text-white"><ShoppingBag className="h-4 w-4"/> Pièces</Link>
+        <Link href="/feed" className="flex items-center gap-2 rounded-xl border border-white/10 p-4 text-xs font-bold text-zinc-300 hover:text-white"><Users className="h-4 w-4"/> Actualités</Link>
         <Link href="/profile" className="flex items-center gap-2 rounded-xl border border-white/10 p-4 text-xs font-bold text-zinc-300 hover:text-white"><UserRound className="h-4 w-4"/> Mon profil</Link>
       </div>
       <p className="flex items-start gap-2 text-xs leading-6 text-zinc-500"><Package className="mt-1 h-4 w-4 shrink-0"/> L’activation de la boutique ne signifie pas identité vérifiée. Les paiements et expéditions restent en préparation tant que les prestataires ne sont pas intégrés.</p>
