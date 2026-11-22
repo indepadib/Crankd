@@ -61,6 +61,8 @@ export default function SellerRFQInbox(){
     const message=String(form.get('message')||'').trim();
     const condition=String(form.get('part_condition')||'used');
     const reference=String(form.get('part_reference')||'').trim();
+    const compatibilityAcknowledged=form.get('compatibility_acknowledged')==='on';
+    if(!compatibilityAcknowledged){setFormError('Confirme avoir vérifié les caractéristiques du véhicule et indique les réserves éventuelles dans ton message.');return;}
     if(!Number.isInteger(price)||price<10||price>10000000||!Number.isInteger(delay)||delay<0||delay>45||
        (shipping!==null&&(!Number.isInteger(shipping)||shipping<0||shipping>100000))||message.length<10||message.length>1500||
        !['new','used','refurbished'].includes(condition)){
@@ -135,6 +137,7 @@ export default function SellerRFQInbox(){
                   <label className="text-sm text-zinc-300 sm:col-span-2">Référence OEM / fabricant<input className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" name="part_reference" maxLength={100} placeholder="Référence sur la pièce"/></label>
                 </div>
                 <label className="block text-sm text-zinc-300">Ce que tu proposes *<textarea required name="message" minLength={10} maxLength={1500} rows={3} className="mt-1 w-full rounded-lg border border-white/15 bg-[#242527] p-3 text-white" placeholder="État, provenance, compatibilité à vérifier, garantie éventuelle…"/></label>
+                <label className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-zinc-200"><input name="compatibility_acknowledged" type="checkbox" required className="mt-1 h-4 w-4 accent-orange-500"/> Je confirme avoir examiné les informations véhicule et la référence disponible. Je précise dans mon offre toute incertitude ou vérification complémentaire nécessaire. Cette confirmation ne constitue pas une certification VROOQ.</label>
                 <p className="text-[11px] leading-5 text-zinc-500">Devis indicatif valable 7 jours. Pas d’encaissement, pas de transporteur connecté, pas de commande déclenchée. Une offre envoyée n’est pas modifiable dans cette version.</p>
                 {formError&&<p role="alert" className="rounded-xl bg-red-500/10 p-3 text-xs text-red-200">{formError}</p>}
                 <button disabled={saving===request.id} type="submit" className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-black text-black disabled:opacity-40">{saving===request.id?'Envoi…':'Envoyer ce devis au client'}</button>
