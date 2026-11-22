@@ -30,6 +30,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { VrooqTV } from './VrooqTV';
 import { usePreferences } from '@/hooks/usePreferences';
+import { PollCard } from './PollCard';
 
 function FeedItem({ 
     post, 
@@ -286,6 +287,7 @@ function FeedItem({
                                 </h3>
                             )}
                             {bodyText && <p className="text-white/70 text-sm line-clamp-2">{bodyText}</p>}
+                            {post.content_type === 'poll' && <PollCard postId={post.id} />}
                         </div>
 
                         {post.content_type === 'maintenance_log' && post.log && (
