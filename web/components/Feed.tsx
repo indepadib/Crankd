@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { VrooqTV } from './VrooqTV';
 import { usePreferences } from '@/hooks/usePreferences';
 import { PollCard } from './PollCard';
+import { PostGallery } from './PostGallery';
 
 function FeedItem({ 
     post, 
@@ -425,11 +426,7 @@ function FeedItem({
                             className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
                         />
                     ) : (
-                        <img
-                            src={getImage()!}
-                            alt={post.title || 'Feed Media'}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-102"
-                        />
+                        <PostGallery postId={post.id} cover={getImage()!} />
                     )}
 
                     {/* Shimmer Overlay */}
@@ -806,7 +803,7 @@ export function Feed() {
                     )}
                 </div>
             )}
-            <div className="mb-6 flex flex-wrap gap-3"><Link href="/create?type=post" className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">+ Publication</Link><Link href="/polls/new" className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-5 py-3 text-sm font-bold text-orange-300">+ Sondage</Link><Link href="/reviews/new" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">+ Review auto</Link></div>
+            <div className="mb-6 flex flex-wrap gap-3"><Link href="/create?type=post" className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">+ Publication</Link><Link href="/polls/new" className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-5 py-3 text-sm font-bold text-orange-300">+ Sondage</Link><Link href="/reviews/new" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">+ Review auto</Link><Link href="/photos/new" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">+ Photos</Link></div>
             {/* Content Switcher */}
             {view === 'following' ? (
                 <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
