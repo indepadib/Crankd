@@ -1,0 +1,39 @@
+name: VROOQ - Vehicle Catalogue, Maintenance and RFQ
+on:
+  push:
+    branches: [feat/vrooq-auto-catalog-rfq-maintenance-20261122]
+  pull_request:
+    paths:
+      - 'web/components/VehicleMakeModelPicker.tsx'
+      - 'web/components/PartTypePicker.tsx'
+      - 'web/lib/parts-taxonomy.ts'
+      - 'web/lib/maintenance.ts'
+      - 'web/data/vehicle-catalog-global.json'
+      - 'web/app/(app)/garage/**'
+      - 'web/app/(app)/marketplace/parts/**'
+      - 'web/app/(app)/start/page.tsx'
+      - 'web/components/ActivationGuide.tsx'
+      - '.github/workflows/vehicle-rfq.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Focused ESLint
+        run: npx eslint components/VehicleMakeModelPicker.tsx components/PartTypePicker.tsx lib/maintenance.ts lib/parts-taxonomy.ts 'app/(app)/garage/page.tsx' 'app/(app)/garage/add/page.tsx' 'app/(app)/marketplace/parts/new/page.tsx' 'app/(app)/marketplace/parts/request/page.tsx' 'app/(app)/marketplace/parts/requests/page.tsx' 'app/(app)/marketplace/parts/inbox/page.tsx' 'app/(app)/marketplace/parts/specialties/page.tsx' 'app/(app)/marketplace/parts/page.tsx' 'app/(app)/marketplace/parts/sell/page.tsx' 'app/(app)/start/page.tsx' components/ActivationGuide.tsx
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production Next build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
