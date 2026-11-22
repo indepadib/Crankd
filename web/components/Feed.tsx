@@ -75,39 +75,18 @@ function FeedItem({
         }
 
         const loadPostComments = async () => {
-            const localCommentsKey = `comments-${post.id}`;
-            const savedComments = localStorage.getItem(localCommentsKey);
-            const parsedLocal = savedComments ? JSON.parse(savedComments) : [];
-
-            let dbComments: any[] = [];
-            try {
-                const { data: dbData, error } = await supabase
-                    .from('post_comments')
-                    .select('*')
-                    .eq('post_id', post.id)
-                    .order('created_at', { ascending: false });
-
-                if (!error && dbData) {
-                    dbComments = dbData.map(c => ({
-                        id: c.id,
-                        author: c.author_username.startsWith('@') ? c.author_username : `@${c.author_username}`,
-                        text: c.comment_text,
-                        created_at: c.created_at
-                    }));
-                }
-            } catch (err) {}
-
-            const combined = [...parsedLocal, ...dbComments];
-            const uniqueComments = combined.reduce((acc: any[], current) => {
-                const x = acc.find(item => item.id === current.id);
-                if (!x) {
-                    return acc.concat([current]);
-                } else {
-                    return acc;
-                }
-            }, []);
-
-            setComments(uniqueComments);
+            const { data: dbData, error } = await supabase
+                .from('post_comments')
+                .select('id,author_username,comment_text,created_at')
+                .eq('post_id', post.id)
+                .order('created_at', { ascending: false });
+            if (error) return;
+            setComments((dbData || []).map(comment => ({
+                id: comment.id,
+                author: comment.author_username.startsWith('@') ? comment.author_username : '@' + comment.author_username,
+                text: comment.comment_text,
+                created_at: comment.created_at
+            })));
         };
 
         loadPostComments();
@@ -194,26 +173,23 @@ function FeedItem({
         if (!commentText.trim() || !user) return;
 
         const username = user.email ? `@${user.email.split('@')[0]}` : '@Enthusiast';
-        const newComment = {
-            id: `c-${Date.now()}`,
-            author: username,
-            text: commentText,
-            created_at: new Date().toISOString()
-        };
-
-        const updatedComments = [newComment, ...comments];
-        setComments(updatedComments);
-        localStorage.setItem(`comments-${post.id}`, JSON.stringify(updatedComments));
-
         try {
-            await supabase.from('post_comments').insert({
+            const { data, error } = await supabase.from('post_comments').insert({
                 post_id: post.id,
                 author_username: username.replace('@', ''),
-                comment_text: commentText
-            });
-        } catch (err) {}
-
-        setCommentText('');
+                comment_text: commentText.trim()
+            }).select('id,author_username,comment_text,created_at').single();
+            if (error || !data) throw error || new Error('Commentaire non confirmé');
+            setComments(prev => [{
+                id: data.id,
+                author: data.author_username.startsWith('@') ? data.author_username : '@' + data.author_username,
+                text: data.comment_text,
+                created_at: data.created_at
+            }, ...prev]);
+            setCommentText('');
+        } catch (err) {
+            alert('Le commentaire n’a pas été enregistré. Réessayez.');
+        }
     };
 
     const getImage = () => {
