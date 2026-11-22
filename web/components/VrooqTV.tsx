@@ -227,9 +227,15 @@ export function VrooqTV() {
         e.preventDefault();
         if (!commentInput.trim() || !activeVideo || !user?.email) return;
         const text = commentInput.trim();
+        const { data: profile, error: profileError } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+        if (profileError || !profile?.username) {
+            alert('Impossible de vérifier ton profil. Réessaie.');
+            return;
+        }
         const { data, error } = await supabase.from('post_comments').insert({
             post_id: activeVideo.id,
-            author_username: user.email.split('@')[0],
+            author_id: user.id,
+            author_username: profile.username,
             comment_text: text
         }).select('id,author_username,comment_text,created_at').single();
         if (error || !data) {
