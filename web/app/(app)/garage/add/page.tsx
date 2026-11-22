@@ -2,179 +2,181 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, CarFront, Check, Search, ShieldAlert, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, BookOpenCheck, CarFront, Check, ChevronDown, ShieldAlert, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 
 type Club = { id: string; name: string; category: string | null };
-type Decoded = { make: string; model: string; year: number; source: string; warning: string };
+type Method = 'manual' | 'card_transcription';
+type Fuel = '' | 'diesel' | 'petrol' | 'hybrid' | 'phev' | 'electric' | 'lpg' | 'other';
 const field = 'mt-1.5 w-full rounded-xl border border-white/15 bg-[#242528] px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:border-orange-500 focus:outline-none';
-
+const fuelLabels: Record<string,string> = {diesel:'Diesel',petrol:'Essence',hybrid:'Hybride',phev:'Hybride rechargeable',electric:'Électrique',lpg:'GPL',other:'Autre'};
+const brandNames: Record<string,string[]> = {
+  genesis: ['Genesis Tribe'],
+  toyota:['JDM Legends'], honda:['JDM Legends'], nissan:['JDM Legends'], mazda:['JDM Legends'], subaru:['JDM Legends'], mitsubishi:['JDM Legends'], lexus:['JDM Legends'],
+  bmw:['Euro Outlaws'], audi:['Euro Outlaws'], volkswagen:['Euro Outlaws'], mercedes:['Euro Outlaws'], 'mercedes-benz':['Euro Outlaws'], porsche:['Euro Outlaws'],
+  seat:['Euro Outlaws'], skoda:['Euro Outlaws'], peugeot:['Euro Outlaws'], renault:['Euro Outlaws'], citroen:['Euro Outlaws'], fiat:['Euro Outlaws'],
+};
 function relevantClubs(make: string, model: string, clubs: Club[]): Club[] {
   const brand = make.trim().toLocaleLowerCase('fr');
-  const modelName = model.trim().toLocaleLowerCase('fr');
-  const names: string[] = [];
-  if (brand === 'genesis' || modelName.includes('genesis')) names.push('Genesis Tribe');
-  if (['toyota','honda','nissan','mazda','subaru','mitsubishi','lexus','suzuki','infiniti','acura'].includes(brand)) names.push('JDM Legends');
-  if (['bmw','audi','volkswagen','mercedes','mercedes-benz','porsche','seat','skoda','peugeot','renault','citroen','citroën','fiat','opel'].includes(brand)) names.push('Euro Outlaws');
-  if (/land cruiser|hilux|patrol|wrangler|defender|jimny/.test(modelName)) names.push('Overland Syndicate');
-  return clubs.filter((club) => names.includes(club.name));
+  const names = [...(brandNames[brand] || [])];
+  if (/land cruiser|hilux|patrol|wrangler|defender|jimny/i.test(model)) names.push('Overland Syndicate');
+  return clubs.filter((c) => names.includes(c.name));
 }
 
 export default function AddVehiclePage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
-  const [vin, setVin] = useState('');
-  const [lookupConsent, setLookupConsent] = useState(false);
-  const [lookupEnabled, setLookupEnabled] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [lookupMessage, setLookupMessage] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [registeredVehicle, setRegisteredVehicle] = useState<string | null>(null);
-  const [clubMessage, setClubMessage] = useState('');
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [joinSuggested, setJoinSuggested] = useState(false);
+  const [method,setMethod] = useState<Method>('card_transcription');
+  const [make,setMake] = useState('');
+  const [model,setModel] = useState('');
+  const [year,setYear] = useState('');
+  const [fuel,setFuel] = useState<Fuel>('');
+  const [engine,setEngine] = useState('');
+  const [engineCode,setEngineCode] = useState('');
+  const [trim,setTrim] = useState('');
+  const [fiscalPower,setFiscalPower] = useState('');
+  const [firstRegistration,setFirstRegistration] = useState('');
+  const [clubs,setClubs] = useState<Club[]>([]);
+  const [joinClubs,setJoinClubs] = useState(false);
+  const [saving,setSaving] = useState(false);
+  const [registered,setRegistered] = useState(false);
+  const [savedId,setSavedId] = useState('');
+  const [notice,setNotice] = useState('');
+  const [error,setError] = useState('');
 
-  useEffect(() => {
-    let active = true;
-    void supabase.from('communities').select('id,name,category').then(({data}) => {
-      if (active) setClubs((data || []) as Club[]);
-    });
-    return () => { active = false; };
-  }, []);
   useEffect(() => {
     let mounted = true;
-    void fetch('/api/vehicle-lookup', { cache: 'no-store' })
-      .then(r=>r.json()).then((result: {enabled?:boolean})=>{
-        if (mounted) setLookupEnabled(result.enabled === true);
-      }).catch(()=>{ /* Manual entry remains available. */ });
+    void supabase.from('communities').select('id,name,category').then(({data}) => {
+      if (mounted) setClubs((data || []) as Club[]);
+    });
     return () => { mounted = false; };
   }, []);
-  const suggestedClubs = useMemo(() => relevantClubs(make, model, clubs), [make,model,clubs]);
+  const suggested = useMemo(() => relevantClubs(make,model,clubs), [make,model,clubs]);
 
-  async function lookupVin() {
-    if (!lookupEnabled) { setLookupMessage('La recherche VIN automatique est en cours de validation. Saisis ta voiture manuellement.'); return; }
-    setLookupMessage('');
-    setError('');
-    if (!lookupConsent) { setLookupMessage('Coche d’abord ton accord pour utiliser le service externe.'); return; }
-    setChecking(true);
-    try {
-      const { data: session, error: authError } = await supabase.auth.getSession();
-      if (authError || !session.session?.access_token) throw new Error('Connecte-toi pour rechercher un VIN.');
-      const response = await fetch('/api/vehicle-lookup', {
-        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.session.access_token },
-        body: JSON.stringify({ vin: vin.trim(), consent: true }),
-      });
-      const result = (await response.json()) as Decoded & { error?: string };
-      if (!response.ok) throw new Error(result.error || 'Véhicule non identifié.');
-      setMake(result.make);
-      setModel(result.model);
-      setYear(String(result.year));
-      setLookupMessage('Suggestion récupérée via NHTSA : ' + result.make + ' ' + result.model + ' (' + result.year + '). Vérifie la carte grise avant de confirmer.');
-    } catch (cause) {
-      setLookupMessage(cause instanceof Error ? cause.message : 'Recherche indisponible. Ajoute ta voiture manuellement.');
-    } finally { setChecking(false); }
-  }
-
-  async function save(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!user || saving) return;
     setError('');
-    const normalizedMake = make.trim();
-    const normalizedModel = model.trim();
-    const numericYear = Number(year);
-    if (normalizedMake.length < 2 || normalizedModel.length < 1 ||
-       !Number.isInteger(numericYear) || numericYear < 1950 || numericYear > new Date().getFullYear() + 2) {
-      setError('Vérifie la marque, le modèle et l’année de ta voiture.'); return;
+    const modelYear = Number(year);
+    if (make.trim().length < 2 || !model.trim() || !Number.isInteger(modelYear) ||
+        modelYear < 1950 || modelYear > new Date().getFullYear()+2) {
+      setError('Vérifie la marque, le modèle et l’année.'); return;
+    }
+    if (fiscalPower && (!Number.isInteger(Number(fiscalPower)) || Number(fiscalPower) < 1 || Number(fiscalPower) > 80)) {
+      setError('La puissance fiscale doit être un nombre valide.'); return;
     }
     setSaving(true);
     try {
-      const {data: identity,error:identityError} = await supabase.auth.getUser();
-      if (identityError || identity.user?.id !== user.id) throw new Error('Reconnecte-toi avant de continuer.');
-      const { data, error: insertError } = await supabase.from('vehicles').insert({
-        owner_id: user.id, make: normalizedMake, model: normalizedModel, year: numericYear,
+      const {data:auth,error:authError} = await supabase.auth.getUser();
+      if (authError || auth.user?.id !== user.id) throw new Error('Connecte-toi pour enregistrer ta voiture.');
+      const {data:vehicle,error:vehicleError} = await supabase.from('vehicles').insert({
+        owner_id:user.id, make:make.trim(), model:model.trim(), year:modelYear,
       }).select('id').single();
-      if (insertError || !data) throw new Error('La voiture n’a pas pu être enregistrée. Réessaie après avoir vérifié ta connexion.');
-      const vehicleId = String(data.id);
-      setRegisteredVehicle(vehicleId);
-      try { sessionStorage.setItem('vrooq-find-parts-vehicle', vehicleId); } catch { /* private browsing */ }
+      if (vehicleError || !vehicle) throw new Error('Impossible d’enregistrer la voiture. Réessaie.');
 
-      if (joinSuggested && suggestedClubs.length > 0) {
-        const rows = suggestedClubs.map(club => ({ community_id: club.id, user_id: user.id }));
-        const { error: joinError } = await supabase.from('community_members')
-          .upsert(rows, { onConflict: 'community_id,user_id', ignoreDuplicates: true });
-        setClubMessage(joinError
-          ? 'Voiture enregistrée, mais adhésion aux clubs non finalisée. Tu peux les rejoindre depuis Clubs.'
-          : 'Tu as rejoint ' + suggestedClubs.map(c => c.name).join(', ') + '.');
+      const id = String(vehicle.id);
+      setSavedId(id);
+      setRegistered(true);
+      try { sessionStorage.setItem('vrooq-find-parts-vehicle',id); } catch { /* Private mode */ }
+
+      const hasDetails = Boolean(fuel || engine.trim() || engineCode.trim() || trim.trim() || fiscalPower || firstRegistration);
+      if (hasDetails) {
+        const {error:specError} = await supabase.from('vehicle_specs').insert({
+          vehicle_id:id, owner_id:user.id,
+          fuel_type:fuel || null, engine_description:engine.trim() || null,
+          engine_code:engineCode.trim() || null, trim_name:trim.trim() || null,
+          fiscal_power:fiscalPower ? Number(fiscalPower) : null,
+          first_registration_date:firstRegistration || null,
+          source_method:method,
+        });
+        if (specError) setNotice('La voiture est enregistrée, mais certaines caractéristiques techniques n’ont pas pu être sauvegardées.');
       }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Enregistrement impossible. Aucun véhicule ajouté.');
+
+      if (joinClubs && suggested.length) {
+        const {error:membershipError} = await supabase.from('community_members')
+          .upsert(suggested.map(c=>({community_id:c.id,user_id:user.id})),{onConflict:'community_id,user_id',ignoreDuplicates:true});
+        if (membershipError) setNotice('Voiture enregistrée ; l’adhésion au club est à confirmer dans la rubrique Clubs.');
+      }
+    } catch(cause) {
+      setError(cause instanceof Error ? cause.message : 'L’enregistrement a échoué.');
     } finally { setSaving(false); }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-20">
-      <Link href="/garage" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white"><ArrowLeft className="h-4 w-4" /> Mon garage</Link>
-      <header className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">Mon garage · Étape 1</p>
-        <h1 className="text-3xl font-black text-white sm:text-4xl">Ajoute ta voiture en quelques clics.</h1>
-        <p className="text-sm leading-6 text-zinc-400">Elle servira à personnaliser tes recherches de pièces et à te proposer des clubs automobiles.</p>
-      </header>
+      <Link href="/garage" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white"><ArrowLeft className="h-4 w-4"/> Mon garage</Link>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">Mon garage · Maroc</p>
+        <h1 className="mt-2 text-3xl font-black text-white">Ajoute ta voiture.</h1>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">Avec les données techniques de ta carte grise marocaine, ou simplement en indiquant le modèle. Aucune photo ni plaque d’immatriculation n’est demandée.</p>
+      </div>
       {!authLoading && !user ? (
-        <div className="rounded-2xl border border-white/10 bg-[#1b1c1e] p-6 text-center text-sm text-zinc-300">Connecte-toi avant d’ajouter ta voiture. <Link href="/login" className="font-bold text-orange-400">Se connecter</Link></div>
-      ) : registeredVehicle ? (
-        <div role="status" className="space-y-5 rounded-3xl border border-orange-500/25 bg-orange-500/[0.06] p-6">
-          <div className="flex items-center gap-2 text-orange-400"><Check className="h-6 w-6"/><span className="font-bold">Voiture enregistrée !</span></div>
-          <h2 className="text-xl font-bold text-white">{make} {model} · {year}</h2>
-          {clubMessage && <p className="text-sm leading-6 text-zinc-300">{clubMessage}</p>}
-          <p className="text-sm leading-6 text-zinc-300">Les résultats de pièces utilisent les informations déclarées par les vendeurs. Confirme toujours les références OEM avant un achat.</p>
+        <div className="rounded-2xl border border-white/10 p-6 text-zinc-300">Connecte-toi pour ajouter ta voiture. <Link href="/login" className="font-bold text-orange-400">Se connecter</Link></div>
+      ) : registered ? (
+        <section className="space-y-4 rounded-2xl border border-orange-500/25 bg-orange-500/10 p-6" role="status">
+          <div className="flex items-center gap-2 text-orange-400"><Check className="h-5 w-5"/><span className="font-bold">Voiture ajoutée à ton garage</span></div>
+          <h2 className="text-xl font-black text-white">{make} {model} · {year}</h2>
+          {fuel && <p className="text-sm text-zinc-300">Carburant déclaré : {fuelLabels[fuel]}</p>}
+          {notice && <p className="text-sm text-amber-200">{notice}</p>}
+          <p className="text-sm leading-6 text-zinc-300">Les pièces affichées utilisent les caractéristiques saisies par leurs vendeurs. La compatibilité exacte devra être vérifiée avec la référence OEM.</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/marketplace/parts" className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">Chercher des pièces <ArrowRight className="h-4 w-4"/></Link>
-            <Link href="/communities" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">Mes clubs</Link>
-            <button type="button" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white" onClick={()=>router.push('/garage')}>Mon garage</button>
+            <Link href="/marketplace/parts" className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">Chercher des pièces <ArrowRight className="ml-1 inline h-4 w-4"/></Link>
+            <Link href="/garage" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">Voir mon garage</Link>
+            {savedId && <Link href="/communities" className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white">Voir les clubs</Link>}
           </div>
-        </div>
+        </section>
       ) : (
         <>
-          <section className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
-            <div className="flex items-center gap-2"><Search className="h-5 w-5 text-orange-400"/><h2 className="font-bold text-white">Tu as le VIN sur la carte grise ?</h2></div>
-            <p className="text-xs leading-6 text-zinc-400">Le VIN (17 caractères) peut aider à identifier un véhicule. La recherche automatique est désactivée tant que la couverture marocaine et le transfert vers un service externe ne sont pas validés. Tu peux déjà enregistrer ta voiture manuellement.</p>
-            <label className="block text-xs font-semibold text-zinc-200">VIN (facultatif)
-              <input className={field+' uppercase'} value={vin} onChange={e=>setVin(e.target.value.toUpperCase().replace(/\s/g,''))} maxLength={17} placeholder="Ex. VF1XXXXXXXXXXXXXX"/>
-            </label>
-            <label className="flex items-start gap-3 text-xs leading-5 text-zinc-300">
-              <input type="checkbox" checked={lookupConsent} onChange={e=>setLookupConsent(e.target.checked)} className="mt-1 accent-orange-500"/>
-              J’autorise l’envoi ponctuel du VIN à la NHTSA (États-Unis) pour cette recherche. Je comprends qu’il ne s’agit ni d’un contrôle de propriété ni d’une garantie de compatibilité.
-            </label>
-            <button type="button" onClick={lookupVin} disabled={!lookupEnabled || checking || !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)} className="rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-bold text-orange-300 hover:bg-orange-500/10 disabled:opacity-40">
-              {!lookupEnabled?'Identification VIN bientôt disponible':checking?'Recherche en cours…':'Chercher avec ce VIN'}
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-[#1b1c1e] p-2" role="group" aria-label="Mode d'ajout du véhicule">
+            <button type="button" onClick={()=>setMethod('card_transcription')} aria-pressed={method==='card_transcription'}
+              className={'flex min-h-14 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold '+(method==='card_transcription'?'bg-orange-500 text-black':'text-zinc-300 hover:bg-white/5')}>
+              <BookOpenCheck className="h-4 w-4"/> Ma carte grise
             </button>
-            {lookupMessage && <p role="status" className="text-xs leading-6 text-amber-200">{lookupMessage}</p>}
-          </section>
-          <form onSubmit={save} className="space-y-5 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
-            <div className="flex items-center gap-2"><CarFront className="h-5 w-5 text-orange-400"/><h2 className="font-bold text-white">Confirme les informations de ta voiture</h2></div>
-            <p className="text-xs leading-5 text-zinc-400">Tu peux saisir ces trois informations manuellement, sans VIN ni photo de carte grise.</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-semibold text-zinc-200">Marque *<input className={field} value={make} onChange={e=>setMake(e.target.value)} maxLength={60} required placeholder="Ex. Toyota"/></label>
-              <label className="text-sm font-semibold text-zinc-200">Modèle *<input className={field} value={model} onChange={e=>setModel(e.target.value)} maxLength={80} required placeholder="Ex. Auris"/></label>
-              <label className="text-sm font-semibold text-zinc-200 sm:col-span-2">Année *<input className={field} value={year} onChange={e=>setYear(e.target.value)} min={1950} max={new Date().getFullYear()+2} type="number" required placeholder="Ex. 2014"/></label>
-            </div>
-            {suggestedClubs.length > 0 && (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="flex items-center gap-2"><Users className="h-4 w-4 text-orange-400"/><h3 className="text-sm font-bold text-white">Clubs qui pourraient te correspondre</h3></div>
-                <p className="mt-2 text-sm text-zinc-300">{suggestedClubs.map(c=>c.name).join(' · ')}</p>
-                <label className="mt-3 flex items-start gap-3 text-xs leading-5 text-zinc-300"><input type="checkbox" checked={joinSuggested} onChange={e=>setJoinSuggested(e.target.checked)} className="mt-1 accent-orange-500"/> Je souhaite rejoindre ces clubs lors de l’enregistrement. Mon adhésion pourra être visible dans VROOQ.</label>
+            <button type="button" onClick={()=>setMethod('manual')} aria-pressed={method==='manual'}
+              className={'flex min-h-14 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold '+(method==='manual'?'bg-orange-500 text-black':'text-zinc-300 hover:bg-white/5')}>
+              <CarFront className="h-4 w-4"/> Saisie rapide
+            </button>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-6 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-7">
+            {method==='card_transcription' && (
+              <div className="rounded-2xl border border-orange-500/20 bg-orange-500/10 p-4">
+                <p className="flex items-center gap-2 text-sm font-bold text-white"><BookOpenCheck className="h-4 w-4 text-orange-300"/> Recopie seulement les informations techniques</p>
+                <p className="mt-2 text-xs leading-6 text-zinc-300">Sur la carte grise marocaine : marque, modèle/type, carburant, puissance fiscale et numéro de châssis peuvent apparaître. Nous ne demandons ni nom du titulaire, ni adresse, ni immatriculation, ni numéro de châssis complet.</p>
               </div>
             )}
-            <p className="flex items-start gap-2 text-xs leading-5 text-zinc-400"><ShieldAlert className="h-4 w-4 shrink-0 text-orange-400"/>La compatibilité exacte d’une pièce dépend de la motorisation, de la version et parfois de la référence constructeur. Une correspondance marque/modèle/année reste indicative.</p>
-            {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{error}</p>}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-semibold text-zinc-200">Marque *<input className={field} required minLength={2} maxLength={60} value={make} onChange={e=>setMake(e.target.value)} placeholder="Toyota"/></label>
+              <label className="text-sm font-semibold text-zinc-200">Modèle / type *<input className={field} required maxLength={80} value={model} onChange={e=>setModel(e.target.value)} placeholder="Auris"/></label>
+              <label className="text-sm font-semibold text-zinc-200">Année *<input className={field} required type="number" min={1950} max={new Date().getFullYear()+2} value={year} onChange={e=>setYear(e.target.value)} placeholder="2014"/></label>
+              <label className="text-sm font-semibold text-zinc-200">Carburant
+                <select className={field} value={fuel} onChange={e=>setFuel(e.target.value as Fuel)}>
+                  <option value="">Non renseigné</option>
+                  {Object.entries(fuelLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-zinc-200">Motorisation / cylindrée<input className={field} maxLength={100} value={engine} onChange={e=>setEngine(e.target.value)} placeholder="Ex. 1.4 D-4D"/></label>
+              <label className="text-sm font-semibold text-zinc-200">Code moteur (si connu)<input className={field} maxLength={60} value={engineCode} onChange={e=>setEngineCode(e.target.value)} placeholder="Ex. 1ND-TV"/></label>
+              {method==='card_transcription' && <>
+                <label className="text-sm font-semibold text-zinc-200">Version / finition<input className={field} maxLength={100} value={trim} onChange={e=>setTrim(e.target.value)} placeholder="Ex. Dynamic"/></label>
+                <label className="text-sm font-semibold text-zinc-200">Puissance fiscale (CV)<input className={field} type="number" min={1} max={80} value={fiscalPower} onChange={e=>setFiscalPower(e.target.value)} placeholder="Ex. 6"/></label>
+                <label className="text-sm font-semibold text-zinc-200 sm:col-span-2">Première mise en circulation (facultatif)<input className={field} type="date" value={firstRegistration} onChange={e=>setFirstRegistration(e.target.value)}/></label>
+              </>}
+            </div>
+            {suggested.length > 0 && (
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="flex items-center gap-2 text-sm font-bold text-white"><Users className="h-4 w-4 text-orange-400"/> Les clubs de ta voiture</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-300">{suggested.map(c=>c.name).join(' · ')}</p>
+                <label className="mt-3 flex items-start gap-3 text-xs leading-5 text-zinc-300">
+                  <input type="checkbox" checked={joinClubs} onChange={e=>setJoinClubs(e.target.checked)} className="mt-1 accent-orange-500"/>
+                  Je souhaite rejoindre ces clubs. Mon adhésion peut être visible aux autres membres.
+                </label>
+              </div>
+            )}
+            <p className="flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldAlert className="mt-1 h-4 w-4 shrink-0 text-orange-400"/> Aucune base de VIN marocain ou catalogue OEM sous licence n’est encore connecté. Les caractéristiques et compatibilités restent déclaratives, jamais certifiées automatiquement.</p>
+            {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
             <button type="submit" disabled={saving||authLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-4 text-sm font-black text-black hover:bg-orange-400 disabled:opacity-40">
-              {saving?'Enregistrement…':'Enregistrer ma voiture'}<ArrowRight className="h-4 w-4"/>
+              {saving ? 'Enregistrement…' : 'Enregistrer ma voiture'}<ArrowRight className="h-4 w-4"/>
             </button>
           </form>
         </>
