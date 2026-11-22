@@ -33,6 +33,9 @@ export default function GaragePage() {
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const [specs,setSpecs]=useState<VehicleSpec|null>(null);
+  const [editingSpecs,setEditingSpecs]=useState(false);
+  const [savingSpecs,setSavingSpecs]=useState(false);
+  const [specsError,setSpecsError]=useState('');
   const [savedVin,setSavedVin]=useState<string|null>(null);
   const [removingVin,setRemovingVin]=useState(false);
   const [logs,setLogs]=useState<Maintenance[]>([]);
@@ -91,6 +94,24 @@ export default function GaragePage() {
     return()=>{mounted=false;};
   },[selectedId,user,session?.access_token,authError]);
 
+  async function saveSpecs(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    if(!user||!selectedId||savingSpecs)return;
+    const form=new FormData(event.currentTarget);
+    const fuel=String(form.get('fuel')||'');
+    const engine=String(form.get('engine')||'').trim();
+    const engineCode=String(form.get('engine_code')||'').trim();
+    if(!fuel&&!engine&&!engineCode){setSpecsError('Renseigne au moins une information technique.');return;}
+    setSavingSpecs(true);setSpecsError('');
+    const values={fuel_type:fuel||null,engine_description:engine||null,engine_code:engineCode||null};
+    const result=specs
+      ?await supabase.from('vehicle_specs').update(values).eq('vehicle_id',selectedId).eq('owner_id',user.id)
+      :await supabase.from('vehicle_specs').insert({vehicle_id:selectedId,owner_id:user.id,source_method:'manual',...values});
+    if(result.error)setSpecsError('Enregistrement impossible. Vérifie ta connexion puis réessaie.');
+    else{setSpecs(current=>({vehicle_id:selectedId,trim_name:null,fiscal_power:null,first_registration_date:null,...current,...values}));setEditingSpecs(false);}
+    setSavingSpecs(false);
+  }
+
   async function removeVin(){
     if(!user||!selectedId||removingVin)return;
     setRemovingVin(true);
@@ -130,7 +151,7 @@ export default function GaragePage() {
         vehicle_id:selectedId,performed_by_user_id:user.id,occurred_at:new Date(date+'T12:00:00').toISOString(),
         service_type:type,service_code:serviceCode,title,description:description||null,cost_amount:amount,cost_currency:'MAD',
         odometer_reading:odometer,odometer_unit:odometer!==null?'km':null,next_due_km:nextDueKm,is_verified:false,
-      }).select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading').single();
+      }).select('id,vehicle_id,title,service_type,occurred_at,description,cost_amount,cost_currency,odometer_reading,odometer_unit,service_code,next_due_km').single();
       if(dbError||!data)throw new Error('L’entretien n’a pas pu être enregistré. Aucune information n’a été ajoutée.');
       setLogs(previous=>[data as Maintenance,...previous].sort((a,b)=>b.occurred_at.localeCompare(a.occurred_at)));
       setShowLogForm(false);
@@ -168,7 +189,7 @@ export default function GaragePage() {
         <>
           <section aria-label="Sélectionner sa voiture" className="flex gap-3 overflow-x-auto pb-1">
             {vehicles.map(car=>(
-              <button key={car.id} type="button" onClick={()=>{setSelectedId(car.id);setSpecs(null);setSavedVin(null);setLogs([]);setLogSuccess(false);setShowLogForm(false);}} aria-pressed={selectedId===car.id}
+              <button key={car.id} type="button" onClick={()=>{setSelectedId(car.id);setSpecs(null);setSavedVin(null);setLogs([]);setLogSuccess(false);setShowLogForm(false);setEditingSpecs(false);setSpecsError('');}} aria-pressed={selectedId===car.id}
                 className={'flex min-w-[210px] shrink-0 items-center gap-3 rounded-2xl border p-4 text-left '+(selectedId===car.id?'border-orange-500/50 bg-orange-500/10':'border-white/10 bg-[#1c1d20] hover:border-white/25')}>
                 <span className="rounded-xl bg-orange-500/10 p-3 text-orange-400"><CarFront className="h-6 w-6"/></span>
                 <span><strong className="block text-sm text-white">{car.make} {car.model}</strong><span className="block text-xs text-zinc-400">{car.year}</span></span>
@@ -205,6 +226,23 @@ export default function GaragePage() {
                     <li className={savedVin?'text-emerald-300':'text-zinc-400'}>{savedVin?'✓':'○'} VIN privé {savedVin?'enregistré':'facultatif, avec consentement'}</li>
                   </ul>
                   <p className="mt-3 text-xs leading-5 text-zinc-400">Même avec ces données, confirme la compatibilité avec une référence OEM ou un professionnel avant l’achat. Aucun score de fiabilité artificiel n’est attribué.</p>
+                </div>
+                <div className="mt-4">
+                  <button type="button" onClick={()=>{setEditingSpecs(v=>!v);setSpecsError('');}} aria-expanded={editingSpecs} className="min-h-11 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-white hover:border-orange-500/40">{editingSpecs?'Fermer la modification':'Compléter ou corriger mes informations'}</button>
+                  {editingSpecs&&<form key={selectedId} onSubmit={saveSpecs} className="mt-3 space-y-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-xs leading-5 text-zinc-400">Modifie uniquement les informations que tu connais. Elles restent déclaratives et ne certifient pas la compatibilité des pièces.</p>
+                    <label className="block text-sm font-semibold text-zinc-200">Carburant
+                      <select name="fuel" defaultValue={specs?.fuel_type||''} className={field}><option value="">Non renseigné</option>{Object.entries(fuelLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">Motorisation
+                      <input name="engine" className={field} maxLength={100} defaultValue={specs?.engine_description||''} placeholder="Ex. 1.4 D-4D"/>
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">Code moteur (si connu)
+                      <input name="engine_code" className={field} maxLength={60} defaultValue={specs?.engine_code||''} placeholder="Ex. 1ND-TV"/>
+                    </label>
+                    {specsError&&<p role="alert" className="text-sm text-red-300">{specsError}</p>}
+                    <button type="submit" disabled={savingSpecs} className="min-h-11 w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-black disabled:opacity-50">{savingSpecs?'Enregistrement…':'Enregistrer les informations'}</button>
+                  </form>}
                 </div>
                 {savedVin&&<div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 p-4 text-xs text-zinc-300">
                   <span>VIN privé enregistré : •••••••••••{savedVin.slice(-6)}</span>
