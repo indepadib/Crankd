@@ -31,6 +31,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePreferences, CURRENCY_RATES } from '@/hooks/usePreferences';
 
 // Preset high-fidelity imagery for vehicles
@@ -194,6 +195,7 @@ class WebAudioEngineSynth {
 }
 
 export default function GaragePage() {
+    const navigation = useRouter();
     const { user } = useAuth();
     const { formatCurrency, formatDistance, currencySymbol, unitLabel, preferences } = usePreferences();
     const [vehicles, setVehicles] = useState<any[]>([]);
@@ -913,10 +915,7 @@ export default function GaragePage() {
                         {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </button>
                     <button 
-                        onClick={() => {
-                            setWizardStep(1);
-                            setShowModal(true);
-                        }}
+                        onClick={() => navigation.push('/garage/add')}
                         className="flex items-center gap-2 px-6 py-3.5 bg-signal-orange hover:bg-orange-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-orange-600/10"
                     >
                         <Plus className="h-4 w-4" />
@@ -973,14 +972,11 @@ export default function GaragePage() {
                         ))}
 
                         <button 
-                            onClick={() => {
-                                setWizardStep(1);
-                                setShowModal(true);
-                            }}
+                            onClick={() => navigation.push('/garage/add')}
                             className="flex-shrink-0 w-72 rounded-2xl border border-dashed border-white/10 hover:border-signal-orange/40 transition-all flex flex-col items-center justify-center gap-2 text-text-dim hover:text-signal-orange min-h-[160px] bg-white/1 hover:bg-signal-orange/2"
                         >
                             <Plus className="h-6 w-6" />
-                            <span className="text-xs uppercase font-mono font-bold tracking-wider">Add New Chassis</span>
+                            <span className="text-xs uppercase font-mono font-bold tracking-wider">Ajouter une voiture</span>
                         </button>
                     </div>
 
@@ -994,13 +990,10 @@ export default function GaragePage() {
                                 Build your digital chassis profile. Register a vehicle to track its telemetry, maintenance logs, specifications, and display them.
                             </p>
                             <button
-                                onClick={() => {
-                                    setWizardStep(1);
-                                    setShowModal(true);
-                                }}
+                                onClick={() => navigation.push('/garage/add')}
                                 className="px-6 py-3.5 bg-signal-orange hover:bg-orange-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-orange-600/10 font-mono"
                             >
-                                Register Your First Vehicle
+                                Ajouter ma première voiture Vehicle
                             </button>
                         </div>
                     )}
