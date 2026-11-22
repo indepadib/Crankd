@@ -22,3 +22,5 @@ create policy rsvps_leave on public.vrooq_event_rsvps for delete to authenticate
 grant select on public.vrooq_tribes,public.vrooq_events to anon;
 grant select,insert,delete on public.vrooq_tribes,public.vrooq_tribe_members,public.vrooq_event_rsvps to authenticated;
 grant select,insert,update on public.vrooq_events to authenticated;
+
+create policy rsvps_change on public.vrooq_event_rsvps for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()) and exists (select 1 from public.vrooq_events e where e.id=event_id and e.status='published' and e.starts_at>now())); grant update on public.vrooq_event_rsvps to authenticated;
