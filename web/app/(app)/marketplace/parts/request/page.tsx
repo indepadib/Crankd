@@ -142,7 +142,7 @@ export default function CreatePartRequestPage(){
       <button type="submit" disabled={saving||authLoading||Boolean(authError)} className="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-orange-500 px-5 py-4 text-sm font-black text-black disabled:opacity-40">
         {saving?'Envoi de la demande…':'Envoyer ma demande aux boutiques concernées'}<ArrowRight className="h-5 w-5"/>
       </button>
-      <p className="flex items-start gap-2 text-xs leading-5 text-zinc-500"><ShieldCheck className="mt-1 h-4 w-4 shrink-0"/> La demande n’est pas une commande. La compatibilité et la disponibilité sont déclarées par les vendeurs ; aucun achat ni paiement n'est activé sur ce parcours.</p>
+      <p className="flex items-start gap-2 text-xs leading-5 text-zinc-500"><ShieldCheck className="mt-1 h-4 w-4 shrink-0"/> La demande n’est pas une commande. La compatibilité et la disponibilité sont déclarées par les vendeurs ; aucun achat ni paiement n’est activé sur ce parcours.</p>
     </form>}
   </div>;
 }
