@@ -115,7 +115,7 @@ export function ActivationGuide() {
   function next(){
     if(!goal)return;
     const n=step+1;
-    if(n>=journeys[goal].length){hide();return;}
+    if(n>=journeys[goal].length){hide();router.push('/feed');return;}
     setStep(n);persist(goal,n,false);
   }
   function back(){
