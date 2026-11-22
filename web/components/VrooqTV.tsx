@@ -20,53 +20,6 @@ import {
     Check
 } from 'lucide-react';
 
-const REELS_VIDEOS = [
-    {
-        id: 'r-1',
-        title: 'Toyota Supra JZA80 Dyno Run',
-        description: 'Tuning session on the twin-turbo setup. Screaming to 8000 RPM under load!',
-        url: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-drifting-in-a-parking-lot-40439-large.mp4',
-        tags: ['JDM', 'Supra', 'Dyno', 'Brakes'],
-        author: { username: 'SupraSupremacy', avatar: 'SS' },
-        likes: 1240,
-        comments: 240,
-        marketplaceItem: { name: 'Brembo GT Braking System', price: 2200, category: 'Brakes' }
-    },
-    {
-        id: 'r-2',
-        title: 'Singer Porsche 911 Mountain Run',
-        description: 'Testing the flat-six response on high-altitude twists. Aircooled perfection.',
-        url: 'https://assets.mixkit.co/videos/preview/mixkit-porsche-car-driving-on-a-curved-road-41482-large.mp4',
-        tags: ['Porsche', 'Singer', 'MountainRun', 'Suspension'],
-        author: { username: 'Flat6Fever', avatar: 'F6' },
-        likes: 3820,
-        comments: 512,
-        marketplaceItem: { name: 'Bilstein B16 Coilovers', price: 1850, category: 'Suspension' }
-    },
-    {
-        id: 'r-3',
-        title: 'S54 Valve Clearance Adjustment',
-        description: 'DIY garage day. Restoring the clearances on the E46 M3 engine block.',
-        url: 'https://assets.mixkit.co/videos/preview/mixkit-mechanic-hands-repairing-a-car-engine-40488-large.mp4',
-        tags: ['Maintenance', 'DIY', 'BMW', 'Engine'],
-        author: { username: 'E46_Wrench', avatar: 'EW' },
-        likes: 850,
-        comments: 89,
-        marketplaceItem: { name: 'Liqui Moly 5W40 Engine Oil', price: 85, category: 'Maintenance' }
-    },
-    {
-        id: 'r-4',
-        title: 'Under the Hood: Twin Turbo GTR',
-        description: 'Full layout walkthrough. Carbon fiber piping and upgraded custom intake blocks.',
-        url: 'https://assets.mixkit.co/videos/preview/mixkit-luxurious-car-parked-in-a-garage-41486-large.mp4',
-        tags: ['HighHP', 'GTR', 'TwinTurbo', 'Exhaust'],
-        author: { username: 'GodzillaTuning', avatar: 'GT' },
-        likes: 4120,
-        comments: 672,
-        marketplaceItem: { name: 'Titanium Catback Exhaust', price: 2950, category: 'Exhaust' }
-    }
-];
-
 export function VrooqTV() {
     const { user } = useAuth();
     const [videoStack, setVideoStack] = useState<any[]>([]);
@@ -110,93 +63,7 @@ export function VrooqTV() {
                 console.warn('Failed to fetch video posts from database:', err);
             }
 
-            // Fetch from local storage
-            let localVideos: any[] = [];
-            try {
-                let savedLocal = localStorage.getItem('local-posts');
-                let localList = savedLocal ? JSON.parse(savedLocal) : [];
-
-                const hasSeeds = localList.some((p: any) => p.id && p.id.startsWith('seed-post'));
-                if (!hasSeeds) {
-                    const seedPosts = [
-                        {
-                            id: 'seed-post-1',
-                            author_id: 'seed-author-1',
-                            title: 'Toyota Supra JZA80 Dyno Run',
-                            body: JSON.stringify({
-                                chassis: 'JZA80 / 2JZ-GTE',
-                                hp: '820',
-                                mods: 'Garrett G35-900, HKS Exhaust, Link G4X',
-                                cost: '14500',
-                                text: 'Tuning session on the twin-turbo setup. Screaming to 8000 RPM under load!'
-                            }),
-                            image_url: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-drifting-in-a-parking-lot-40439-large.mp4',
-                            content_type: 'video',
-                            tags: ['JDM', 'Supra', 'Dyno'],
-                            created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-                            like_count: 1240,
-                            view_count: 5400,
-                            comment_count: 2,
-                            author: { id: 'seed-author-1', username: 'SupraSupremacy', avatar_url: '', garage_rank: 2 }
-                        },
-                        {
-                            id: 'seed-post-2',
-                            author_id: 'seed-author-2',
-                            title: 'Singer Porsche 911 Mountain Run',
-                            body: JSON.stringify({
-                                chassis: '964 / 4.0L Flat-6',
-                                hp: '390',
-                                mods: 'Singer Custom Engine, Ohlins Suspension, Brembo Brakes',
-                                cost: '125000',
-                                text: 'Testing the flat-six response on high-altitude twists. Aircooled perfection.'
-                            }),
-                            image_url: 'https://assets.mixkit.co/videos/preview/mixkit-porsche-car-driving-on-a-curved-road-41482-large.mp4',
-                            content_type: 'video',
-                            tags: ['Porsche', 'Singer', 'MountainRun'],
-                            created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-                            like_count: 3820,
-                            view_count: 12500,
-                            comment_count: 3,
-                            author: { id: 'seed-author-2', username: 'Flat6Fever', avatar_url: '', garage_rank: 3 }
-                        },
-                        {
-                            id: 'seed-post-3',
-                            author_id: 'seed-author-3',
-                            title: 'S54 Valve Clearance Adjustment',
-                            body: JSON.stringify({
-                                chassis: 'E46 M3 / S54',
-                                hp: '343',
-                                mods: 'OEM Valve Shims, Beisan VANOS Kit',
-                                cost: '450',
-                                text: 'DIY garage day. Restoring the clearances on the E46 M3 engine block.'
-                            }),
-                            image_url: 'https://assets.mixkit.co/videos/preview/mixkit-mechanic-hands-repairing-a-car-engine-40488-large.mp4',
-                            content_type: 'video',
-                            tags: ['Maintenance', 'DIY', 'BMW'],
-                            created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-                            like_count: 850,
-                            view_count: 2100,
-                            comment_count: 1,
-                            author: { id: 'seed-author-3', username: 'E46_Wrench', avatar_url: '', garage_rank: 1 }
-                        }
-                    ];
-                    localList = [...seedPosts, ...localList];
-                    localStorage.setItem('local-posts', JSON.stringify(localList));
-                    localStorage.setItem('feed-seeded', 'true');
-                }
-                localVideos = localList.filter((p: any) => p.content_type === 'video' || p.content_type === 'reel');
-            } catch (err) {
-                console.warn('Failed to parse local posts:', err);
-            }
-
-            // Combine and format
-            const combined = [...localVideos, ...dbVideos];
-            const uniqueMap = new Map();
-            combined.forEach(p => {
-                uniqueMap.set(p.id, p);
-            });
-
-            const formatted = Array.from(uniqueMap.values()).map(post => {
+            const formatted = dbVideos.map(post => {
                 let description = '';
                 if (post.body) {
                     try {
@@ -225,17 +92,7 @@ export function VrooqTV() {
                 };
             });
 
-            // Combine with default preset reels at the end (or as fallbacks)
-            const finalStack = [...formatted, ...REELS_VIDEOS];
-            // Filter duplicates by url just in case
-            const seenUrls = new Set();
-            const filteredStack = finalStack.filter(item => {
-                if (seenUrls.has(item.url)) return false;
-                seenUrls.add(item.url);
-                return true;
-            });
-
-            setVideoStack(filteredStack);
+            setVideoStack(formatted.filter(item => Boolean(item.url)));
         };
 
         fetchReels();
@@ -267,6 +124,34 @@ export function VrooqTV() {
         setShowCheckout(false);
         setCheckoutComplete(false);
     }, [activeIdx, videoStack]);
+
+    useEffect(() => {
+        if (!showComments || !activeVideo?.id) return;
+        const postId = activeVideo.id;
+        let cancelled = false;
+        const loadComments = async () => {
+            const { data, error } = await supabase.from('post_comments')
+                .select('id,author_username,comment_text,created_at')
+                .eq('post_id', postId)
+                .order('created_at', { ascending: false });
+            if (cancelled) return;
+            if (error) {
+                console.warn('VROOQ TV comments unavailable:', error.message);
+                return;
+            }
+            setVideoComments(prev => ({
+                ...prev,
+                [postId]: (data || []).map(row => ({
+                    id: row.id,
+                    username: '@' + row.author_username.replace(/^@/, ''),
+                    text: row.comment_text,
+                    created_at: row.created_at
+                }))
+            }));
+        };
+        void loadComments();
+        return () => { cancelled = true; };
+    }, [showComments, activeVideo?.id]);
 
     const togglePlayback = () => {
         if (!videoRef.current) return;
@@ -335,68 +220,33 @@ export function VrooqTV() {
             return videoComments[activeVideo.id];
         }
 
-        // 2. Try loading from localStorage comments-${activeVideo.id}
-        const saved = localStorage.getItem(`comments-${activeVideo.id}`);
-        if (saved) {
-            try {
-                return JSON.parse(saved);
-            } catch (e) {}
-        }
-
-        // 3. Fallback to default mock comments
-        return [
-            { id: 'c1', username: '@GTR_Enthusiast', text: 'Clean layout! Approved.', created_at: '10:14 AM' },
-            { id: 'c2', username: '@BrakeChecker', text: 'Top tier mods on this build.', created_at: '11:05 AM' }
-        ];
+        return [];
     };
 
     const handleSendComment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!commentInput.trim() || !activeVideo) return;
-
-        const id = activeVideo.id;
-        const currentEmail = user?.email || 'driver_one@vrooq.com';
-        const currentUsername = `@${currentEmail.split('@')[0]}`;
-        const newComment = {
-            id: `c-${Date.now()}`,
-            username: currentUsername,
-            text: commentInput.trim(),
-            created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        const currentComments = getCommentsList();
-        const updatedComments = [newComment, ...currentComments];
-
+        if (!commentInput.trim() || !activeVideo || !user?.email) return;
+        const text = commentInput.trim();
+        const { data, error } = await supabase.from('post_comments').insert({
+            post_id: activeVideo.id,
+            author_username: user.email.split('@')[0],
+            comment_text: text
+        }).select('id,author_username,comment_text,created_at').single();
+        if (error || !data) {
+            alert('Le commentaire n’a pas été enregistré. Réessaie.');
+            return;
+        }
         setVideoComments(prev => ({
             ...prev,
-            [id]: updatedComments
+            [activeVideo.id]: [{
+                id: data.id,
+                username: '@' + data.author_username.replace(/^@/, ''),
+                text: data.comment_text,
+                created_at: data.created_at
+            }, ...(prev[activeVideo.id] || [])]
         }));
-
-        localStorage.setItem(`comments-${id}`, JSON.stringify(updatedComments));
-
-        // Sync comment to Supabase
-        if (!id.startsWith('r-')) {
-            try {
-                await supabase.from('post_comments').insert({
-                    post_id: id,
-                    author_username: currentUsername,
-                    comment_text: commentInput.trim()
-                });
-            } catch (err) {
-                console.warn('Failed to insert comment:', err);
-            }
-        }
-
-        setVideoStack(prev => prev.map(v => {
-            if (v.id === id) {
-                return {
-                    ...v,
-                    comments: v.comments + 1
-                };
-            }
-            return v;
-        }));
-
+        setVideoStack(prev => prev.map(v => v.id === activeVideo.id
+            ? { ...v, comments: v.comments + 1 } : v));
         setCommentInput('');
     };
 
@@ -447,7 +297,7 @@ export function VrooqTV() {
                         </div>
                     ) : (
                         <div className="absolute inset-0 bg-zinc-950 z-0 flex items-center justify-center font-mono text-zinc-600 text-xs">
-                            SCANNING TELEMETRY...
+                            Aucune vidéo publiée pour le moment.
                         </div>
                     )}
 
@@ -584,6 +434,7 @@ export function VrooqTV() {
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto py-3 space-y-3 custom-scrollbar text-[10px]">
+                                    {getCommentsList().length === 0 && <p className="text-zinc-400 text-center py-6">Aucun commentaire pour le moment.</p>}
                                     {getCommentsList().map((c: any) => (
                                         <div key={c.id} className="bg-white/2 p-2 rounded-lg border border-white/5">
                                             <p className="font-bold text-signal-orange">{c.username}</p>
@@ -597,7 +448,7 @@ export function VrooqTV() {
                                         type="text" 
                                         value={commentInput}
                                         onChange={e => setCommentInput(e.target.value)}
-                                        placeholder="Add comment..." 
+                                        placeholder="Écrire un commentaire…" 
                                         className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-white placeholder-text-muted text-[10px] focus:outline-none focus:border-signal-orange/30"
                                     />
                                     <button type="submit" className="p-2 bg-signal-orange hover:bg-orange-600 text-white rounded-xl active:scale-95 transition-all">
