@@ -2,8 +2,17 @@
 -- Prevent public browsing of individual users' interaction histories and spoofed writes.
 -- This change may affect clients that currently read all interactions; test in staging first.
 begin;
-drop policy if exists "Public to view interactions" on public.post_interactions;
-drop policy if exists "Public to insert interactions" on public.post_interactions;
+-- Remove any permissive legacy policies, including renamed SELECT/INSERT/ALL policies.
+do $
+declare p record;
+begin
+  for p in select policyname from pg_policies
+    where schemaname = 'public' and tablename = 'post_interactions'
+      and cmd in ('SELECT','INSERT','ALL')
+  loop
+    execute format('drop policy if exists %I on public.post_interactions', p.policyname);
+  end loop;
+end $;
 create policy "Users read own interactions"
   on public.post_interactions for select to authenticated
   using ((select auth.uid()) = user_id);
