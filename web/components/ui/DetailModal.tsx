@@ -37,6 +37,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
     const [comments, setComments] = useState<any[]>([]);
     const [commentText, setCommentText] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+    const [commentError, setCommentError] = useState('');
     const [rsvps, setRsvps] = useState<string[]>([]);
     const [isJoined, setIsJoined] = useState(false);
 
@@ -88,46 +89,24 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         setIsJoined(false);
 
         const loadComments = async () => {
-            const localCommentsKey = `comments-${data.id}`;
-            const savedComments = localStorage.getItem(localCommentsKey);
-            const parsedLocal = savedComments ? JSON.parse(savedComments) : [];
-
-            let dbComments: any[] = [];
+            setCommentError('');
+            if (type !== 'post') {setComments([]);return;}
             try {
-                const { data: dbData, error } = await supabase
-                    .from('post_comments')
-                    .select('*')
+                const { data: dbData, error } = await supabase.from('post_comments')
+                    .select('id,author_username,comment_text,created_at')
                     .eq('post_id', data.id)
                     .order('created_at', { ascending: false });
-
-                if (!error && dbData) {
-                    dbComments = dbData.map(c => ({
-                        id: c.id,
-                        author: c.author_username.startsWith('@') ? c.author_username : `@${c.author_username}`,
-                        text: c.comment_text,
-                        created_at: c.created_at
-                    }));
-                }
-            } catch (err) {
-                console.warn('[DetailModal] Failed to fetch comments from DB:', err);
+                if (error) throw error;
+                setComments((dbData || []).map(c => ({
+                    id: c.id,
+                    author: c.author_username?.startsWith('@') ? c.author_username : '@' + (c.author_username || 'membre'),
+                    text: c.comment_text,
+                    created_at: c.created_at,
+                })));
+            } catch {
+                setComments([]);
+                setCommentError('Les commentaires ne sont pas disponibles actuellement.');
             }
-
-            const combined = [...parsedLocal, ...dbComments];
-            const uniqueComments = combined.reduce((acc: any[], current) => {
-                const x = acc.find(item => item.id === current.id);
-                if (!x) {
-                    return acc.concat([current]);
-                } else {
-                    return acc;
-                }
-            }, []);
-
-            const defaultComments = [
-                { id: 'mock-c1', author: '@ApexPredator', text: 'This spec is absolutely stunning. Worth every penny!', created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-                { id: 'mock-c2', author: '@BoostedF80', text: 'Rod bearings done? That is a huge relief for E46 owners.', created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
-            ];
-
-            setComments(uniqueComments.length > 0 ? uniqueComments : defaultComments);
         };
         loadComments();
 
@@ -135,7 +114,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         if (type === 'convoy') {
             const localRsvpsKey = `rsvps-${data.id}`;
             const savedRsvps = localStorage.getItem(localRsvpsKey);
-            const parsedRsvps = savedRsvps ? JSON.parse(savedRsvps) : ['@driver_one', '@canyon_blaster', '@m3_guy'];
+            const parsedRsvps = savedRsvps ? JSON.parse(savedRsvps) : [];
             setRsvps(parsedRsvps);
 
             if (user?.email) {
@@ -147,35 +126,29 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
 
     const handleSendComment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!commentText.trim() || !data?.id) return;
-
-        setIsSubmittingComment(true);
-        const username = user?.email ? `@${user.email.split('@')[0]}` : '@Enthusiast';
-        const newComment = {
-            id: `c-${Date.now()}`,
-            author: username,
-            text: commentText,
-            created_at: new Date().toISOString()
-        };
-
-        const updatedComments = [newComment, ...comments];
-        setComments(updatedComments);
-        localStorage.setItem(`comments-${data.id}`, JSON.stringify(updatedComments));
-
-        // Try writing to database (if comments table existed)
-        try {
-            await supabase.from('post_comments').insert({
-                post_id: data.id,
-                author_username: username.replace('@', ''),
-                comment_text: commentText
-            });
-        } catch (err) {
-            // Silence DB errors since we fall back to localStorage
+        if (!commentText.trim() || !data?.id || type !== 'post' || !user) {
+            setCommentError('Connecte-toi pour publier un commentaire.');
+            return;
         }
-
-        setCommentText('');
-        setIsSubmittingComment(false);
-        if (onActionSuccess) onActionSuccess();
+        setIsSubmittingComment(true);
+        setCommentError('');
+        try {
+            const username = String(user.user_metadata?.username || user.email?.split('@')[0] || 'membre');
+            const {data:created,error:insertError} = await supabase.from('post_comments').insert({
+                post_id:data.id,author_username:username,comment_text:commentText.trim(),
+            }).select('id,author_username,comment_text,created_at').single();
+            if (insertError || !created) throw new Error('Commentaire non enregistré');
+            setComments(existing=>[{
+                id:created.id,author:'@'+created.author_username,
+                text:created.comment_text,created_at:created.created_at,
+            },...existing]);
+            setCommentText('');
+            onActionSuccess?.();
+        } catch {
+            setCommentError('Publication du commentaire impossible. Aucun commentaire n’a été ajouté.');
+        } finally {
+            setIsSubmittingComment(false);
+        }
     };
 
     const handleToggleRSVP = () => {
@@ -223,7 +196,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                     <div className="flex items-center justify-between p-6 border-b border-white/5 bg-black/40 backdrop-blur-md">
                         <div>
                             <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest block mb-1">
-                                {type === 'listing' ? 'Marketplace Deal' : type === 'convoy' ? 'Convoy Meetup' : 'Feed Story'}
+                                {type === 'listing' ? 'Annonce automobile' : type === 'convoy' ? 'Sortie automobile' : 'Publication'}
                             </span>
                             <h2 className="text-2xl font-black uppercase italic tracking-tight text-white leading-none">
                                 {data.title || `${data.make} ${data.model}`}
@@ -256,7 +229,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                             )}
                             {type === 'listing' && (
                                 <div className="absolute bottom-4 left-5 px-4 py-2 bg-[#0a0a0c]/80 backdrop-blur rounded-xl border border-white/10 text-2xl font-black text-white italic">
-                                    {formatCurrency(data.price)}
+                                    {formatCurrency(data.price,data.currency||'USD')}
                                 </div>
                             )}
                         </div>
@@ -270,10 +243,10 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         <SpecField label="Make / Model" value={`${data.make} ${data.model}`} icon={Car} />
                                         <SpecField label="Production Year" value={data.year} icon={Calendar} />
-                                        <SpecField label="Mileage" value={formatDistance(data.mileage)} icon={Gauge} />
-                                        <SpecField label="VIN Code" value={parsedDetails?.vin || 'Verified'} icon={Shield} />
-                                        <SpecField label="Engine Config" value={parsedDetails?.engine || 'Naturally Aspirated'} icon={Zap} />
-                                        <SpecField label="Gearbox" value={parsedDetails?.transmission || 'Manual'} icon={GitCommit} />
+                                        <SpecField label="Mileage" value={formatDistance(data.mileage,data.mileage_unit==='km'?'km':'mi')} icon={Gauge} />
+                                        <SpecField label="Identification du véhicule" value="Déclarée par le vendeur" icon={Shield} />
+                                        <SpecField label="Engine Config" value={parsedDetails?.engine || 'Non renseignée'} icon={Zap} />
+                                        <SpecField label="Gearbox" value={parsedDetails?.transmission || 'Non renseignée'} icon={GitCommit} />
                                     </div>
                                 </div>
 
@@ -282,12 +255,12 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     <div>
                                         <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Exterior & Interior</h4>
                                         <p className="text-sm text-zinc-300 font-semibold">
-                                            {parsedDetails?.exteriorColor || 'OEM Black'} / {parsedDetails?.interiorColor || 'OEM Carbon'}
+                                            {parsedDetails?.exteriorColor || 'Non renseignée'} / {parsedDetails?.interiorColor || 'Non renseignée'}
                                         </p>
                                     </div>
                                     <div>
                                         <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Location</h4>
-                                        <p className="text-sm text-zinc-300 font-semibold">{data.location || 'Global Delivery'}</p>
+                                        <p className="text-sm text-zinc-300 font-semibold">{data.location || 'Lieu non renseigné'}</p>
                                     </div>
                                 </div>
 
@@ -295,7 +268,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                 <div className="pt-4 border-t border-white/5 space-y-2">
                                     <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Seller Narrative</h4>
                                     <p className="text-sm text-zinc-300 leading-relaxed">
-                                        {descriptionText || 'No seller narrative provided.'}
+                                        {descriptionText || 'Aucune description fournie par le vendeur.'}
                                     </p>
                                 </div>
 
