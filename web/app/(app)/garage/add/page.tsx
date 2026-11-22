@@ -54,8 +54,10 @@ export default function AddVehiclePage() {
     if (!lookupConsent) { setLookupMessage('Coche d’abord ton accord pour utiliser le service externe.'); return; }
     setChecking(true);
     try {
+      const { data: session, error: authError } = await supabase.auth.getSession();
+      if (authError || !session.session?.access_token) throw new Error('Connecte-toi pour rechercher un VIN.');
       const response = await fetch('/api/vehicle-lookup', {
-        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.session.access_token },
         body: JSON.stringify({ vin: vin.trim(), consent: true }),
       });
       const result = (await response.json()) as Decoded & { error?: string };
