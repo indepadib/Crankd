@@ -1,38 +1,38 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check, Compass, HelpCircle, ShoppingBag, Store, Wrench, X } from 'lucide-react';
+import { ArrowRight, Car, Check, ChevronLeft, CircleHelp, Compass, ShoppingBag, Store, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 
 type Goal = 'buy' | 'sell' | 'explore';
-type Step = { title: string; detail: string; location: string; href: string; button: string };
+type GuideStep = { title: string; detail: string; href: string; action: string };
+type SavedGuide = { goal: Goal | null; step: number; dismissed: boolean };
+const VERSION = 'v2';
 
-const TUTORIAL_VERSION = 'v1';
-
-const GOALS: { id: Goal; title: string; detail: string; icon: typeof ShoppingBag }[] = [
-  { id: 'buy', title: 'Trouver une pièce', detail: 'Rechercher une pièce d’occasion compatible avec ma voiture.', icon: ShoppingBag },
-  { id: 'sell', title: 'Vendre une pièce', detail: 'Créer une boutique, publier et suivre mes demandes.', icon: Store },
-  { id: 'explore', title: 'Découvrir VROOQ', detail: 'Ajouter ma voiture, partager et rejoindre des passionnés.', icon: Compass },
-];
-
-const STEPS: Record<Goal, Step[]> = {
+const journeys: Record<Goal, GuideStep[]> = {
   buy: [
-    { title: 'Rechercher une pièce', detail: 'Ouvre Market → Pièces. Cherche par nom, référence OEM, marque ou ville. Tu peux filtrer les résultats.', location: 'Market → Pièces automobiles', href: '/marketplace/parts', button: 'Voir les pièces' },
-    { title: 'Ajouter sa voiture', detail: 'Dans Garage, enregistre ton véhicule. Tu pourras ensuite filtrer les pièces selon le modèle et l’année déclarés.', location: 'Garage → Mon garage', href: '/garage', button: 'Ouvrir mon garage' },
-    { title: 'Retrouver ses commandes', detail: 'Chaque demande est enregistrée dans Mes commandes. Tant que le paiement sécurisé n’est pas activé, aucune somme n’est débitée.', location: 'Market → Pièces → Mes commandes', href: '/marketplace/parts/orders', button: 'Mes commandes' },
+    { title: 'Retrouve la pièce', detail: 'Cherche par nom ou référence OEM. Les résultats sont de vraies annonces publiées.', href: '/marketplace/parts', action: 'Ouvrir les pièces' },
+    { title: 'Ajoute ta voiture', detail: 'Une fois ton véhicule enregistré, le filtre Mon garage aide à trouver les annonces déclarées compatibles.', href: '/garage/add', action: 'Ajouter ma voiture' },
+    { title: 'Suis ta demande', detail: 'Retrouve tes demandes dans Mes commandes. Aucun paiement réel n’est activé actuellement.', href: '/marketplace/parts/orders', action: 'Voir mes commandes' },
   ],
   sell: [
-    { title: 'Activer sa boutique', detail: 'Crée gratuitement ton compte vendeur. Indique ton nom public, ta ville et tes conditions de retour.', location: 'Market → Pièces → Ma boutique', href: '/marketplace/parts/sell', button: 'Créer ma boutique' },
-    { title: 'Publier une pièce', detail: 'Ajoute des photos réelles, l’état, les défauts connus, la référence OEM, la compatibilité et le prix en dirhams.', location: 'Market → Pièces → Vendre une pièce', href: '/marketplace/parts/new', button: 'Déposer une pièce' },
-    { title: 'Suivre ses ventes', detail: 'Dans Mes annonces, ajuste le stock et les prix. Dans Mes commandes, réponds aux demandes. N’expédie pas sans confirmation de paiement VROOQ.', location: 'Market → Pièces → Mes annonces', href: '/marketplace/parts/mine', button: 'Mes annonces' },
+    { title: 'Active ta boutique', detail: 'Renseigne tes coordonnées vendeur. L’activation est gratuite et distincte de la vérification d’identité.', href: '/marketplace/parts/sell', action: 'Activer ma boutique' },
+    { title: 'Publie une vraie pièce', detail: 'Ajoute les photos de la pièce, son état, son prix et la référence OEM si elle est disponible.', href: '/marketplace/parts/new', action: 'Publier une pièce' },
+    { title: 'Gère tes annonces', detail: 'Modifie les prix et le stock, puis retrouve les demandes reçues dans Mes commandes.', href: '/marketplace/parts/mine', action: 'Mes annonces' },
   ],
   explore: [
-    { title: 'Commencer par son garage', detail: 'Ajoute ta voiture et personnalise ton profil. Ton garage deviendra ta référence dans la communauté.', location: 'Garage → Ajouter un véhicule', href: '/garage', button: 'Mon garage' },
-    { title: 'Découvrir la communauté', detail: 'Dans Feed, explore les publications des passionnés. Utilise le bouton + pour partager une photo ou un projet.', location: 'Feed → Bouton +', href: '/feed', button: 'Voir le feed' },
-    { title: 'Rencontrer les passionnés', detail: 'Retrouve les communautés par centre d’intérêt et les sorties auto dans Convoys. Les onglets sont dans le menu sur ordinateur.', location: 'Communities / Convoys', href: '/communities', button: 'Les communautés' },
+    { title: 'Commence par ton garage', detail: 'Enregistre la marque, le modèle et l’année de ta voiture.', href: '/garage/add', action: 'Ajouter ma voiture' },
+    { title: 'Trouve ta communauté', detail: 'Découvre les clubs liés à ta voiture ; rejoindre un club est ton choix.', href: '/communities', action: 'Voir les clubs' },
+    { title: 'Partage une publication', detail: 'Les vraies publications sont visibles dans le fil après enregistrement réussi.', href: '/create?type=post', action: 'Créer une publication' },
   ],
 };
+const goals: { id: Goal; title: string; icon: typeof Car }[] = [
+  { id: 'buy', title: 'Chercher une pièce', icon: ShoppingBag },
+  { id: 'sell', title: 'Vendre mes pièces', icon: Store },
+  { id: 'explore', title: 'Découvrir la communauté', icon: Compass },
+];
 
 export function ActivationGuide() {
   const { user, loading } = useAuth();
@@ -41,137 +41,110 @@ export function ActivationGuide() {
   const [opened, setOpened] = useState(false);
   const [goal, setGoal] = useState<Goal | null>(null);
   const [step, setStep] = useState(0);
-  const [hasSeenGuide, setHasSeenGuide] = useState(false);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const visitedUserRef = useRef('');
+  const [ready, setReady] = useState(false);
+  const previousUser = useRef<string | null>(null);
 
+  const key = user ? 'vrooq-tour-' + VERSION + '-' + user.id : '';
   useEffect(() => {
-    if (loading || !user) return;
-    if (visitedUserRef.current === user.id) return;
-    visitedUserRef.current = user.id;
-    const key = 'vrooq-guide-' + TUTORIAL_VERSION + '-' + user.id;
-    let complete = false;
-    try { complete = window.localStorage.getItem(key) === 'done'; } catch { /* storage blocked */ }
-    const raf = window.requestAnimationFrame(() => {
-      setOpened(!complete);
-      setHasSeenGuide(complete);
-      setStep(0);
-      setGoal(null);
-    });
-    return () => window.cancelAnimationFrame(raf);
-  }, [user, loading]);
-
-  useEffect(() => {
-    if (!opened) return;
-    headingRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeGuide();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // closeGuide only writes the current user's completion key.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opened, step, goal, user?.id]);
-
-  function closeGuide() {
-    if (user) {
-      try { window.localStorage.setItem('vrooq-guide-' + TUTORIAL_VERSION + '-' + user.id, 'done'); }
-      catch { /* private browsing */ }
+    if (loading) return;
+    if (!user) {
+      previousUser.current = null;
+      return;
     }
+    if (previousUser.current === user.id) return;
+    previousUser.current = user.id;
+    let saved: SavedGuide | null = null;
+    try {
+      const raw = localStorage.getItem('vrooq-tour-' + VERSION + '-' + user.id);
+      if (raw) saved = JSON.parse(raw) as SavedGuide;
+    } catch { /* Storage can be unavailable on private devices. */ }
+    const nextGoal = saved?.goal && journeys[saved.goal] ? saved.goal : null;
+    const nextStep = nextGoal ? Math.min(Math.max(saved?.step ?? 0, 0), journeys[nextGoal].length - 1) : 0;
+    setGoal(nextGoal);
+    setStep(nextStep);
+    setOpened(!saved?.dismissed);
+    setReady(true);
+  }, [loading, user]);
+
+  function save(nextGoal: Goal | null, nextStep: number, dismissed: boolean) {
+    if (!key) return;
+    try { localStorage.setItem(key, JSON.stringify({ goal: nextGoal, step: nextStep, dismissed })); }
+    catch { /* Privacy mode: navigation still works. */ }
+  }
+  function choose(nextGoal: Goal) {
+    setGoal(nextGoal);
+    setStep(0);
+    save(nextGoal, 0, false);
+  }
+  function close() {
     setOpened(false);
-    setHasSeenGuide(true);
+    save(goal, step, true);
   }
-
-  function replayGuide() {
-    setGoal(null);
-    setStep(0);
+  function reopen() {
     setOpened(true);
+    save(goal, step, false);
+  }
+  function advance(navigate: boolean) {
+    if (!goal) return;
+    const path = journeys[goal][step].href;
+    const nextStep = step + 1;
+    if (nextStep >= journeys[goal].length) {
+      setOpened(false);
+      save(goal, step, true);
+    } else {
+      setStep(nextStep);
+      save(goal, nextStep, false);
+    }
+    if (navigate) router.push(path);
   }
 
-  function chooseGoal(selected: Goal) {
-    setGoal(selected);
-    setStep(0);
-  }
-
-  function openPage(href: string) {
-    const isLast = goal !== null && step === STEPS[goal].length - 1;
-    if (isLast) closeGuide();
-    else setStep((current) => current + 1);
-    if (pathname !== href) router.push(href);
-  }
-
-  if (!user || loading) return null;
-  const activeSteps = goal ? STEPS[goal] : [];
-  const active = goal ? activeSteps[step] : null;
+  if (!user || loading || !ready) return null;
+  const current = goal ? journeys[goal][step] : null;
 
   return (
-    <>
-      {!opened && hasSeenGuide && (
+    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+6.6rem)] z-[65] flex justify-end md:bottom-6 md:right-6 md:left-auto">
+      {!opened ? (
         <button
-          type="button"
-          onClick={replayGuide}
-          aria-label="Revoir le guide VROOQ"
-          title="Comment utiliser VROOQ ?"
-          className="fixed bottom-24 right-4 z-[60] flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#242426] text-white shadow-xl transition-colors hover:bg-[#343437] focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400 md:bottom-6 md:right-6"
+          type="button" onClick={reopen} aria-label="Afficher le guide VROOQ"
+          className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-[#212225] px-4 py-3 text-sm font-bold text-white shadow-xl hover:border-orange-400/60"
         >
-          <HelpCircle className="h-5 w-5" aria-hidden="true" />
+          <CircleHelp className="h-5 w-5 text-orange-400" /> Besoin d’aide ?
         </button>
-      )}
-      {opened && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/85 px-4 py-6 backdrop-blur-sm" role="presentation">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="vrooq-guide-title"
-            aria-describedby="vrooq-guide-detail"
-            className="my-auto w-full max-w-lg rounded-[28px] border border-white/15 bg-[#191a1d] p-5 text-white shadow-2xl sm:p-8"
-          >
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-orange-400">VROOQ · Guide de démarrage</span>
-              <button type="button" onClick={closeGuide} aria-label="Fermer le guide" className="rounded-full border border-white/10 p-2 text-zinc-300 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"><X className="h-5 w-5" /></button>
+      ) : (
+        <aside aria-label="Assistant de démarrage VROOQ" className="pointer-events-auto max-h-[min(62dvh,460px)] w-full max-w-[370px] overflow-y-auto rounded-[22px] border border-orange-500/30 bg-[#1a1b1d] p-4 text-white shadow-[0_18px_60px_rgba(0,0,0,0.55)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-orange-400">Guide interactif · VROOQ</p>
+              <h2 className="mt-1 text-base font-black">{current ? current.title : 'Qu’est-ce que tu veux faire ?'}</h2>
             </div>
-            {!goal ? (
-              <>
-                <p className="text-xs font-medium text-zinc-400">Moins d’une minute pour commencer</p>
-                <h2 id="vrooq-guide-title" tabIndex={-1} ref={headingRef} className="mt-2 text-2xl font-black tracking-tight focus:outline-none sm:text-3xl">Bienvenue sur VROOQ.</h2>
-                <p id="vrooq-guide-detail" className="mt-3 text-sm leading-6 text-zinc-300">Tout est organisé autour de ta voiture. Qu’aimerais-tu faire en premier ?</p>
-                <div className="mt-6 space-y-3">
-                  {GOALS.map(({ id, title, detail, icon: Icon }) => (
-                    <button key={id} type="button" onClick={() => chooseGoal(id)} className="group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-left transition-colors hover:border-orange-400/60 hover:bg-orange-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/15 text-orange-400"><Icon className="h-5 w-5" /></span>
-                      <span className="flex-1"><span className="block text-sm font-bold">{title}</span><span className="mt-1 block text-xs leading-5 text-zinc-400">{detail}</span></span>
-                      <ArrowRight className="h-4 w-4 text-zinc-500 group-hover:text-orange-400" />
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : active && (
-              <>
-                <div className="flex items-center justify-between text-xs text-zinc-400"><span>Étape {step + 1} sur {activeSteps.length}</span><span>Tu peux revenir à ce guide à tout moment</span></div>
-                <div className="mt-3 grid grid-cols-3 gap-2" aria-hidden="true">{activeSteps.map((_, index) => <span key={index} className={'h-1 rounded-full ' + (index <= step ? 'bg-orange-500' : 'bg-white/15')} />)}</div>
-                <h2 id="vrooq-guide-title" tabIndex={-1} ref={headingRef} className="mt-6 text-2xl font-black tracking-tight focus:outline-none sm:text-3xl">{active.title}</h2>
-                <p id="vrooq-guide-detail" className="mt-3 text-sm leading-7 text-zinc-300">{active.detail}</p>
-                <div className="mt-5 flex items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-3 text-xs font-medium text-orange-200">
-                  <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" /> Où aller : {active.location}
-                </div>
-                <button type="button" onClick={() => openPage(active.href)} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-black transition-transform active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
-                  {active.button} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <button onClick={close} aria-label="Réduire le guide" type="button" className="rounded-lg border border-white/10 p-2 text-zinc-300 hover:bg-white/10"><X className="h-4 w-4" /></button>
+          </div>
+          {!goal ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs leading-5 text-zinc-400">Choisis ton objectif. Le guide reste petit pour te laisser utiliser le site.</p>
+              {goals.map(({id,title,icon:Icon}) => (
+                <button type="button" key={id} onClick={() => choose(id)} className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm font-semibold hover:border-orange-400/60">
+                  <Icon className="h-4 w-4 text-orange-400" />{title}<ArrowRight className="ml-auto h-4 w-4 text-zinc-500" />
                 </button>
-                <div className="mt-4 flex items-center justify-between gap-4">
-                  <button type="button" onClick={() => { if (step === 0) setGoal(null); else setStep((s) => s - 1); }} className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-white"><ArrowLeft className="h-4 w-4" /> Retour</button>
-                  <button type="button" onClick={() => {
-                    if (step === activeSteps.length - 1) closeGuide();
-                    else setStep((s) => s + 1);
-                  }} className="inline-flex items-center gap-1 text-sm font-bold text-white hover:text-orange-400">
-                    {step === activeSteps.length - 1 ? <><Check className="h-4 w-4" /> Terminer</> : <>Étape suivante <ArrowRight className="h-4 w-4" /></>}
-                  </button>
-                </div>
-              </>
-            )}
-            <button type="button" onClick={closeGuide} className="mt-6 w-full text-center text-xs text-zinc-500 underline-offset-4 hover:text-zinc-300 hover:underline">Passer le guide</button>
-          </section>
-        </div>
+              ))}
+            </div>
+          ) : current && (
+            <>
+              <div className="mt-3 flex items-center justify-between text-xs text-zinc-400"><span>Étape {step + 1} / {journeys[goal].length}</span><span>{pathname === current.href.split('?')[0] ? 'Tu es sur la bonne page' : 'Tu peux naviguer librement'}</span></div>
+              <div className="mt-2 flex gap-1.5" aria-hidden="true">{journeys[goal].map((_,index)=><span key={index} className={'h-1.5 flex-1 rounded-full '+(index<=step?'bg-orange-500':'bg-white/15')}/>)}</div>
+              <p className="mt-3 text-xs leading-6 text-zinc-300">{current.detail}</p>
+              <button type="button" onClick={() => advance(true)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-black hover:bg-orange-400">
+                {current.action}<ArrowRight className="h-4 w-4" />
+              </button>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <button type="button" onClick={() => { if(step===0){setGoal(null);save(null,0,false);}else{setStep(step-1);save(goal,step-1,false);} }} className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-white"><ChevronLeft className="h-4 w-4"/>Retour</button>
+                <button type="button" onClick={() => advance(false)} className="inline-flex items-center gap-1 text-xs text-zinc-200 hover:text-orange-400">{step === journeys[goal].length - 1 ? 'Terminer' : 'Étape suivante'}<Check className="h-3.5 w-3.5"/></button>
+              </div>
+            </>
+          )}
+          <p className="mt-3 border-t border-white/10 pt-2 text-[11px] leading-4 text-zinc-500">Ce guide ne bloque pas l’écran. Ferme-le ou reviens à tout moment.</p>
+        </aside>
       )}
-    </>
+    </div>
   );
 }
