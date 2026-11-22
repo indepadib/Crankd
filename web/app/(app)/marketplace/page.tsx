@@ -163,7 +163,7 @@ export default function MarketplacePage() {
                                         </div>
                                     )}
                                     <div className="absolute bottom-3 left-4 text-2xl font-black text-white italic">
-                                        {formatCurrency(listing.price)}
+                                        {formatCurrency(listing.price, listing.currency || 'USD')}
                                     </div>
                                 </div>
 
@@ -172,7 +172,7 @@ export default function MarketplacePage() {
                                         {listing.year} {listing.make} {listing.model}
                                     </h3>
                                     <div className="flex items-center gap-4 mt-2 text-xs text-text-dim">
-                                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{formatDistance(listing.mileage)}</span>
+                                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{formatDistance(listing.mileage, listing.mileage_unit === 'km' ? 'km' : 'mi')}</span>
                                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{listing.location}</span>
                                     </div>
                                 </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Car, ShoppingBag, Users, User, Settings, Plus, MapPin, Search } from 'lucide-react';
+import { Home, Compass, Car, ShoppingBag, Users, User, Settings, Plus, MapPin, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 
 export function Sidebar() {
@@ -14,7 +14,7 @@ export function Sidebar() {
 
             {/* Brand Icon */}
             <Link
-                href="/feed"
+                href="/start"
                 className="h-12 w-12 bg-signal-orange rounded-2xl flex items-center justify-center shadow-lg shadow-signal-orange/30 hover:scale-105 hover:shadow-signal-orange/50 transition-all duration-200 group relative"
             >
                 <span className="text-white font-black text-2xl italic tracking-tighter select-none">V</span>
@@ -23,7 +23,8 @@ export function Sidebar() {
 
             {/* Main Nav */}
             <nav className="glass-panel p-2 rounded-2xl flex flex-col gap-1 shadow-2xl">
-                <DockItem href="/feed" icon={Home} label="Actu" isActive={pathname === '/feed'} />
+                <DockItem href="/start" icon={Home} label="Espace" isActive={pathname === '/start'} />
+                <DockItem href="/feed" icon={Compass} label="Actu" isActive={pathname === '/feed'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
                 <DockItem href="/registry" icon={Search} label="Registre" isActive={pathname === '/registry'} />
                 <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />

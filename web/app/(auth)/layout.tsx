@@ -23,19 +23,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                         <span className="text-4xl font-black italic tracking-tighter text-white">VROOQ.</span>
                     </Link>
                     <h1 className="text-6xl font-black text-white italic uppercase tracking-tighter mb-6 leading-tight">
-                        Fuel Your <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Obsession.</span>
+                        Ta voiture. <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Ta communauté.</span>
                     </h1>
                     <p className="text-xl text-zinc-400 font-medium">
-                        Join the most exclusive network of automotive enthusiasts, builders, and collectors.
+                        VROOQ réunit les automobilistes et vendeurs de pièces au Maroc. Un seul compte pour ton garage et ta boutique.
                     </p>
                 </div>
 
                 <div className="relative z-10">
                     <div className="flex items-center gap-4 text-sm font-bold text-zinc-500">
-                        <span>© 2026 Vrooq Inc.</span>
-                        <Link href="/terms" className="hover:text-white transition-colors">Privacy</Link>
-                        <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+                        <span>© 2026 VROOQ Maroc</span>
+                        <Link href="/terms" className="hover:text-white transition-colors">Confidentialité</Link>
+                        <Link href="/terms" className="hover:text-white transition-colors">Conditions</Link>
                     </div>
                 </div>
             </div>

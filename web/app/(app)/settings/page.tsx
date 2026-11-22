@@ -27,8 +27,6 @@ export default function SettingsPage() {
     const [coverUrl, setCoverUrl] = useState('');
 
     // System Settings States
-    const [currency, setCurrency] = useState('USD');
-    const [unit, setUnit] = useState('mi');
 
     // Notifications Toggles
     const [revsAlert, setRevsAlert] = useState(true);
@@ -76,8 +74,6 @@ export default function SettingsPage() {
             setBio(profileData?.bio || 'Car enthusiast • Builder • Explorer');
             setAvatarUrl(profileData?.avatar_url || '');
             setCoverUrl(profileData?.cover_url || '');
-            setCurrency(profileData?.currency || 'USD');
-            setUnit(profileData?.measurement_unit || 'mi');
 
             // Notification local state
             const localAlertsKey = `user-alerts-${user.id}`;
@@ -118,23 +114,14 @@ export default function SettingsPage() {
             avatar_url: avatarUrl,
             cover_url: coverUrl,
             bio: bio.trim(),
-            currency,
-            measurement_unit: unit,
+            currency: 'MAD',
+            country_code: 'MA',
+            measurement_unit: 'km',
             updated_at: new Date().toISOString()
         };
 
-        // Save locally for offline-resilience
-        const localProfileKey = `user-profile-${user.id}`;
-        localStorage.setItem(localProfileKey, JSON.stringify(profileUpdate));
-
-        const localAlertsKey = `user-alerts-${user.id}`;
-        localStorage.setItem(localAlertsKey, JSON.stringify({
-            revs: revsAlert,
-            comments: commentsAlert,
-            convoys: convoysAlert
-        }));
-
-        // Try DB update
+        // The public.profiles table only supports username, full_name, avatar_url.
+        // Never send undeclared columns; never report a successful sync if SQL fails.
         try {
             const { error: dbError } = await supabase
                 .from('profiles')
@@ -142,30 +129,29 @@ export default function SettingsPage() {
                     username: cleanUsername,
                     full_name: fullName.trim(),
                     avatar_url: avatarUrl,
-                    cover_url: coverUrl,
-                    bio: bio.trim(),
-                    currency,
-                    measurement_unit: unit
                 })
                 .eq('id', user.id);
-
             if (dbError) throw dbError;
-        } catch (err: any) {
-            console.warn('[Settings] Failed to save profile to database, using local backup:', err.message);
-        }
 
-        setLoading(false);
-        setSuccess(true);
-
-        // Dispatch sync event
-        if (typeof window !== 'undefined') {
+            const localProfileKey = 'user-profile-' + user.id;
+            localStorage.setItem(localProfileKey, JSON.stringify({
+                ...profileUpdate,
+                country_code: 'MA',
+                currency: 'MAD',
+                measurement_unit: 'km',
+            }));
+            localStorage.setItem('user-alerts-' + user.id, JSON.stringify({
+                revs: revsAlert, comments: commentsAlert, convoys: convoysAlert,
+            }));
+            setSuccess(true);
             window.dispatchEvent(new Event('profile-updated'));
+        } catch (cause) {
+            console.warn('[Settings] Profile sync failed:', cause);
+            setError('Enregistrement impossible. Vérifie ta connexion puis réessaie.');
+        } finally {
+            setLoading(false);
         }
 
-        // Redirect back to profile page after 1.2 seconds
-        setTimeout(() => {
-            router.push('/profile');
-        }, 1200);
     };
 
     if (initialLoading) {
@@ -185,7 +171,7 @@ export default function SettingsPage() {
                         className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider rounded-xl shadow-xl backdrop-blur-md glow-orange-sm animate-pulse"
                     >
                         <Check className="h-4 w-4 text-emerald-400" />
-                        Driver telemetry synced successfully
+                        Informations enregistrées. Les préférences d’affichage sont locales à cet appareil.
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -310,29 +296,13 @@ export default function SettingsPage() {
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Currency preference</label>
-                                        <select
-                                            value={currency}
-                                            onChange={e => setCurrency(e.target.value)}
-                                            className="w-full px-3 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-signal-orange/40 font-semibold"
-                                        >
-                                            <option value="USD">USD ($) - US Dollar</option>
-                                            <option value="EUR">EUR (€) - Euros</option>
-                                            <option value="AED">AED (د.إ) - Dirhams</option>
-                                            <option value="GBP">GBP (£) - British Pounds</option>
-                                            <option value="JPY">JPY (¥) - Japanese Yen</option>
-                                        </select>
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Devise au Maroc</label>
+                                        <div className="rounded-xl border border-white/10 bg-[#0a0a0c] px-4 py-3 text-sm font-semibold text-white">MAD — Dirham marocain (DH)</div>
+                                        <p className="mt-2 text-xs leading-5 text-zinc-400">Les nouvelles annonces marocaines sont en MAD. Les anciennes annonces en devises étrangères conservent leur devise réelle ; aucun taux de change fictif n’est appliqué.</p>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Distance metrics</label>
-                                        <select
-                                            value={unit}
-                                            onChange={e => setUnit(e.target.value)}
-                                            className="w-full px-3 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-signal-orange/40 font-semibold"
-                                        >
-                                            <option value="mi">Miles (mi)</option>
-                                            <option value="km">Kilometers (km)</option>
-                                        </select>
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Distances au Maroc</label>
+                                        <div className="rounded-xl border border-white/10 bg-[#0a0a0c] px-4 py-3 text-sm font-semibold text-white">Kilomètres (km)</div>
                                     </div>
                                 </div>
                             </motion.div>

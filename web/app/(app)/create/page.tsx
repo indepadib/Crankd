@@ -362,7 +362,9 @@ function CreateFormContent() {
                 model,
                 year: parseInt(year),
                 price: parseFloat(price),
+                currency: 'MAD',
                 mileage: parseInt(mileage),
+                mileage_unit: 'km',
                 location,
                 description: richDescription,
                 images: [finalImg]
@@ -875,18 +877,18 @@ function CreateFormContent() {
 
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Price ($)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Prix (DH)</label>
                                 <input
                                     type="number"
                                     value={price}
                                     onChange={e => setPrice(e.target.value)}
                                     required
-                                    placeholder="85000"
+                                    placeholder="145000"
                                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Mileage (mi)</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Kilométrage (km)</label>
                                 <input
                                     type="number"
                                     value={mileage}
@@ -897,13 +899,13 @@ function CreateFormContent() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Location</label>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Ville (Maroc)</label>
                                 <input
                                     type="text"
                                     value={location}
                                     onChange={e => setLocation(e.target.value)}
                                     required
-                                    placeholder="Dubai, UAE"
+                                    placeholder="Casablanca, Maroc"
                                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none"
                                 />
                             </div>
