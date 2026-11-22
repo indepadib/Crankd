@@ -24,6 +24,7 @@ export function VrooqTV() {
     const [activeIdx, setActiveIdx] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
+    const [videoError, setVideoError] = useState(false);
 
     // Track user-liked status per video
     const [likedVideos, setLikedVideos] = useState<Record<string, boolean>>({});
@@ -117,17 +118,30 @@ export function VrooqTV() {
     }, [user?.id, videoStack.map(v => v.id).join(',')]);
 
     useEffect(() => {
-        // Autoplay whenever active index changes
-        if (videoRef.current) {
-            videoRef.current.load();
-            videoRef.current.play().then(() => {
-                setIsPlaying(true);
-            }).catch(() => {
-                setIsPlaying(false);
-            });
+        setVideoError(false);
+        const video = videoRef.current;
+        if (!video) return;
+        video.load();
+        const shouldAutoplay = !document.hidden && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (shouldAutoplay) {
+            void video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        } else {
+            video.pause();
+            setIsPlaying(false);
         }
         setShowComments(false);
     }, [activeIdx, videoStack]);
+
+    useEffect(() => {
+        const pauseWhenHidden = () => {
+            if (document.hidden) {
+                videoRef.current?.pause();
+                setIsPlaying(false);
+            }
+        };
+        document.addEventListener('visibilitychange', pauseWhenHidden);
+        return () => document.removeEventListener('visibilitychange', pauseWhenHidden);
+    }, []);
 
     useEffect(() => {
         if (!showComments || !activeVideo?.id) return;
@@ -164,8 +178,9 @@ export function VrooqTV() {
             setIsPlaying(false);
         } else {
             videoRef.current.play().then(() => {
+                setVideoError(false);
                 setIsPlaying(true);
-            });
+            }).catch(() => setIsPlaying(false));
         }
     };
 
@@ -300,12 +315,14 @@ export function VrooqTV() {
                             <video
                                 ref={videoRef}
                                 src={activeVideo.url}
-                                autoPlay
                                 loop
+                                preload="metadata"
+                                onError={() => { setVideoError(true); setIsPlaying(false); }}
                                 muted={isMuted}
                                 playsInline
                                 className="w-full h-full object-cover"
                             />
+                            {videoError && <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-zinc-950/90 p-6 text-center text-white"><p>Impossible de lire cette vidéo.</p><button type="button" className="rounded-xl border border-white/30 px-4 py-2" onClick={e => { e.stopPropagation(); setVideoError(false); videoRef.current?.load(); void videoRef.current?.play().then(() => setIsPlaying(true)).catch(() => setVideoError(true)); }}>Réessayer</button></div>}
                             {/* Cinematic shadow overlays */}
                             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85 pointer-events-none" />
                         </div>
