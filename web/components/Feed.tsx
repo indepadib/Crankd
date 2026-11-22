@@ -194,26 +194,23 @@ function FeedItem({
         if (!commentText.trim() || !user) return;
 
         const username = user.email ? `@${user.email.split('@')[0]}` : '@Enthusiast';
-        const newComment = {
-            id: `c-${Date.now()}`,
-            author: username,
-            text: commentText,
-            created_at: new Date().toISOString()
-        };
-
-        const updatedComments = [newComment, ...comments];
-        setComments(updatedComments);
-        localStorage.setItem(`comments-${post.id}`, JSON.stringify(updatedComments));
-
         try {
-            await supabase.from('post_comments').insert({
+            const { data, error } = await supabase.from('post_comments').insert({
                 post_id: post.id,
                 author_username: username.replace('@', ''),
-                comment_text: commentText
-            });
-        } catch (err) {}
-
-        setCommentText('');
+                comment_text: commentText.trim()
+            }).select('id,author_username,comment_text,created_at').single();
+            if (error || !data) throw error || new Error('Commentaire non confirmé');
+            setComments(prev => [{
+                id: data.id,
+                author: data.author_username.startsWith('@') ? data.author_username : '@' + data.author_username,
+                text: data.comment_text,
+                created_at: data.created_at
+            }, ...prev]);
+            setCommentText('');
+        } catch (err) {
+            alert('Le commentaire n’a pas été enregistré. Réessayez.');
+        }
     };
 
     const getImage = () => {
