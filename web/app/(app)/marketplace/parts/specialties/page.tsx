@@ -86,7 +86,7 @@ export default function SellerSpecialtiesPage(){
         </div>
         <label className="block text-sm font-semibold text-zinc-200">Marques prises en charge (facultatif)
           <textarea rows={3} className="mt-2 w-full rounded-xl border border-white/15 bg-[#242527] p-4 text-sm text-white outline-none focus:border-orange-500" value={brandText} onChange={e=>setBrandText(e.target.value)} placeholder="Ex. Toyota, Renault, Dacia, BMW"/></label>
-        <p className="text-xs leading-6 text-zinc-400"><strong>Champ vide :</strong> toutes les marques, y compris les imports. Une marque définie : les demandes doivent correspondre exactement à la marque saisie. Les devis sont saisis dans VROOQ ; l'envoi d'e-mails automatiques n'est pas encore activé.</p>
+        <p className="text-xs leading-6 text-zinc-400"><strong>Champ vide :</strong> toutes les marques, y compris les imports. Une marque définie : les demandes doivent correspondre exactement à la marque saisie. Les devis sont saisis dans VROOQ ; l’envoi d’e-mails automatiques n’est pas encore activé.</p>
         {message&&<p role="status" className="flex items-start gap-2 rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0"/>{message}</p>}
         {error&&<p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
         <div className="flex flex-wrap items-center gap-3">
