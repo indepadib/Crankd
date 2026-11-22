@@ -1,0 +1,105 @@
+import { PART_CATEGORIES } from '@/lib/parts';
+
+// VROOQ original buyer vocabulary, intentionally extensible. This is a
+// searchable parts REQUEST taxonomy, not an OEM fitment/compatibility catalogue.
+// Members may enter a missing imported/rare part manually.
+const pieces: Record<string,string[]> = {
+  moteur:[
+    'Moteur complet','Bloc moteur','Culasse','Joint de culasse','Carter d’huile',
+    'Piston','Segments moteur','Bielle','Vilebrequin','Arbre à cames',
+    'Courroie de distribution','Kit distribution','Chaîne de distribution','Tendeur de chaîne',
+    'Courroie accessoires','Galet tendeur','Pompe à eau','Pompe à huile',
+    'Turbo','Intercooler','Collecteur d’admission','Collecteur d’échappement',
+    'Boîtier papillon','Vanne EGR','Débitmètre d’air','Capteur pression turbo',
+    'Injecteur diesel','Injecteur essence','Rampe injection','Pompe haute pression',
+    'Pompe à carburant','Filtre à huile','Filtre à carburant','Filtre à air',
+    'Bougies allumage','Bougies préchauffage','Bobine allumage',
+    'Alternateur','Démarreur','Radiateur moteur','Ventilateur radiateur',
+    'Thermostat','Vase d’expansion','Durite refroidissement',
+    'Sonde lambda','Catalyseur','Filtre à particules FAP','Silencieux échappement',
+    'Support moteur','Compresseur climatisation','Batterie de traction hybride',
+  ],
+  transmission:[
+    'Boîte de vitesses manuelle','Boîte de vitesses automatique','Convertisseur de couple',
+    'Embrayage complet','Volant moteur bi-masse','Butée d’embrayage',
+    'Émetteur embrayage','Récepteur embrayage','Câble d’embrayage',
+    'Cardan avant droit','Cardan avant gauche','Cardan arrière droit','Cardan arrière gauche',
+    'Soufflet de cardan','Différentiel','Pont arrière','Arbre de transmission',
+    'Sélecteur boîte','Calculateur boîte automatique','Support de boîte',
+    'Kit vidange boîte automatique','Joints de boîte',
+  ],
+  carrosserie:[
+    'Pare-chocs avant','Pare-chocs arrière','Aile avant droite','Aile avant gauche',
+    'Aile arrière droite','Aile arrière gauche','Capot moteur','Hayon de coffre',
+    'Porte avant droite','Porte avant gauche','Porte arrière droite','Porte arrière gauche',
+    'Rétroviseur droit','Rétroviseur gauche','Coque rétroviseur',
+    'Pare-brise','Lunette arrière','Vitre latérale avant','Vitre latérale arrière',
+    'Lève-vitre avant','Lève-vitre arrière','Serrure de porte','Poignée de porte',
+    'Calandre','Grille pare-chocs','Renfort pare-chocs','Phare avant droit','Phare avant gauche',
+    'Feu arrière droit','Feu arrière gauche','Feu de jour LED',
+    'Antibrouillard','Clignotant','Traverse avant','Passage de roue','Baguette de porte',
+    'Jupe arrière','Jupe avant','Trappe carburant','Réservoir carburant',
+    'Essuie-glace arrière','Moteur essuie-glace','Bras essuie-glace',
+  ],
+  interieur:[
+    'Siège conducteur','Siège passager','Banquette arrière',
+    'Ceinture de sécurité','Boucle de ceinture','Airbag conducteur','Airbag passager',
+    'Planche de bord','Tableau de bord','Combiné d’instruments',
+    'Volant','Commodo clignotant','Commodo essuie-glace',
+    'Console centrale','Accoudoir central','Boîte à gants',
+    'Garniture de porte','Panneau de porte','Poignée intérieure',
+    'Levier de vitesses','Pédale accélérateur','Pédale embrayage','Pédale de frein',
+    'Tapis de sol','Moquette','Ciel de toit','Pare-soleil',
+    'Commande climatisation','Évaporateur climatisation','Pulseur habitacle',
+    'Radiateur de chauffage','Filtre habitacle','Moteur toit ouvrant',
+  ],
+  electricite:[
+    'Batterie 12V','Batterie hybride','Calculateur moteur ECU','Calculateur ABS','Calculateur airbag',
+    'Calculateur habitacle BSI','Boîte à fusibles','Faisceau électrique',
+    'Sonde de température','Capteur PMH','Capteur AAC','Capteur de pluie',
+    'Capteur de stationnement','Caméra de recul','Caméra avant',
+    'Alternateur','Démarreur','Lève-vitre électrique','Moteur de rétroviseur',
+    'Autoradio','Écran multimédia','GPS intégré','Haut-parleur',
+    'Chargeur embarqué électrique','Convertisseur DC/DC','Prise de recharge EV',
+    'Radar ADAS','Capteur angle mort','Module Bluetooth','Clé électronique',
+  ],
+  suspension:[
+    'Amortisseur avant droit','Amortisseur avant gauche','Amortisseur arrière droit','Amortisseur arrière gauche',
+    'Ressort de suspension avant','Ressort de suspension arrière',
+    'Coupelle amortisseur','Triangle de suspension droit','Triangle de suspension gauche',
+    'Rotule de suspension','Biellette barre stabilisatrice','Barre stabilisatrice',
+    'Silentbloc','Berceau moteur','Train avant complet','Train arrière complet',
+    'Crémaillère de direction','Pompe direction assistée','Colonne de direction',
+    'Biellette de direction','Rotule de direction',
+    'Moyeu de roue','Roulement de roue',
+    'Disque de frein avant','Disque de frein arrière',
+    'Plaquettes frein avant','Plaquettes frein arrière',
+    'Étrier frein avant droit','Étrier frein avant gauche','Étrier frein arrière',
+    'Maître-cylindre frein','Servo-frein','Flexible de frein','Capteur ABS',
+    'Câble frein à main','Bloc hydraulique ABS',
+  ],
+  roues:[
+    'Pneu été','Pneu hiver','Pneu 4 saisons','Pneu utilitaire',
+    'Jante alliage','Jante tôle','Enjoliveur plastique','Roue de secours',
+    'Valve TPMS','Capteur pression pneu TPMS','Écrou antivol','Kit réparation pneu',
+    'Boulon de roue','Cache-moyeu','Kit de chaînes neige',
+  ],
+  accessoires:[
+    'Barres de toit','Coffre de toit','Attelage remorque','Faisceau attelage',
+    'Autoradio adaptable','Dashcam','Caméra de recul adaptable',
+    'Capteurs de stationnement adaptables','Support téléphone','Chargeur USB',
+    'Tapis sur mesure','Housse siège','Couvre-volant','Pare-soleil',
+    'Éclairage LED intérieur','Ampoule H7','Ampoule H4','Ampoule D1S',
+    'Kit entretien','Compresseur gonflage','Cric voiture','Clé démonte-roue',
+    'Bac de coffre','Bavettes','Protection de seuil','Coques rétroviseur',
+  ],
+  autre:[
+    'Pièce de collection','Kit carrosserie','Pièce tuning','Pièce pour modèle importé',
+    'Pièce rare non référencée','Lot de pièces','Pièce à identifier sur photo',
+  ],
+};
+export const PART_REQUEST_TAXONOMY = PART_CATEGORIES.map(category=>({
+  ...category, types:(pieces[category.value]||[]).slice().sort((a,b)=>a.localeCompare(b,'fr')),
+}));
+export const totalPartTypes=PART_REQUEST_TAXONOMY.reduce((n,c)=>n+c.types.length,0);
+export const partTypes=(category:string)=>PART_REQUEST_TAXONOMY.find(c=>c.value===category)?.types||[];
