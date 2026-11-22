@@ -110,8 +110,8 @@ export default function PartsMarketplacePage() {
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">
             <Box className="h-4 w-4" /> VROOQ PARTS · MAROC
           </div>
-          <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">La bonne pièce.<br /><span className="text-orange-400">La bonne voiture.</span></h1>
-          <p className="max-w-xl text-sm leading-6 text-zinc-300 md:text-base">Pièces automobiles d’occasion entre passionnés : trouvez une référence compatible, vérifiez son état et demandez plusieurs devis si vous ne trouvez pas la pièce.</p>
+          <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">Cherchez votre pièce.<br /><span className="text-orange-400">Vérifiez sa compatibilité.</span></h1>
+          <p className="max-w-xl text-sm leading-6 text-zinc-300 md:text-base">Pièces automobiles neuves et d’occasion : recherchez une référence annoncée par un vendeur, vérifiez son état et demandez des devis si vous ne trouvez pas la pièce. La compatibilité doit être confirmée avant toute commande.</p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/marketplace/parts/request" className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black hover:bg-orange-400"><Search className="h-4 w-4"/> Demander une pièce / des devis</Link>
             <Link href="/marketplace/parts/requests" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white">Mes demandes de devis</Link>
