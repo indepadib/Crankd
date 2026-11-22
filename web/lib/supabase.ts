@@ -76,10 +76,22 @@ async function fetchWithExpiredJwtRecovery(
     input: RequestInfo | URL,
     init?: RequestInit
 ): Promise<Response> {
+    // Do not reconstruct Auth, Storage or multipart upload requests. Their
+    // Request bodies and streaming semantics must remain completely untouched.
+    const incomingUrl = input instanceof Request ? input.url : String(input);
+    let target: URL;
+    try {
+        target = new URL(incomingUrl);
+    } catch {
+        return fetch(input, init);
+    }
+    if (target.origin !== url || !target.pathname.startsWith('/rest/v1/')) {
+        return fetch(input, init);
+    }
+
     const request = new Request(input, init);
-    const requestUrl = new URL(request.url);
-    const isRest = requestUrl.origin === url &&
-        requestUrl.pathname.startsWith('/rest/v1/');
+    const requestUrl = target;
+    const isRest = true;
     const readOnlyRpc = request.method === 'POST' &&
         requestUrl.pathname === '/rest/v1/rpc/get_personalized_feed';
     const canReplay = request.method === 'GET' || request.method === 'HEAD' || readOnlyRpc;
