@@ -8,50 +8,6 @@ import { Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DetailModal } from '@/components/ui/DetailModal';
 
-// MOCK EVENTS (FALLBACK)
-const EVENTS = [
-    {
-        id: 'mock-1',
-        title: 'Friday Night Daikoku',
-        date: 'Oct 24',
-        time: '8:00 PM',
-        location: 'Daikoku PA',
-        image: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
-        attendees: 142,
-        type: 'meet' as const
-    },
-    {
-        id: 'mock-2',
-        title: 'Canyon Carving: Angels Crest',
-        date: 'Oct 25',
-        time: '6:30 AM',
-        location: 'Shell, La Cañada',
-        image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=2698&auto=format&fit=crop',
-        attendees: 12,
-        type: 'drive' as const
-    },
-    {
-        id: 'mock-3',
-        title: 'Track Day: Laguna Seca',
-        date: 'Nov 02',
-        time: '7:00 AM',
-        location: 'Laguna Seca Raceway',
-        image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2670&auto=format&fit=crop',
-        attendees: 45,
-        type: 'track' as const
-    },
-    {
-        id: 'mock-4',
-        title: 'Euro Sunday',
-        date: 'Oct 26',
-        time: '9:00 AM',
-        location: 'The Avenue',
-        image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2670&auto=format&fit=crop',
-        attendees: 88,
-        type: 'meet' as const
-    }
-];
-
 export default function ConvoysPage() {
     const router = useRouter();
     const [events, setEvents] = useState<any[]>([]);
@@ -79,8 +35,12 @@ export default function ConvoysPage() {
         }
 
         // Retrieve local posts
-        const savedLocal = localStorage.getItem('local-posts');
-        const localList = savedLocal ? JSON.parse(savedLocal) : [];
+        let localList: any[] = [];
+        try {
+            const savedLocal = localStorage.getItem('local-posts');
+            const parsedLocal = savedLocal ? JSON.parse(savedLocal) : [];
+            localList = Array.isArray(parsedLocal) ? parsedLocal : [];
+        } catch { /* Storage can be unavailable or malformed. */ }
         const localConvoys = localList.filter((p: any) => p.content_type === 'convoy');
 
         const combined = [
@@ -88,8 +48,7 @@ export default function ConvoysPage() {
             ...dbEvents
         ];
 
-        // If combined is empty, default to mock EVENTS
-        const toParse = combined.length > 0 ? combined : EVENTS;
+        const toParse = combined;
 
         const parsed = toParse.map(post => {
             // If it's already in the final event format (like mock events), return as is
@@ -145,7 +104,7 @@ export default function ConvoysPage() {
                 time: timeStr,
                 location: location,
                 image: post.image_url || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2670&auto=format&fit=crop',
-                attendees: post.like_count ? post.like_count + 1 : 8,
+                attendees: 0, // Likes are not RSVPs. Never invent participants.
                 type: type,
                 body: post.body,
                 author: post.profiles || post.author
@@ -180,7 +139,7 @@ export default function ConvoysPage() {
                         Convoys
                     </h1>
                     <p className="text-text-dim text-sm">
-                        Find meets, join drives, and track local activity.
+                        Découvrez les sorties et rassemblements réellement publiés par la communauté.
                     </p>
                 </div>
                 <button 
@@ -188,7 +147,7 @@ export default function ConvoysPage() {
                     className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2"
                 >
                     <Plus className="h-4 w-4" />
-                    Create Event
+                    Créer une sortie
                 </button>
             </div>
 
@@ -197,13 +156,15 @@ export default function ConvoysPage() {
                 {/* LEFT: Event List (Scrollable) */}
                 <div className="lg:col-span-1 flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-4 px-1">
-                        <h3 className="font-bold text-white uppercase tracking-wider text-sm">Nearby Events</h3>
-                        <button className="text-xs text-signal-orange font-bold hover:text-orange-400">View All</button>
+                        <h3 className="font-bold text-white uppercase tracking-wider text-sm">Événements publiés</h3>
+
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                         {loading ? (
-                            <div className="py-20 text-center text-zinc-500 font-bold">Pinging satellites...</div>
+                            <div className="py-20 text-center text-zinc-500 font-bold">Chargement des événements…</div>
+                        ) : events.length === 0 ? (
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm text-zinc-300">Aucun convoi publié pour le moment. Proposez la première sortie à la communauté.</div>
                         ) : (
                             events.map(event => (
                                 <EventCard 
