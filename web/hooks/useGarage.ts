@@ -9,8 +9,6 @@ export interface Vehicle {
     model: string;
     year: number;
     image_url?: string;
-    health_score?: number; // Not in DB yet, mock it or simple calc
-    mods?: string[]; // Not in DB yet
     owner_id: string;
 }
 
@@ -45,15 +43,7 @@ export function useGarage(userId?: string) {
 
             if (error) throw error;
 
-            if (data) {
-                // Enrich data with mock props if missing from DB schema v1
-                const enrichedData = data.map(v => ({
-                    ...v,
-                    health_score: 98, // Mock default
-                    mods: ['Stock'],  // Mock default
-                }));
-                setVehicles(enrichedData as Vehicle[]);
-            }
+            setVehicles((data || []) as Vehicle[]);
         } catch (err: unknown) {
             console.error('Error fetching garage:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch garage');
@@ -66,7 +56,7 @@ export function useGarage(userId?: string) {
         fetchGarage();
     }, [fetchGarage]);
 
-    const addVehicle = async (vehicle: Omit<Vehicle, 'id' | 'owner_id' | 'health_score' | 'mods'>) => {
+    const addVehicle = async (vehicle: Omit<Vehicle, 'id' | 'owner_id'>) => {
         if (!userId) throw new Error('User not logged in');
 
         try {
