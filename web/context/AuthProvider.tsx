@@ -93,10 +93,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const recoveryInFlight = useRef<Promise<void> | null>(null);
     const profileSyncUser = useRef<string | null>(null);
+    const hadUserSession = useRef(false);
 
     const syncState = useCallback((fresh: Session | null) => {
         // A cached expired access token must NEVER be treated as an authenticated session.
         const valid = fresh && !requiresRefresh(fresh) ? fresh : null;
+        if (valid) hadUserSession.current = true;
         setSession(valid);
         setUser(valid?.user ?? null);
     }, []);
@@ -120,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (requiresRefresh(fresh)) throw new Error('La session ne peut pas être renouvelée.');
 
                 syncState(fresh);
-                setAuthError(null);
+                setAuthError(!fresh && hadUserSession.current ? 'Ta session a expiré. Reconnecte-toi pour continuer.' : null);
             } catch (cause) {
                 console.warn('[Auth] Session renewal failed:', cause);
                 // Do not revoke tokens on a transient network/Auth service outage.
@@ -160,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!mounted) return;
             if (event === 'SIGNED_OUT') {
                 profileSyncUser.current = null;
+                hadUserSession.current = false;
                 syncState(null);
                 setAuthError(null);
             } else if (nextSession && !requiresRefresh(nextSession)) {
@@ -208,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             syncState(null);
             profileSyncUser.current = null;
+            hadUserSession.current = false;
             router.push('/login');
         }
     };
