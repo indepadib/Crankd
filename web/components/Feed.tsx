@@ -48,6 +48,7 @@ function FeedItem({
     
     // States
     const [liked, setLiked] = useState(false);
+    const [likePending, setLikePending] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [flames, setFlames] = useState<{ id: number; x: number; y: number }[]>([]);
     const [showDoubleTapFlame, setShowDoubleTapFlame] = useState(false);
@@ -58,6 +59,21 @@ function FeedItem({
 
     const startTime = useRef<number>(0);
     const lastTap = useRef<number>(0);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLiked(false);
+        setLikeCount(post.like_count || 0);
+        const loadLike = async () => {
+            if (!user?.id) return;
+            const { data, error } = await supabase.from('post_interactions')
+                .select('id').eq('post_id', post.id).eq('user_id', user.id)
+                .eq('interaction_type', 'like').limit(1);
+            if (!cancelled && !error) setLiked(Boolean(data?.length));
+        };
+        void loadLike();
+        return () => { cancelled = true; };
+    }, [post.id, post.like_count, user?.id]);
 
     // Load RSVPs & Comments
     useEffect(() => {
@@ -79,22 +95,35 @@ function FeedItem({
         loadPostComments();
     }, [post.id, post.content_type, user]);
 
-    const handleLike = (e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        if (!liked) {
-            setLiked(true);
-            setLikeCount(prev => prev + 1);
-            // Trigger flying flame particles
-            const newFlames = Array.from({ length: 6 }).map((_, i) => ({
-                id: Date.now() + i,
-                x: Math.random() * 80 - 40,
-                y: -Math.random() * 80 - 40
-            }));
-            setFlames(newFlames);
-            setTimeout(() => setFlames([]), 1000);
-        } else {
-            setLiked(false);
-            setLikeCount(prev => prev - 1);
+    const handleLike = async (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        if (likePending) return;
+        if (!user?.id) {
+            alert('Connecte-toi pour aimer cette publication.');
+            return;
+        }
+        setLikePending(true);
+        try {
+            if (liked) {
+                const { error } = await supabase.from('post_interactions').delete()
+                    .eq('post_id', post.id).eq('user_id', user.id).eq('interaction_type', 'like');
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('post_interactions').insert({
+                    post_id: post.id, user_id: user.id, interaction_type: 'like'
+                });
+                if (error) throw error;
+            }
+            // Mutation succeeded: do not tell the user it failed if the counter refresh fails.
+            setLiked(!liked);
+            const { data: updated, error: refreshError } = await supabase.from('posts')
+                .select('like_count').eq('id', post.id).single();
+            if (!refreshError && updated) setLikeCount(updated.like_count ?? 0);
+            else setLikeCount(current => Math.max(0, current + (liked ? -1 : 1)));
+        } catch {
+            alert('Like non enregistré. Réessaie.');
+        } finally {
+            setLikePending(false);
         }
     };
 
@@ -104,10 +133,7 @@ function FeedItem({
         const DOUBLE_PRESS_DELAY = 300;
         if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
             // Trigger Double-Tap Rev
-            if (!liked) {
-                setLiked(true);
-                setLikeCount(prev => prev + 1);
-            }
+            if (!liked) void handleLike();
             // Trigger flame animation
             const newFlames = Array.from({ length: 12 }).map((_, i) => ({
                 id: Date.now() + i,
@@ -136,11 +162,13 @@ function FeedItem({
         e.preventDefault();
         if (!commentText.trim() || !user) return;
 
-        const username = user.email ? `@${user.email.split('@')[0]}` : '@Enthusiast';
         try {
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+            if (profileError || !profile?.username) throw new Error('Profil introuvable');
             const { data, error } = await supabase.from('post_comments').insert({
                 post_id: post.id,
-                author_username: username.replace('@', ''),
+                author_id: user.id,
+                author_username: profile.username,
                 comment_text: commentText.trim()
             }).select('id,author_username,comment_text,created_at').single();
             if (error || !data) throw error || new Error('Commentaire non confirmé');
@@ -282,7 +310,10 @@ function FeedItem({
 
                         {post.content_type !== 'convoy' && (
                             <div className="flex items-center gap-6 pt-2">
-                                <button onClick={handleLike} className="flex items-center gap-2 action-button text-white/50 hover:text-signal-orange transition-colors">
+                                <button onClick={handleLike}
+                                    disabled={likePending}
+                                    aria-pressed={liked}
+                                    aria-label={liked ? 'Retirer le like' : 'Aimer la publication'} className="flex items-center gap-2 action-button text-white/50 hover:text-signal-orange transition-colors">
                                     <Heart className={clsx("h-5 w-5", liked && "fill-signal-orange text-signal-orange")} />
                                     <span className="text-xs font-mono font-bold">{likeCount}</span>
                                 </button>
@@ -520,6 +551,9 @@ function FeedItem({
             <div className="p-4 border-t border-white/5 flex items-center gap-6 bg-white/[0.01]">
                 <button
                     onClick={handleLike}
+                                    disabled={likePending}
+                                    aria-pressed={liked}
+                                    aria-label={liked ? 'Retirer le like' : 'Aimer la publication'}
                     className="flex items-center gap-2 group/btn relative action-button text-white/50 hover:text-signal-orange transition-colors"
                 >
                     <motion.div

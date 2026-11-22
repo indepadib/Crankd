@@ -99,16 +99,27 @@ export function VrooqTV() {
     }, []);
 
     useEffect(() => {
-        if (videoStack.length === 0) return;
-        const likedState: Record<string, boolean> = {};
-        videoStack.forEach(v => {
-            const saved = localStorage.getItem(`liked-${v.id}`);
-            if (saved === 'true') {
-                likedState[v.id] = true;
+        if (!user?.id || videoStack.length === 0) {
+            setLikedVideos({});
+            return;
+        }
+        let cancelled = false;
+        const loadLikes = async () => {
+            const { data, error } = await supabase.from('post_interactions')
+                .select('post_id')
+                .eq('user_id', user.id)
+                .eq('interaction_type', 'like')
+                .in('post_id', videoStack.map(v => v.id));
+            if (cancelled) return;
+            if (error) {
+                console.warn('Could not load saved likes:', error.message);
+                return;
             }
-        });
-        setLikedVideos(likedState);
-    }, [videoStack]);
+            setLikedVideos(Object.fromEntries((data || []).map(row => [row.post_id, true])));
+        };
+        void loadLikes();
+        return () => { cancelled = true; };
+    }, [user?.id, videoStack.map(v => v.id).join(',')]);
 
     useEffect(() => {
         // Autoplay whenever active index changes
@@ -183,33 +194,45 @@ export function VrooqTV() {
         }
     };
 
-    const handleLike = () => {
-        if (!activeVideo) return;
-        const id = activeVideo.id;
-        const isCurrentlyLiked = likedVideos[id];
+    const [likePending, setLikePending] = useState(false);
 
-        setLikedVideos(prev => ({
-            ...prev,
-            [id]: !isCurrentlyLiked
-        }));
-
-        if (!isCurrentlyLiked) {
-            setLikeExplosion(true);
-            setTimeout(() => setLikeExplosion(false), 800);
+    const handleLike = async () => {
+        if (!activeVideo || likePending) return;
+        if (!user?.id) {
+            alert('Connecte-toi pour aimer cette vidéo.');
+            return;
         }
-
-        // Persist liked status locally
-        localStorage.setItem(`liked-${id}`, (!isCurrentlyLiked).toString());
-
-        setVideoStack(prev => prev.map(v => {
-            if (v.id === id) {
-                return {
-                    ...v,
-                    likes: isCurrentlyLiked ? Math.max(0, v.likes - 1) : v.likes + 1
-                };
+        const id = activeVideo.id;
+        const wasLiked = Boolean(likedVideos[id]);
+        setLikePending(true);
+        try {
+            if (wasLiked) {
+                const { error } = await supabase.from('post_interactions')
+                    .delete().eq('post_id', id).eq('user_id', user.id)
+                    .eq('interaction_type', 'like');
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('post_interactions')
+                    .insert({ post_id: id, user_id: user.id, interaction_type: 'like' });
+                if (error) throw error;
             }
-            return v;
-        }));
+            setLikedVideos(prev => ({ ...prev, [id]: !wasLiked }));
+            if (!wasLiked) {
+                setLikeExplosion(true);
+                setTimeout(() => setLikeExplosion(false), 800);
+            }
+            const { data: refreshed } = await supabase.from('posts')
+                .select('like_count').eq('id', id).single();
+            if (refreshed) {
+                setVideoStack(prev => prev.map(v => v.id === id
+                    ? { ...v, likes: refreshed.like_count ?? v.likes } : v));
+            }
+        } catch (err) {
+            console.error('Like could not be saved:', err);
+            alert('Le like n’a pas été enregistré. Réessaie.');
+        } finally {
+            setLikePending(false);
+        }
     };
 
     const getCommentsList = () => {
@@ -225,11 +248,17 @@ export function VrooqTV() {
 
     const handleSendComment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!commentInput.trim() || !activeVideo || !user?.email) return;
+        if (!commentInput.trim() || !activeVideo || !user) return;
         const text = commentInput.trim();
+        const { data: profile, error: profileError } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+        if (profileError || !profile?.username) {
+            alert('Impossible de vérifier ton profil. Réessaie.');
+            return;
+        }
         const { data, error } = await supabase.from('post_comments').insert({
             post_id: activeVideo.id,
-            author_username: user.email.split('@')[0],
+            author_id: user.id,
+            author_username: profile.username,
             comment_text: text
         }).select('id,author_username,comment_text,created_at').single();
         if (error || !data) {
@@ -384,7 +413,10 @@ export function VrooqTV() {
                             <div className="flex flex-col items-center gap-4 pointer-events-auto shrink-0 pl-1">
                                 <div className="flex flex-col items-center">
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleLike(); }}
+                                        disabled={likePending}
+                                        aria-label={likedVideos[activeVideo?.id] ? 'Retirer le like' : 'Aimer cette vidéo'}
+                                        aria-pressed={Boolean(likedVideos[activeVideo?.id])}
                                         className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                     >
                                         <Heart className={`h-4.5 w-4.5 transition-colors ${likedVideos[activeVideo?.id] ? 'text-signal-orange fill-signal-orange' : 'text-white'}`} />
