@@ -99,16 +99,27 @@ export function VrooqTV() {
     }, []);
 
     useEffect(() => {
-        if (videoStack.length === 0) return;
-        const likedState: Record<string, boolean> = {};
-        videoStack.forEach(v => {
-            const saved = localStorage.getItem(`liked-${v.id}`);
-            if (saved === 'true') {
-                likedState[v.id] = true;
+        if (!user?.id || videoStack.length === 0) {
+            setLikedVideos({});
+            return;
+        }
+        let cancelled = false;
+        const loadLikes = async () => {
+            const { data, error } = await supabase.from('post_interactions')
+                .select('post_id')
+                .eq('user_id', user.id)
+                .eq('interaction_type', 'like')
+                .in('post_id', videoStack.map(v => v.id));
+            if (cancelled) return;
+            if (error) {
+                console.warn('Could not load saved likes:', error.message);
+                return;
             }
-        });
-        setLikedVideos(likedState);
-    }, [videoStack]);
+            setLikedVideos(Object.fromEntries((data || []).map(row => [row.post_id, true])));
+        };
+        void loadLikes();
+        return () => { cancelled = true; };
+    }, [user?.id, videoStack.map(v => v.id).join(',')]);
 
     useEffect(() => {
         // Autoplay whenever active index changes
@@ -183,33 +194,45 @@ export function VrooqTV() {
         }
     };
 
-    const handleLike = () => {
-        if (!activeVideo) return;
-        const id = activeVideo.id;
-        const isCurrentlyLiked = likedVideos[id];
+    const [likePending, setLikePending] = useState(false);
 
-        setLikedVideos(prev => ({
-            ...prev,
-            [id]: !isCurrentlyLiked
-        }));
-
-        if (!isCurrentlyLiked) {
-            setLikeExplosion(true);
-            setTimeout(() => setLikeExplosion(false), 800);
+    const handleLike = async () => {
+        if (!activeVideo || likePending) return;
+        if (!user?.id) {
+            alert('Connecte-toi pour aimer cette vidéo.');
+            return;
         }
-
-        // Persist liked status locally
-        localStorage.setItem(`liked-${id}`, (!isCurrentlyLiked).toString());
-
-        setVideoStack(prev => prev.map(v => {
-            if (v.id === id) {
-                return {
-                    ...v,
-                    likes: isCurrentlyLiked ? Math.max(0, v.likes - 1) : v.likes + 1
-                };
+        const id = activeVideo.id;
+        const wasLiked = Boolean(likedVideos[id]);
+        setLikePending(true);
+        try {
+            if (wasLiked) {
+                const { error } = await supabase.from('post_interactions')
+                    .delete().eq('post_id', id).eq('user_id', user.id)
+                    .eq('interaction_type', 'like');
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('post_interactions')
+                    .insert({ post_id: id, user_id: user.id, interaction_type: 'like' });
+                if (error) throw error;
             }
-            return v;
-        }));
+            setLikedVideos(prev => ({ ...prev, [id]: !wasLiked }));
+            if (!wasLiked) {
+                setLikeExplosion(true);
+                setTimeout(() => setLikeExplosion(false), 800);
+            }
+            const { data: refreshed } = await supabase.from('posts')
+                .select('like_count').eq('id', id).single();
+            if (refreshed) {
+                setVideoStack(prev => prev.map(v => v.id === id
+                    ? { ...v, likes: refreshed.like_count ?? v.likes } : v));
+            }
+        } catch (err) {
+            console.error('Like could not be saved:', err);
+            alert('Le like n’a pas été enregistré. Réessaie.');
+        } finally {
+            setLikePending(false);
+        }
     };
 
     const getCommentsList = () => {
