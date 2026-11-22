@@ -23,6 +23,8 @@ export default function SellerRFQInbox(){
   const [saving,setSaving]=useState<string|null>(null);
   const [openQuote,setOpenQuote]=useState<string|null>(null);
   const [refetch,setRefetch]=useState(0);
+  const [onlyUnquoted,setOnlyUnquoted]=useState(true);
+  const [search,setSearch]=useState('');
   useEffect(()=>{
     if(!user||!session?.access_token||authError)return;
     let mounted=true;
@@ -50,6 +52,11 @@ export default function SellerRFQInbox(){
     return()=>{mounted=false;};
   },[user,session?.access_token,authError,refetch]);
   const quoted=useMemo(()=>new Set(sent.map(q=>q.request_id)),[sent]);
+  const visibleRequests=useMemo(()=>requests.filter(request=>{
+    if(onlyUnquoted&&quoted.has(request.id))return false;
+    const needle=search.trim().toLocaleLowerCase();
+    return !needle||[request.make,request.model,request.part_name,request.oem_reference||'',request.buyer_city].some(value=>value.toLocaleLowerCase().includes(needle));
+  }),[requests,quoted,onlyUnquoted,search]);
   async function sendQuote(event:FormEvent<HTMLFormElement>,requestId:string){
     event.preventDefault();
     if(!user||!shop||saving||quoted.has(requestId))return;
@@ -102,12 +109,13 @@ export default function SellerRFQInbox(){
       <Link href="/marketplace/parts/specialties" className="mt-4 inline-flex rounded-xl bg-orange-500 px-4 py-3 font-bold text-black">Définir mes catégories</Link>
     </div>:<>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-zinc-400">{requests.length} demande(s) ouvertes visibles · {sent.length} devis envoyé(s)</p>
+        <p className="text-xs text-zinc-400">{visibleRequests.length} demande(s) affichée(s) sur {requests.length} accessibles · {sent.length} devis envoyé(s)</p>
         <button onClick={()=>{setLoaded(false);setRefetch(v=>v+1);}} type="button" className="inline-flex items-center gap-2 text-xs font-bold text-zinc-300 hover:text-white"><RefreshCw className="h-4 w-4"/> Actualiser</button>
       </div>
+      <div className="flex flex-wrap items-center gap-3"><input aria-label="Rechercher une demande" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Marque, modèle, pièce, référence OEM, ville…" className="min-w-[220px] flex-1 rounded-xl border border-white/15 bg-[#242527] px-4 py-3 text-sm text-white placeholder:text-zinc-500"/><label className="flex items-center gap-2 text-xs text-zinc-300"><input type="checkbox" checked={onlyUnquoted} onChange={e=>setOnlyUnquoted(e.target.checked)} className="accent-orange-500"/> À traiter uniquement</label></div>
       {error&&<p role="alert" className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</p>}
-      {requests.length===0?<div className="rounded-3xl border border-dashed border-white/10 p-10 text-center text-sm text-zinc-400"><ClipboardList className="mx-auto mb-3 h-10 w-10 text-orange-400"/> Aucune demande ouverte ne correspond actuellement à tes spécialités.</div>:
-      <div className="space-y-4">{requests.map(request=>{
+      {visibleRequests.length===0?<div className="rounded-3xl border border-dashed border-white/10 p-10 text-center text-sm text-zinc-400"><ClipboardList className="mx-auto mb-3 h-10 w-10 text-orange-400"/> {requests.length===0?'Aucune demande ouverte ne correspond actuellement à tes spécialités.':'Aucune demande avec ces filtres. Désactive « À traiter uniquement » pour revoir les devis envoyés.'}</div>:
+      <div className="space-y-4">{visibleRequests.map(request=>{
         const already=quoted.has(request.id);
         return <article key={request.id} className="space-y-4 rounded-3xl border border-white/10 bg-[#1b1c1e] p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
