@@ -293,7 +293,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                             href={`/vehicle/${parsedDetails.vehicleId || data.vehicle_id || data.vehicle?.id}`}
                                             className="w-full py-3.5 bg-signal-orange/10 border border-signal-orange/30 hover:bg-signal-orange hover:text-white text-signal-orange text-xs font-mono font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
                                         >
-                                            <Shield className="h-4 w-4" /> View Certified Provenance Ledger
+                                            <Shield className="h-4 w-4" /> Voir la fiche du véhicule (données déclarées)
                                         </a>
                                     </div>
                                 )}
@@ -475,7 +475,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                         <div className="pt-8 border-t border-white/5 space-y-6">
                             <div className="flex items-center gap-2 text-white font-bold text-lg">
                                 <MessageCircle className="h-5 w-5 text-signal-orange" />
-                                Comments ({comments.length})
+                                Commentaires ({comments.length})
                             </div>
 
                             {/* Comment Input */}
@@ -484,7 +484,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     type="text"
                                     value={commentText}
                                     onChange={e => setCommentText(e.target.value)}
-                                    placeholder="Write a comment..."
+                                    placeholder="Écris un commentaire…"
                                     className="flex-1 px-4 py-3 bg-white/2 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 transition-all font-semibold"
                                     required
                                 />
@@ -497,6 +497,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                 </button>
                             </form>
 
+                            {commentError && <p role="alert" className="text-xs text-amber-200">{commentError}</p>}
                             {/* Comments List */}
                             <div className="space-y-4 pt-2">
                                 {comments.map((comment) => (
