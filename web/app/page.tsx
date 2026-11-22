@@ -142,23 +142,23 @@ export default function Home() {
                         <div className="lg:col-span-8 space-y-6">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/5 bg-white/5 text-zinc-400 text-xs font-mono">
                                 <Sparkles className="w-3 h-3 text-signal-orange animate-pulse" />
-                                <span>VROOQ PROTOCOL v1.0 LIVE</span>
+                                <span>VROOQ Maroc · Bêta ouverte</span>
                             </div>
                             <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.85] text-white">
-                                DRIVE YOUR<br />
-                                DREAM TODAY<span className="text-signal-orange">.</span>
+                                TON GARAGE.<br />
+                                TES PIÈCES.<span className="text-signal-orange">.</span>
                             </h1>
                         </div>
 
                         {/* Specs Widgets (Top Right) */}
                         <div className="lg:col-span-4 flex justify-start lg:justify-end gap-12 border-l lg:border-l border-white/5 lg:pl-12 py-2">
                             <div>
-                                <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Max Output</span>
-                                <span className="text-3xl md:text-4xl font-black tracking-tight text-white italic">640 HP</span>
+                                <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Devise locale</span>
+                                <span className="text-3xl md:text-4xl font-black tracking-tight text-white italic">MAD</span>
                             </div>
                             <div>
-                                <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Enthusiasts</span>
-                                <span className="text-3xl md:text-4xl font-black tracking-tight text-white italic">95K+</span>
+                                <span className="block text-zinc-500 text-[10px] font-mono uppercase tracking-widest mb-1">Marché pilote</span>
+                                <span className="text-3xl md:text-4xl font-black tracking-tight text-white italic">Maroc</span>
                             </div>
                         </div>
                     </div>
@@ -177,7 +177,7 @@ export default function Home() {
                                 href="/signup"
                                 className="px-6 py-3.5 bg-signal-orange hover:bg-orange-600 text-white font-bold rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-orange-600/30 hover:scale-105 active:scale-98 flex items-center gap-2"
                             >
-                                Get Started <ArrowRight className="h-4 w-4" />
+                                Créer mon compte <ArrowRight className="h-4 w-4" />
                             </Link>
                         </div>
                     </div>
@@ -185,7 +185,7 @@ export default function Home() {
                     {/* Onboarding Username Form */}
                     <div className="max-w-xl mx-auto border-t border-white/5 pt-8">
                         <p className="text-center text-xs text-zinc-400 font-medium mb-4">
-                            Claim your digital builder alias to catalog your machine and start tracking builds:
+                            Un seul compte pour ta voiture, tes clubs et, si tu le souhaites, ta boutique de pièces :
                         </p>
                         <form 
                             onSubmit={handleClaimUsername}
@@ -220,12 +220,12 @@ export default function Home() {
                     {/* Left: Headline & Sourcing Info */}
                     <div className="lg:col-span-5 rounded-[32px] bg-[#111113] border border-white/5 p-8 flex flex-col justify-between space-y-8">
                         <div className="space-y-4">
-                            <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest">ABOUT US</span>
+                            <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest">NOTRE MISSION</span>
                             <h2 className="text-3xl font-black uppercase italic tracking-tight leading-none text-white">
-                                BUILT FOR THOSE WHO CHOOSE DIFFERENTLY.
+                                LA VOITURE, PLUS SIMPLE AU MAROC.
                             </h2>
                             <p className="text-zinc-400 text-sm leading-relaxed">
-                                Vrooq is the specialized ledger for automotive enthusiasts. We connect detailed service logs, dyno verified modifications, and GPS convoys directly to chassis records.
+                                VROOQ rassemble ton garage personnel, des annonces réelles de pièces automobiles et une communauté de passionnés. Les caractéristiques et correspondances de pièces restent déclaratives pendant la phase pilote.
                             </p>
                         </div>
 
@@ -233,10 +233,10 @@ export default function Home() {
                         <div className="border-t border-white/5 pt-6 space-y-2">
                             <div className="flex items-center gap-2 text-white font-bold text-sm">
                                 <span className="h-2 w-2 rounded-full bg-signal-orange animate-pulse" />
-                                GLOBAL SOURCING
+                                COMMENCER AU MAROC
                             </div>
                             <p className="text-xs text-zinc-500">
-                                Connect and source hard-to-find components from trusted builders in Germany, Japan, UAE, and the UK.
+                                Notre priorité : des vendeurs locaux, des prix en dirhams et des véhicules enregistrés avec leurs informations techniques marocaines.
                             </p>
                         </div>
                     </div>
@@ -275,18 +275,18 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* ── 3. INTERACTIVE SHOWCASE ("BROWSE WHAT JUST LANDED") ── */}
+            {/* ── 3. INTERACTIVE SHOWCASE ("DÉCOUVREZ NOS UNIVERS AUTO") ── */}
             <section className="relative z-10 py-12 max-w-7xl mx-auto px-6 w-full">
                 <div className="rounded-[40px] bg-[#111113] border border-white/5 p-8 md:p-12">
                     <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
-                            <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest block mb-2">INVENTORY SELECTOR</span>
+                            <span className="text-signal-orange text-[10px] font-mono uppercase tracking-widest block mb-2">INSPIRATION AUTO</span>
                             <h2 className="text-4xl font-black uppercase italic tracking-tight leading-none text-white">
-                                BROWSE WHAT JUST LANDED<span className="text-signal-orange">.</span>
+                                DÉCOUVREZ NOS UNIVERS AUTO<span className="text-signal-orange">.</span>
                             </h2>
                         </div>
                         <p className="text-zinc-500 text-sm max-w-xs">
-                            Active high-fidelity custom listings freshly cataloged on our marketplace.
+                            Ces images sont des inspirations automobiles, pas des annonces disponibles à l’achat.
                         </p>
                     </div>
 
@@ -453,12 +453,12 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="text-center md:text-left space-y-1">
                         <h3 className="text-xl font-black tracking-tighter text-white uppercase italic">VROOQ<span className="text-signal-orange">.</span></h3>
-                        <p className="text-zinc-500 text-[11px]">© 2026 Vrooq Inc. Built with absolute passion for automotive culture.</p>
+                        <p className="text-zinc-500 text-[11px]">© 2026 VROOQ Maroc · Bêta automobile.</p>
                     </div>
                     <div className="flex gap-6 text-xs font-bold text-zinc-500">
-                        <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>
-                        <Link href="/signup" className="hover:text-white transition-colors">Register</Link>
-                        <Link href="/feed" className="text-signal-orange hover:text-orange-400 transition-colors">Launch App</Link>
+                        <Link href="/login" className="hover:text-white transition-colors">Se connecter</Link>
+                        <Link href="/signup" className="hover:text-white transition-colors">S’inscrire</Link>
+                        <Link href="/start" className="text-signal-orange hover:text-orange-400 transition-colors">Mon espace</Link>
                     </div>
                 </div>
             </footer>
