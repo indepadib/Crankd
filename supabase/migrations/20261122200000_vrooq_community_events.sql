@@ -24,3 +24,5 @@ grant select,insert,delete on public.vrooq_tribes,public.vrooq_tribe_members,pub
 grant select,insert,update on public.vrooq_events to authenticated;
 
 create policy rsvps_change on public.vrooq_event_rsvps for update to authenticated using (user_id=(select auth.uid())) with check (user_id=(select auth.uid()) and exists (select 1 from public.vrooq_events e where e.id=event_id and e.status='published' and e.starts_at>now())); grant update on public.vrooq_event_rsvps to authenticated;
+
+revoke insert,update,delete on public.vrooq_events,public.vrooq_tribes,public.vrooq_tribe_members,public.vrooq_event_rsvps from anon,public; grant select on public.vrooq_events,public.vrooq_tribes to anon; grant select,insert,delete on public.vrooq_tribes,public.vrooq_tribe_members,public.vrooq_event_rsvps to authenticated; grant select,insert,update on public.vrooq_events to authenticated; grant update on public.vrooq_event_rsvps to authenticated;
