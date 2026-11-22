@@ -30,6 +30,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { VrooqTV } from './VrooqTV';
 import { usePreferences } from '@/hooks/usePreferences';
+import { PollCard } from './PollCard';
 
 function FeedItem({ 
     post, 
@@ -286,6 +287,7 @@ function FeedItem({
                                 </h3>
                             )}
                             {bodyText && <p className="text-white/70 text-sm line-clamp-2">{bodyText}</p>}
+                            {post.content_type === 'poll' && <PollCard postId={post.id} />}
                         </div>
 
                         {post.content_type === 'maintenance_log' && post.log && (
@@ -407,6 +409,7 @@ function FeedItem({
                     </h3>
                 )}
                 {bodyText && <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{bodyText}</p>}
+                {post.content_type === "poll" && <PollCard postId={post.id} />}
             </div>
 
             {/* 2.3 Media Upload with double tap to rev */}
@@ -803,6 +806,7 @@ export function Feed() {
                     )}
                 </div>
             )}
+            <div className="mb-6 flex flex-wrap gap-3"><Link href="/create?type=post" className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-black">+ Publication</Link><Link href="/polls/new" className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-5 py-3 text-sm font-bold text-orange-300">+ Sondage</Link></div>
             {/* Content Switcher */}
             {view === 'following' ? (
                 <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
