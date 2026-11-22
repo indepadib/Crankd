@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthProvider';
 
 // Only database-confirmed posts belong in the shared feed.
 // Older versions wrote to localStorage after a failed publish and seeded fake posts.
 // We report unpublished local drafts separately, never as public community content.
 export function useFeed(userId?: string) {
+    const { session, loading: authLoading, recovering } = useAuth();
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [unpublishedCount, setUnpublishedCount] = useState(0);
 
     const fetchFeed = useCallback(async () => {
+        if (authLoading || recovering) return;
         setLoading(true);
         setError(null);
 
@@ -50,7 +53,7 @@ export function useFeed(userId?: string) {
         } finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, [userId, authLoading, recovering, session?.access_token]);
 
     useEffect(() => { void fetchFeed(); }, [fetchFeed]);
 
