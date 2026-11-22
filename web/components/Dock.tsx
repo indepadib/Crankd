@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Car, ShoppingBag, User } from 'lucide-react';
+import { Compass, Car, ShoppingBag, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QuickCreateMenu } from '@/components/QuickCreateMenu';
@@ -14,7 +14,7 @@ export function Dock() {
             <div className="absolute inset-0 bg-carbon/80 backdrop-blur-xl border-t border-white/5" />
 
             <div className="relative flex items-center justify-around px-4 py-2 pb-safe">
-                <DockItem href="/start" icon={Home} label="Espace" isActive={pathname === '/start'} />
+                <DockItem href="/feed" icon={Compass} label="Fil" isActive={pathname === '/feed'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
 
                 {/* Central action opens explicit options instead of a generic form. */}

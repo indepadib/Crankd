@@ -32,7 +32,7 @@ export default function LoginPage() {
                 setError(error.message);
                 setLoading(false);
             } else {
-                router.replace('/start');
+                router.replace('/feed');
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred.');

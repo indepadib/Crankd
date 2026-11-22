@@ -23,8 +23,8 @@ export function Sidebar() {
 
             {/* Main Nav */}
             <nav className="glass-panel p-2 rounded-2xl flex flex-col gap-1 shadow-2xl">
-                <DockItem href="/start" icon={Home} label="Espace" isActive={pathname === '/start'} />
-                <DockItem href="/feed" icon={Compass} label="Actu" isActive={pathname === '/feed'} />
+                <DockItem href="/feed" icon={Home} label="Fil d’actualité" isActive={pathname === '/feed'} />
+                <DockItem href="/start" icon={Compass} label="Mon espace" isActive={pathname === '/start'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
                 <DockItem href="/registry" icon={Search} label="Registre" isActive={pathname === '/registry'} />
                 <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />
