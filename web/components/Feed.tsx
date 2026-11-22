@@ -162,11 +162,13 @@ function FeedItem({
         e.preventDefault();
         if (!commentText.trim() || !user) return;
 
-        const username = user.email ? `@${user.email.split('@')[0]}` : '@Enthusiast';
         try {
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+            if (profileError || !profile?.username) throw new Error('Profil introuvable');
             const { data, error } = await supabase.from('post_comments').insert({
                 post_id: post.id,
-                author_username: username.replace('@', ''),
+                author_id: user.id,
+                author_username: profile.username,
                 comment_text: commentText.trim()
             }).select('id,author_username,comment_text,created_at').single();
             if (error || !data) throw error || new Error('Commentaire non confirmé');
