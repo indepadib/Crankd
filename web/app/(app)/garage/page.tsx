@@ -197,7 +197,7 @@ export default function GaragePage() {
                 </div>
                 <div className="mt-5 rounded-2xl border border-orange-500/20 bg-orange-500/[0.055] p-4 sm:p-5">
                   <h3 className="text-sm font-bold text-white">Fiabiliser les informations de cette voiture</h3>
-                  <p className="mt-1 text-xs leading-5 text-zinc-400">Informations déclarées par le propriétaire, non vérifiées par VROOQ. Les détails suivants réduisent le risque d’erreur lors d'une recherche de pièces.</p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">Informations déclarées par le propriétaire, non vérifiées par VROOQ. Les détails suivants réduisent le risque d’erreur lors d’une recherche de pièces.</p>
                   <ul className="mt-3 space-y-2 text-sm">
                     <li className={specs?.fuel_type?'text-emerald-300':'text-amber-200'}>{specs?.fuel_type?'✓':'○'} Carburant {specs?.fuel_type?'renseigné':'à compléter'}</li>
                     <li className={specs?.engine_description?'text-emerald-300':'text-amber-200'}>{specs?.engine_description?'✓':'○'} Motorisation {specs?.engine_description?'renseignée':'à compléter'}</li>
