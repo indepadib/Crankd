@@ -57,7 +57,7 @@ export default function ConvoysPage() {
             }
 
             // Parse body to retrieve meeting location and description
-            let location = 'Local Meet';
+            let location = 'Lieu à confirmer';
             if (post.body && post.body.startsWith('Location: ')) {
                 const parts = post.body.split('. Description: ');
                 if (parts.length >= 2) {
@@ -71,7 +71,7 @@ export default function ConvoysPage() {
             } else if (post.body && post.body.startsWith('{')) {
                 try {
                     const parsedJson = JSON.parse(post.body);
-                    location = parsedJson.location || 'Local Meet';
+                    location = parsedJson.location || 'Lieu à confirmer';
                 } catch (e) {
                     location = 'Local Meet';
                 }
@@ -90,12 +90,10 @@ export default function ConvoysPage() {
                 type = 'meet';
             }
 
-            // Format created_at date
-            const createdDate = new Date(post.created_at || Date.now());
-            const month = createdDate.toLocaleString('default', { month: 'short' });
-            const day = createdDate.getDate();
-            const dateStr = `${month} ${day}`;
-            const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // A post's publication timestamp is not the event schedule.
+            // Do not present it as the convoy's date or departure time.
+            const dateStr = 'Date à confirmer';
+            const timeStr = 'Heure à confirmer';
 
             return {
                 id: post.id,
