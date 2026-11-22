@@ -65,6 +65,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
             }
+            // Private contact details are never copied into public.profiles.
+            // When email verification is required, this runs at the first successful login.
+            const meta = currentUser.user_metadata || {};
+            const firstName = typeof meta.first_name === 'string' ? meta.first_name.trim() : '';
+            const lastName = typeof meta.last_name === 'string' ? meta.last_name.trim() : '';
+            const contactPhone = typeof meta.contact_phone === 'string' ? meta.contact_phone.trim() : '';
+            const city = typeof meta.city === 'string' ? meta.city.trim() : '';
+            const intent = ['buy','sell','explore'].includes(meta.account_intent) ? meta.account_intent : 'explore';
+            if (firstName.length >= 2 && lastName.length >= 2 && contactPhone.length >= 9 && city.length >= 2) {
+                const { error: memberError } = await supabase.from('member_details').upsert({
+                    user_id: currentUser.id,
+                    first_name: firstName,
+                    last_name: lastName,
+                    contact_phone: contactPhone,
+                    city,
+                    account_intent: intent,
+                    marketing_opt_in: meta.marketing_opt_in === true,
+                }, { onConflict: 'user_id', ignoreDuplicates: true });
+                if (memberError) console.warn('[Auth] Member details sync failed:', memberError.code);
+            }
         } catch (e) {
             console.warn('[Auth] Auto profile creation failed:', e);
         }

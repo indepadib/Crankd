@@ -27,12 +27,13 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 setError(error.message);
                 setLoading(false);
             } else {
-                router.push('/feed');
+                const intent = data.user?.user_metadata?.account_intent;
+                router.replace(intent === 'sell' ? '/marketplace/parts/sell' : intent === 'buy' ? '/marketplace/parts' : '/feed');
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred.');

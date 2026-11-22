@@ -6,7 +6,7 @@ import { CalendarDays, CarFront, FilePlus2, PackagePlus, Plus, X } from 'lucide-
 
 const ACTIONS = [
     { title: 'Vendre une pièce', detail: 'Publier une pièce d’occasion', href: '/marketplace/parts/new', icon: PackagePlus },
-    { title: 'Ajouter ma voiture', detail: 'Compléter mon garage', href: '/garage', icon: CarFront },
+    { title: 'Ajouter ma voiture', detail: 'Compléter mon garage', href: '/garage/add', icon: CarFront },
     { title: 'Partager une publication', detail: 'Photo, projet ou actualité auto', href: '/create?type=post', icon: FilePlus2 },
     { title: 'Vendre un véhicule', detail: 'Déposer une annonce voiture', href: '/create?type=listing', icon: CarFront },
     { title: 'Organiser une sortie', detail: 'Créer un événement automobile', href: '/create?type=event', icon: CalendarDays },

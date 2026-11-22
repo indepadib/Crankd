@@ -12,6 +12,12 @@ function SignupFormContent() {
     const searchParams = useSearchParams();
     
     const [username, setUsername] = useState(() => searchParams.get('username')?.replace(/\s+/g, '') || '');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
+    const [city, setCity] = useState('');
+    const [accountIntent, setAccountIntent] = useState<'buy' | 'sell' | 'explore'>('explore');
+    const [marketingConsent, setMarketingConsent] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +33,14 @@ function SignupFormContent() {
             return;
         }
 
+        if (firstName.trim().length < 2 || lastName.trim().length < 2 || city.trim().length < 2 || contactPhone.trim().length < 9) {
+            setError('Complète ton prénom, ton nom, ton téléphone et ta ville.');
+            return;
+        }
+        if (password.length < 8) {
+            setError('Utilise un mot de passe d’au moins 8 caractères.');
+            return;
+        }
         setLoading(true);
         setError(null);
 
@@ -38,7 +52,13 @@ function SignupFormContent() {
                     emailRedirectTo: `${window.location.origin}/login`,
                     data: { 
                         username, 
-                        full_name: username 
+                        full_name: username,
+                        first_name: firstName.trim(),
+                        last_name: lastName.trim(),
+                        contact_phone: contactPhone.trim(),
+                        city: city.trim(),
+                        account_intent: accountIntent,
+                        marketing_opt_in: marketingConsent 
                     }
                 }
             });
@@ -48,7 +68,7 @@ function SignupFormContent() {
                 setLoading(false);
             } else {
                 if (data.session) {
-                    router.replace('/feed');
+                    router.replace(accountIntent === 'sell' ? '/marketplace/parts/sell' : accountIntent === 'buy' ? '/marketplace/parts' : '/feed');
                 } else {
                     setSuccess(true);
                 }
@@ -98,6 +118,37 @@ function SignupFormContent() {
             )}
 
             <form onSubmit={handleSignup} className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-semibold text-zinc-300">Prénom *
+                        <input className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500" value={firstName} onChange={e=>setFirstName(e.target.value)} autoComplete="given-name" minLength={2} maxLength={70} required placeholder="Prénom"/>
+                    </label>
+                    <label className="text-xs font-semibold text-zinc-300">Nom *
+                        <input className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500" value={lastName} onChange={e=>setLastName(e.target.value)} autoComplete="family-name" minLength={2} maxLength={70} required placeholder="Nom"/>
+                    </label>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-semibold text-zinc-300">Téléphone *
+                        <input className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500" type="tel" value={contactPhone} onChange={e=>setContactPhone(e.target.value)} autoComplete="tel" minLength={9} maxLength={20} required placeholder="+212 6…"/>
+                    </label>
+                    <label className="text-xs font-semibold text-zinc-300">Ville *
+                        <input className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500" value={city} onChange={e=>setCity(e.target.value)} autoComplete="address-level2" minLength={2} maxLength={100} required placeholder="Casablanca"/>
+                    </label>
+                </div>
+                <fieldset className="space-y-2">
+                    <legend className="text-xs font-semibold text-zinc-300">Ton objectif sur VROOQ</legend>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                        {([
+                            ['buy', 'Acheter des pièces'],
+                            ['sell', 'Vendre des pièces'],
+                            ['explore', 'Communauté auto']
+                        ] as const).map(([value,label])=>(
+                            <label key={value} className={"flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-3 text-xs font-bold " + (accountIntent===value?"border-orange-500 bg-orange-500/10 text-white":"border-white/10 text-zinc-300")}>
+                                <input type="radio" name="account_intent" checked={accountIntent===value} onChange={()=>setAccountIntent(value)} className="accent-orange-500"/>{label}
+                            </label>
+                        ))}
+                    </div>
+                    {accountIntent==='sell' && <p className="text-xs leading-5 text-orange-200">Après inscription, tu pourras activer gratuitement ta boutique. La vérification vendeur est distincte.</p>}
+                </fieldset>
                 {/* Username */}
                 <div className="space-y-1.5">
                     <label htmlFor="signup-username" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pseudo</label>
@@ -146,8 +197,8 @@ function SignupFormContent() {
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
-                            minLength={6}
-                            placeholder="Min. 6 characters"
+                            minLength={8}
+                            placeholder="Au moins 8 caractères"
                             className="w-full pl-11 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted text-sm focus:outline-none focus:border-signal-orange/40 focus:bg-white/10 transition-all font-semibold"
                         />
                         <button
@@ -161,6 +212,11 @@ function SignupFormContent() {
                     </div>
                 </div>
 
+                <label className="flex items-start gap-3 text-xs leading-5 text-zinc-400">
+                    <input type="checkbox" checked={marketingConsent} onChange={e=>setMarketingConsent(e.target.checked)} className="mt-0.5 accent-orange-500"/>
+                    Je souhaite recevoir des actualités et offres VROOQ. Ce choix est facultatif.
+                </label>
+                <p className="text-[11px] leading-5 text-zinc-500">Ton prénom, nom, téléphone et ville sont réservés à la gestion de ton compte. Ton pseudo est public. Tu pourras choisir de rejoindre des clubs automobile après avoir ajouté ta voiture.</p>
                 {error && (
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold leading-relaxed">
                         {error}
