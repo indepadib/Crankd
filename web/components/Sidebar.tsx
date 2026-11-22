@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, Car, ShoppingBag, Users, User, Settings, Plus, MapPin, Search } from 'lucide-react';
+import { Home, Compass, Car, ShoppingBag, Users, User, Settings, Plus, MapPin, Search, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 
 export function Sidebar() {
@@ -26,6 +26,7 @@ export function Sidebar() {
                 <DockItem href="/feed" icon={Home} label="Fil d’actualité" isActive={pathname === '/feed'} />
                 <DockItem href="/start" icon={Compass} label="Mon espace" isActive={pathname === '/start'} />
                 <DockItem href="/garage" icon={Car} label="Garage" isActive={pathname === '/garage'} />
+                <DockItem href="/voitures-neuves" icon={BadgeCheck} label="Voitures neuves" isActive={pathname.startsWith("/voitures-neuves")} />
                 <DockItem href="/registry" icon={Search} label="Registre" isActive={pathname === '/registry'} />
                 <DockItem href="/marketplace" icon={ShoppingBag} label="Marché" isActive={pathname.startsWith('/marketplace')} />
                 <DockItem href="/communities" icon={Users} label="Clubs" isActive={pathname.startsWith('/communities')} />
