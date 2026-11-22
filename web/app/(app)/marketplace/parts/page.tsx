@@ -135,7 +135,7 @@ export default function PartsMarketplacePage() {
           <input className={field} aria-label="Ville" placeholder="Ville (Casablanca…)" value={city} onChange={(e) => setCity(e.target.value)} />
           <select aria-label="Filtrer par voiture de mon garage" className={field} disabled={!user || !garageVehicles.length} value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}><option value="">{garageVehicles.length ? "Mon garage : toutes" : "Mon garage : vide"}</option>{garageVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.year}</option>)}</select>
         </div>
-        <p className="text-xs text-zinc-500">Correspondance indicative avec les données déclarées par le vendeur. Le filtre tient compte du carburant et du code moteur lorsqu'ils sont renseignés des deux côtés. Confirme toujours la référence OEM avant tout achat.</p>
+        <p className="text-xs text-zinc-500">Correspondance indicative avec les données déclarées par le vendeur. Le filtre tient compte du carburant et du code moteur lorsqu’ils sont renseignés des deux côtés. Confirme toujours la référence OEM avant tout achat.</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-zinc-400">{loading ? 'Chargement…' : error ? 'Catalogue indisponible' : filtered.length + ' pièce(s) trouvée(s)'}</p>
           <select aria-label="Trier les résultats" className="rounded-lg border border-white/10 bg-[#202020] px-3 py-2 text-xs text-white" value={sort} onChange={(e) => setSort(e.target.value)}>
