@@ -1,6 +1,17 @@
 -- Staging-first dependency for PR #56. Requires private interaction policies (#54).
 -- Existing database audit: no trigger or unique constraint on post_interactions.
 begin;
+-- Fail clearly if historic duplicate likes exist; never silently delete user data.
+do $
+begin
+  if exists (
+    select 1 from public.post_interactions
+    where interaction_type = 'like'
+    group by user_id, post_id having count(*) > 1
+  ) then
+    raise exception 'Duplicate likes detected: reconcile in staging before creating unique index';
+  end if;
+end $;
 create unique index if not exists post_interactions_unique_like
   on public.post_interactions (user_id, post_id)
   where interaction_type = 'like';
@@ -10,6 +21,7 @@ create policy "Users delete own interactions"
   on public.post_interactions for delete to authenticated
   using ((select auth.uid()) = user_id);
 
+-- Trigger privilege review: security definer must be owned by a trusted DB role.
 create or replace function public.sync_post_like_count()
 returns trigger language plpgsql security definer set search_path = ''
 as $$
