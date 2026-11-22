@@ -100,6 +100,7 @@ create table if not exists public.part_quotes (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references public.part_requests(id) on delete cascade,
   seller_id uuid not null references public.part_sellers(seller_id),
+  shop_name text not null check (char_length(trim(shop_name)) between 3 and 100),
   price_mad integer not null check (price_mad>=10 and price_mad<=10000000),
   shipping_fee_mad integer check (shipping_fee_mad between 0 and 100000),
   availability_days integer not null default 2 check (availability_days between 0 and 45),
@@ -123,6 +124,7 @@ create policy "quotes_read_buyer_or_seller" on public.part_quotes for select to 
 create policy "quotes_send_matching_seller" on public.part_quotes for insert to authenticated
   with check (
     seller_id=(select auth.uid()) and quote_status='sent'
+    and shop_name=(select shop_name from public.part_sellers where seller_id=(select auth.uid()))
     and exists (
       select 1 from public.part_requests r
       join public.part_seller_specialties spec on spec.category=r.category
