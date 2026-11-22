@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, Store, Target } from 'lucide-react';
 import { useAuth } from '@/context/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { PART_CATEGORIES } from '@/lib/parts';
+import { PART_CATEGORIES, readableError } from '@/lib/parts';
 
 type Spec={seller_id:string;category:string;brands:string[]};
 export default function SellerSpecialtiesPage(){
@@ -58,9 +58,21 @@ export default function SellerSpecialtiesPage(){
         const {error:removeError}=await supabase.from('part_seller_specialties').delete().eq('seller_id',user.id).in('category',removed);
         if(removeError)throw removeError;
       }
-      setLoadedSpecs(rows);
-      setMessage('Spécialités enregistrées. Les nouvelles demandes correspondant à tes catégories seront visibles dans ta boîte à devis.');
-    }catch(cause){setError(cause instanceof Error?cause.message:'Enregistrement non confirmé.');}
+      // A successful write response alone is not proof of persistence. Read back
+      // the authoritative state before displaying a success confirmation.
+      const {data:verified,error:verifyError}=await supabase.from('part_seller_specialties')
+        .select('seller_id,category,brands').eq('seller_id',user.id);
+      if(verifyError)throw verifyError;
+      const actual=(verified||[]) as Spec[];
+      const expectedCategories=[...selected].sort();
+      const actualCategories=actual.map(item=>item.category).sort();
+      const expectedBrands=[...brands].sort();
+      const persisted=JSON.stringify(expectedCategories)===JSON.stringify(actualCategories) &&
+        actual.every(item=>JSON.stringify([...(item.brands||[])].sort())===JSON.stringify(expectedBrands));
+      if(!persisted)throw new Error('Les catégories enregistrées ne correspondent pas à ta sélection. Actualise la page avant de réessayer.');
+      setLoadedSpecs(actual);
+      setMessage('Spécialités enregistrées et vérifiées. Les nouvelles demandes correspondant à tes catégories seront visibles dans ta boîte à devis.');
+    }catch(cause){setError('Enregistrement non confirmé : '+readableError(cause));}
     finally{setSaving(false);}
   }
 
