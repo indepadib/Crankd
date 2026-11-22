@@ -197,52 +197,28 @@ export function VrooqTV() {
 
     const handleSendComment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!commentInput.trim() || !activeVideo) return;
-
-        const id = activeVideo.id;
-        const currentEmail = user?.email;
-        if (!currentEmail) return;
-        const currentUsername = `@${currentEmail.split('@')[0]}`;
-        const newComment = {
-            id: `c-${Date.now()}`,
-            username: currentUsername,
-            text: commentInput.trim(),
-            created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        const currentComments = getCommentsList();
-        const updatedComments = [newComment, ...currentComments];
-
+        if (!commentInput.trim() || !activeVideo || !user?.email) return;
+        const text = commentInput.trim();
+        const { data, error } = await supabase.from('post_comments').insert({
+            post_id: activeVideo.id,
+            author_username: user.email.split('@')[0],
+            comment_text: text
+        }).select('id,author_username,comment_text,created_at').single();
+        if (error || !data) {
+            alert('Le commentaire n’a pas été enregistré. Réessaie.');
+            return;
+        }
         setVideoComments(prev => ({
             ...prev,
-            [id]: updatedComments
+            [activeVideo.id]: [{
+                id: data.id,
+                username: '@' + data.author_username.replace(/^@/, ''),
+                text: data.comment_text,
+                created_at: data.created_at
+            }, ...(prev[activeVideo.id] || [])]
         }));
-
-        localStorage.setItem(`comments-${id}`, JSON.stringify(updatedComments));
-
-        // Sync comment to Supabase
-        if (!id.startsWith('r-')) {
-            try {
-                await supabase.from('post_comments').insert({
-                    post_id: id,
-                    author_username: currentUsername,
-                    comment_text: commentInput.trim()
-                });
-            } catch (err) {
-                console.warn('Failed to insert comment:', err);
-            }
-        }
-
-        setVideoStack(prev => prev.map(v => {
-            if (v.id === id) {
-                return {
-                    ...v,
-                    comments: v.comments + 1
-                };
-            }
-            return v;
-        }));
-
+        setVideoStack(prev => prev.map(v => v.id === activeVideo.id
+            ? { ...v, comments: v.comments + 1 } : v));
         setCommentInput('');
     };
 
