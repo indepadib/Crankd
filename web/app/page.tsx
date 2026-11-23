@@ -26,12 +26,6 @@ const INVENTORY = [
         make: 'BMW',
         model: 'M4 Competition',
         year: 2024,
-        price: 96000,
-        mileage: 1200,
-        hp: 503,
-        torque: '650 Nm',
-        topSpeed: '290 km/h',
-        location: 'Munich, DE',
         image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
         desc: 'Twin-turbo inline-6 precision builder with track-ready cooling and active M differential.',
         type: 'track' as const,
@@ -43,12 +37,6 @@ const INVENTORY = [
         make: 'Ferrari',
         model: 'Roma Spider',
         year: 2024,
-        price: 272000,
-        mileage: 350,
-        hp: 612,
-        torque: '760 Nm',
-        topSpeed: '320 km/h',
-        location: 'Maranello, IT',
         image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80',
         desc: 'Timeless open-top elegance. Handcrafted twin-turbo V8 delivering sensory perfection.',
         type: 'meet' as const,
@@ -60,12 +48,6 @@ const INVENTORY = [
         make: 'Porsche',
         model: '911 Turbo S',
         year: 2023,
-        price: 230000,
-        mileage: 2400,
-        hp: 640,
-        torque: '800 Nm',
-        topSpeed: '330 km/h',
-        location: 'Stuttgart, DE',
         image: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&q=80',
         desc: 'The benchmark for supercar execution. Twin-turbo flat-six, active aero, and rear-wheel steer.',
         type: 'track' as const,
@@ -77,12 +59,6 @@ const INVENTORY = [
         make: 'Mercedes-Benz',
         model: 'AMG GT R',
         year: 2021,
-        price: 185000,
-        mileage: 6800,
-        hp: 577,
-        torque: '700 Nm',
-        topSpeed: '318 km/h',
-        location: 'Affalterbach, DE',
         image: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&q=80',
         desc: 'Race-bred aerodynamics and coilover suspension setup developed on the Green Hell.',
         type: 'drive' as const,
@@ -244,21 +220,12 @@ export default function Home() {
                     {/* Right: Technical Specs Showcase */}
                     <div className="lg:col-span-7 rounded-[32px] bg-[#111113] border border-white/5 p-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                         <div className="md:col-span-6 space-y-6">
-                            <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest block">Performance Blueprint</span>
-                            
+                            <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest block">Parcours VROOQ</span>
                             <div className="space-y-4">
-                                <div className="border-b border-white/5 pb-3 flex justify-between items-end">
-                                    <span className="text-xs text-zinc-400 font-medium">Top Speed Target</span>
-                                    <span className="text-lg font-black text-white font-mono italic">320 km/h</span>
-                                </div>
-                                <div className="border-b border-white/5 pb-3 flex justify-between items-end">
-                                    <span className="text-xs text-zinc-400 font-medium">Torque Target</span>
-                                    <span className="text-lg font-black text-white font-mono italic">800 Nm</span>
-                                </div>
-                                <div className="border-b border-white/5 pb-3 flex justify-between items-end">
-                                    <span className="text-xs text-zinc-400 font-medium">Displacement</span>
-                                    <span className="text-lg font-black text-white font-mono italic">3,745 cc</span>
-                                </div>
+                                <p className="text-sm text-zinc-300">Découvre la communauté, crée ton garage et explore les pièces proposées par de vrais utilisateurs.</p>
+                                <Link href="/start" className="inline-flex items-center gap-2 text-sm font-bold text-orange-400 hover:text-orange-300">
+                                    Explorer VROOQ <ArrowRight className="h-4 w-4" />
+                                </Link>
                             </div>
                         </div>
 
@@ -372,28 +339,17 @@ export default function Home() {
                                                 </p>
                                             </div>
                                             <Link 
-                                                href={`/marketplace`}
+                                                href="/marketplace"
+                                                aria-label="Explorer les annonces réelles de la marketplace"
                                                 className="p-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
                                             >
                                                 <ArrowUpRight className="h-4 w-4" />
                                             </Link>
                                         </div>
 
-                                        {/* Stats Row */}
-                                        <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4">
-                                            <div className="bg-white/2 p-3.5 rounded-xl border border-white/5">
-                                                <span className="block text-zinc-500 text-[9px] font-mono uppercase tracking-widest mb-1">Power Output</span>
-                                                <span className="text-base font-black text-white italic">{activeCar.hp} HP</span>
-                                            </div>
-                                            <div className="bg-white/2 p-3.5 rounded-xl border border-white/5">
-                                                <span className="block text-zinc-500 text-[9px] font-mono uppercase tracking-widest mb-1">Torque Specs</span>
-                                                <span className="text-base font-black text-white italic">{activeCar.torque}</span>
-                                            </div>
-                                            <div className="bg-white/2 p-3.5 rounded-xl border border-white/5">
-                                                <span className="block text-zinc-500 text-[9px] font-mono uppercase tracking-widest mb-1">Top Velocity</span>
-                                                <span className="text-base font-black text-white italic">{activeCar.topSpeed}</span>
-                                            </div>
-                                        </div>
+                                        <p className="border-t border-white/10 pt-4 text-xs leading-6 text-zinc-400">
+                                            Illustration éditoriale uniquement. Aucun véhicule présenté ici n’est une annonce ni une offre vérifiée.
+                                        </p>
                                     </div>
                                 </motion.div>
                             </AnimatePresence>
@@ -433,7 +389,7 @@ export default function Home() {
             {/* ── 5. BRAND PARTNERS LOGOS ── */}
             <section className="relative z-10 py-12 max-w-7xl mx-auto px-6 w-full text-center">
                 <span className="text-zinc-600 text-[10px] font-mono uppercase tracking-widest block mb-8">
-                    THE BRANDS PEOPLE ACTUALLY DREAM ABOUT — ALL IN ONE PLACE
+                    MARQUES CITÉES À TITRE D’INSPIRATION — AUCUN PARTENARIAT REVENDIQUÉ
                 </span>
                 
                 <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6">
