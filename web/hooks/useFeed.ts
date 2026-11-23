@@ -70,14 +70,17 @@ export function useFeed(userId?: string) {
     useEffect(() => { void fetchFeed(); }, [fetchFeed]);
 
     const logView = useCallback(async (postId: string, durationSeconds: number) => {
-        if (!userId || durationSeconds < 1 || postId.startsWith('local-')) return;
+        if (!userId || !Number.isFinite(durationSeconds) || durationSeconds < 1 || postId.startsWith('local-')) return;
         try {
-            await supabase.from('post_interactions').insert({
+            const { error: interactionError } = await supabase.from('post_interactions').insert({
                 post_id: postId,
                 user_id: userId,
                 interaction_type: 'view',
-                duration_seconds: durationSeconds,
+                duration_seconds: Math.min(Math.floor(durationSeconds), 3600),
             });
+            if (interactionError) {
+                console.warn('[VROOQ Feed] View event rejected:', interactionError.code);
+            }
         } catch {
             // Noncritical event logging must not block reading the feed.
         }
