@@ -19,7 +19,7 @@ export default function NewCarsPage() {
   type VerifiedVersion={id:string;name:string;model_year:number|null;engine:string|null;gearbox:string|null;fuel:string|null;price_mad:number|null;price_type:string|null;source_url:string|null;verified_at:string|null;new_car_models:{name:string;segment:string|null;new_car_brands:{name:string}}};
   const [verified,setVerified]=useState<VerifiedVersion[]>([]);
   const [catalogError,setCatalogError]=useState(false);
-  useEffect(()=>{let active=true;void (async()=>{const {data,error}=await supabase.from('new_car_versions').select('id,name,model_year,engine,gearbox,fuel,price_mad,price_type,source_url,verified_at,new_car_models!inner(name,segment,new_car_brands!inner(name))').order('verified_at',{ascending:false}).limit(500);if(!active)return;if(error){setCatalogError(true);return;}setVerified((data||[]) as unknown as VerifiedVersion[]);})();return()=>{active=false};},[]);
+  useEffect(()=>{let active=true;void (async()=>{const {data,error}=await supabase.from('new_car_versions').select('id,name,model_year,engine,gearbox,fuel,price_mad,price_type,source_url,verified_at,new_car_models!inner(name,segment,new_car_brands!inner(name))').not('source_url','is',null).not('verified_at','is',null).order('verified_at',{ascending:false}).limit(500);if(!active)return;if(error){setCatalogError(true);return;}setVerified((data||[]) as unknown as VerifiedVersion[]);})();return()=>{active=false};},[]);
   const [search,setSearch]=useState('');
   const [segment,setSegment]=useState('Tous');
   const [selected,setSelected]=useState<string[]>([]);
