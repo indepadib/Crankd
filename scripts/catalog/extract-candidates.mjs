@@ -20,4 +20,4 @@ for(const brand of index){
  }
 }
 await writeFile('catalog-extraction-review.json',JSON.stringify(out,null,2));
-console.log(JSON.stringify(out.map(x=>({brand:x.brand,url:x.url,status:x.status,records:x.records?.length,diagnostics:x.diagnostics,error:x.error})),null,2));
+console.log(JSON.stringify(out.map(x=>({brand:x.brand,url:x.url,status:x.status,records:x.records?.length,diagnostics:x.diagnostics,error:x.error,review:x.brand==='Toyota'?x.records?.map(r=>({name:r.name,model:r.model,offers:r.offers,vehicleEngine:r.vehicleEngine,fuelType:r.fuelType,vehicleTransmission:r.vehicleTransmission})):undefined})),null,2));
