@@ -2,7 +2,7 @@ name: Catalog source discovery
 on:
   pull_request:
     paths:
-      - 'scripts/catalog/discover-sources.mjs'
+      - 'scripts/catalog/**'
       - '.github/workflows/catalog-discovery.yml'
   workflow_dispatch:
 permissions:
@@ -10,14 +10,17 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: node scripts/catalog/discover-sources.mjs catalog-sources-report.json
+      - run: node scripts/catalog/index-sitemaps.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: catalog-sources-report
-          path: catalog-sources-report.json
+          path: |
+            catalog-sources-report.json
+            catalog-page-index.json
