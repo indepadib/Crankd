@@ -20,6 +20,7 @@ jobs:
       - run: node scripts/catalog/index-sitemaps.mjs
       - run: node scripts/catalog/extract-candidates.mjs
       - run: node scripts/catalog/normalize-toyota.mjs
+      - run: node scripts/catalog/normalize-all.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: catalog-sources-report
@@ -28,3 +29,4 @@ jobs:
             catalog-page-index.json
             catalog-extraction-review.json
             catalog-toyota-review.json
+            catalog-all-brands-review.json
