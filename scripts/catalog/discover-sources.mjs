@@ -1,6 +1,6 @@
 // Discover public catalog links; no bypass of access controls.
 import {writeFile} from 'node:fs/promises';
-const sources=[['Dacia','https://www.dacia.ma/'],['Renault','https://www.renault.ma/'],['Toyota','https://www.toyota.co.ma/'],['Peugeot','https://www.peugeot.ma/'],['Volkswagen','https://www.volkswagen.ma/']];
+const sources=[['Dacia','https://www.dacia.ma/'],['Renault','https://www.renault.ma/'],['Toyota','https://www.toyota.co.ma/'],['Peugeot','https://www.peugeot.ma/'],['Volkswagen','https://www.volkswagen.ma/'],["Hyundai","https://www.hyundai.ma/"],["Kia","https://www.kia.ma/"],["Citroën","https://www.citroen.ma/"],["Opel","https://www.opel.ma/"],["Fiat","https://www.fiat.ma/"],["Jeep","https://www.jeep.ma/"],["Škoda","https://www.skoda.ma/"],["Seat","https://www.seat.ma/"],["Cupra","https://www.cupra.ma/"],["BMW","https://www.bmw.ma/"],["Mercedes-Benz","https://www.mercedes-benz.ma/"],["Audi","https://www.audi.ma/"],["Ford","https://www.ford.ma/"],["Nissan","https://www.nissan.ma/"],["Suzuki","https://www.suzuki.ma/"]];
 const results=[];
 for(const [brand,source] of sources){
  try{
