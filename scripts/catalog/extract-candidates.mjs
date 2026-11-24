@@ -8,14 +8,16 @@ for(const brand of index){
  const candidates=brand.pages.filter(u=>allowed.test(new URL(u).pathname)&&!excluded.test(new URL(u).pathname)).slice(0,12);
  for(const url of candidates){
   try{
-   const res=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(12000)});
+   const res=await fetch(url,{redirect:'manual',signal:AbortSignal.timeout(12000)});
+   if(res.status>=300&&res.status<400)throw Error('Redirect '+res.status+' '+(res.headers.get('location')||''));
    if(!res.ok)throw Error('HTTP '+res.status);
    const html=await res.text(),found=[];
+   const diagnostics={title:html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1],jsonScripts:[...html.matchAll(/<script\b[^>]*type=["']application\/json["'][^>]*>/gi)].length,hasNextData:html.includes('__NEXT_DATA__'),hasInitialState:/__INITIAL_STATE__|__PRELOADED_STATE__/.test(html),priceMentions:(html.match(/\b(?:MAD|DH|Dhs)\b/gi)||[]).length};
    for(const m of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){try{walk(JSON.parse(m[1]),found);}catch{}}
-   out.push({brand:brand.brand,url,status:found.length?'structured_candidates':'manual_review',records:found.map(x=>({name:x.name,model:x.model,offers:x.offers,vehicleEngine:x.vehicleEngine,fuelType:x.fuelType,vehicleTransmission:x.vehicleTransmission,image:x.image}))});
+   out.push({brand:brand.brand,url,status:found.length?'structured_candidates':'manual_review',diagnostics,records:found.map(x=>({name:x.name,model:x.model,offers:x.offers,vehicleEngine:x.vehicleEngine,fuelType:x.fuelType,vehicleTransmission:x.vehicleTransmission,image:x.image}))});
   }catch(e){out.push({brand:brand.brand,url,status:'error',error:e.message});}
   await new Promise(r=>setTimeout(r,1000));
  }
 }
 await writeFile('catalog-extraction-review.json',JSON.stringify(out,null,2));
-console.log(JSON.stringify(out.map(x=>({brand:x.brand,url:x.url,status:x.status,records:x.records?.length,error:x.error})),null,2));
+console.log(JSON.stringify(out.map(x=>({brand:x.brand,url:x.url,status:x.status,records:x.records?.length,diagnostics:x.diagnostics,error:x.error})),null,2));
