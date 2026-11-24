@@ -4,8 +4,9 @@ const out=[];
 const allowed=/prix-version|compare-specifications|\/models\/[^/]+\/?$|\/nos-modeles\/[^/]+\.html$|\/configurator\.html\/finitions$/i;
 const excluded=/anciens-modeles|concept|accessoir|contact|categories|newsletter|occasion/i;
 function walk(x,found){if(!x||typeof x!=='object')return;if(Array.isArray(x)){for(const v of x)walk(v,found);return;}const types=[x['@type']].flat();if(types.some(t=>['Car','Vehicle','Product'].includes(t)))found.push(x);for(const v of Object.values(x))if(typeof v==='object')walk(v,found);}
-for(const brand of index){
- const candidates=brand.pages.filter(u=>allowed.test(new URL(u).pathname)&&!excluded.test(new URL(u).pathname)).slice(0,12);
+async function extractBrand(brand){
+ const extra=/\/modeles\/[^/]+\/?$|\/models\/[^/]+\/[^/]+\/?$|\/vehicules\/[^/]+\/overview[^/]*\.html$/i;
+ const candidates=brand.pages.filter(u=>{const p=new URL(u).pathname;return (allowed.test(p)||extra.test(p))&&!excluded.test(p)&&! /(?:-old|actualite|news|entretenir)/i.test(p)}).slice(0,24);
  for(const url of candidates){
   try{
    const res=await fetch(url,{redirect:'manual',signal:AbortSignal.timeout(12000)});
@@ -19,5 +20,7 @@ for(const brand of index){
   await new Promise(r=>setTimeout(r,1000));
  }
 }
+for(let i=0;i<index.length;i+=4)await Promise.all(index.slice(i,i+4).map(extractBrand));
+out.sort((a,b)=>a.brand.localeCompare(b.brand)||a.url.localeCompare(b.url));
 await writeFile('catalog-extraction-review.json',JSON.stringify(out,null,2));
 console.log(JSON.stringify(out.map(x=>({brand:x.brand,url:x.url,status:x.status,records:x.records?.length,diagnostics:x.diagnostics,error:x.error,review:x.brand==='Toyota'?x.records?.map(r=>({name:r.name,model:r.model,offers:r.offers,vehicleEngine:r.vehicleEngine,fuelType:r.fuelType,vehicleTransmission:r.vehicleTransmission})):undefined})),null,2));
