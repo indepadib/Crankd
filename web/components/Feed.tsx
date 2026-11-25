@@ -692,17 +692,39 @@ export function Feed() {
     const [modalType, setModalType] = useState<'post' | 'listing' | 'convoy'>('post');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    const [sharedPostStatus, setSharedPostStatus] = useState<string | null>(null);
     useEffect(() => {
         if (loading) return;
         const postId = new URLSearchParams(window.location.search).get('post');
         if (!postId) return;
-        const matchingPost = posts.find(item => item.id === postId);
-        if (matchingPost) {
-            setSelectedItem(matchingPost);
-            setModalType(matchingPost.content_type === 'convoy' ? 'convoy' : 'post');
-            setIsModalOpen(true);
-        }
-    }, [loading, posts]);
+        let cancelled = false;
+        const resolvePost = async () => {
+            setSharedPostStatus('Chargement de la publication partagée…');
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(postId)) {
+                setSharedPostStatus('Ce lien de publication est invalide.');
+                return;
+            }
+            try {
+                // Use the existing session-bound client; database RLS remains authoritative.
+                const { data, error } = await supabase.from('posts')
+                    .select('id,title,body,image_url,content_type,created_at,like_count,comment_count,tags,author:profiles(username,avatar_url)')
+                    .eq('id', postId).maybeSingle();
+                if (cancelled) return;
+                if (error || !data) {
+                    setSharedPostStatus('Cette publication est indisponible ou son accès est limité.');
+                    return;
+                }
+                setSelectedItem(data);
+                setModalType(data.content_type === 'convoy' ? 'convoy' : 'post');
+                setIsModalOpen(true);
+                setSharedPostStatus(null);
+            } catch {
+                if (!cancelled) setSharedPostStatus('Impossible de charger cette publication. Actualise la page pour réessayer.');
+            }
+        };
+        void resolvePost();
+        return () => { cancelled = true; };
+    }, [loading, user?.id]);
 
     const filteredPosts = activeTag 
         ? posts.filter(post => 
@@ -792,6 +814,7 @@ export function Feed() {
                 </div>
             </header>
 
+            {sharedPostStatus && <p role="status" className="mb-4 rounded-xl border border-white/10 p-4 text-sm text-white">{sharedPostStatus}</p>}
             {(error || unpublishedCount > 0) && (
                 <div role="status" className="mb-6 space-y-2 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
                     {error && <p>{error}</p>}
