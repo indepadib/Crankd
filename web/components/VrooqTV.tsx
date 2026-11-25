@@ -307,6 +307,8 @@ export function VrooqTV() {
                 {/* Desktop navigation left (ChevronUp) */}
                 <button 
                     onClick={handleBack}
+                    aria-label="Vidéo précédente"
+                    disabled={!activeVideo}
                     className="hidden md:flex p-3 rounded-full bg-steel border border-white/5 text-zinc-400 hover:text-signal-orange hover:border-signal-orange/20 transition-all active:scale-90"
                 >
                     <ChevronUp className="h-5 w-5" />
@@ -347,6 +349,8 @@ export function VrooqTV() {
                     <div className="absolute top-6 left-6 z-10">
                         <button 
                             onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                            aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+                            disabled={!activeVideo}
                             className="p-2 bg-black/40 border border-white/10 rounded-full backdrop-blur text-white hover:bg-black/60 transition-all"
                         >
                             {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
@@ -356,7 +360,7 @@ export function VrooqTV() {
                     {/* Big Pause Overlay indicator */}
                     {activeVideo && !isPlaying && (
                         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                            <div className="p-4 bg-black/60 rounded-full text-white backdrop-blur-md animate-ping">
+                            <div className="p-4 bg-black/60 rounded-full text-white backdrop-blur-md">
                                 <Play className="h-6 w-6 text-signal-orange" />
                             </div>
                         </div>
@@ -409,7 +413,7 @@ export function VrooqTV() {
                                 <div className="flex flex-col items-center">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); void handleLike(); }}
-                                        disabled={likePending}
+                                        disabled={likePending || !activeVideo}
                                         aria-label={likedVideos[activeVideo?.id] ? 'Retirer le like' : 'Aimer cette vidéo'}
                                         aria-pressed={Boolean(likedVideos[activeVideo?.id])}
                                         className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
@@ -422,6 +426,8 @@ export function VrooqTV() {
                                 <div className="flex flex-col items-center">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setShowComments(true); }}
+                                        aria-label="Afficher les commentaires"
+                                        disabled={!activeVideo}
                                         className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                     >
                                         <MessageCircle className="h-4.5 w-4.5 text-white" />
@@ -432,8 +438,7 @@ export function VrooqTV() {
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigator.clipboard.writeText(window.location.href);
-                                        alert('Vrooq TV clip link copied!');
+                                        void navigator.clipboard.writeText(window.location.href).then(() => alert('Lien VROOQ TV copié.')).catch(() => alert('Impossible de copier le lien.'));
                                     }}
                                     className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                 >
@@ -455,7 +460,7 @@ export function VrooqTV() {
                             >
                                 <div className="flex items-center justify-between border-b border-white/5 pb-2">
                                     <span className="text-[10px] font-black text-white font-mono uppercase">COMMENTS ({activeVideo?.comments})</span>
-                                    <button onClick={() => setShowComments(false)} className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-all">
+                                    <button onClick={() => setShowComments(false)} aria-label="Fermer les commentaires" className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-all">
                                         <X className="h-4 w-4" />
                                     </button>
                                 </div>
@@ -475,10 +480,11 @@ export function VrooqTV() {
                                         type="text" 
                                         value={commentInput}
                                         onChange={e => setCommentInput(e.target.value)}
+                                        aria-label="Ton commentaire"
                                         placeholder="Écrire un commentaire…" 
                                         className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-white placeholder-text-muted text-[10px] focus:outline-none focus:border-signal-orange/30"
                                     />
-                                    <button type="submit" className="p-2 bg-signal-orange hover:bg-orange-600 text-white rounded-xl active:scale-95 transition-all">
+                                    <button type="submit" aria-label="Envoyer le commentaire" disabled={!user || !commentInput.trim()} className="p-2 bg-signal-orange hover:bg-orange-600 text-white rounded-xl active:scale-95 transition-all">
                                         <Send className="h-3.5 w-3.5" />
                                     </button>
                                 </form>
@@ -492,6 +498,8 @@ export function VrooqTV() {
                 {/* Desktop navigation right (ChevronDown) */}
                 <button 
                     onClick={handleNext}
+                    aria-label="Vidéo suivante"
+                    disabled={!activeVideo}
                     className="hidden md:flex p-3 rounded-full bg-steel border border-white/5 text-zinc-400 hover:text-signal-orange hover:border-signal-orange/20 transition-all active:scale-90"
                 >
                     <ChevronDown className="h-5 w-5" />
