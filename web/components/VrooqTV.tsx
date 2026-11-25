@@ -25,6 +25,8 @@ export function VrooqTV() {
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
     const [videoError, setVideoError] = useState(false);
+    const [feedStatus, setFeedStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [retryCount, setRetryCount] = useState(0);
 
     // Track user-liked status per video
     const [likedVideos, setLikedVideos] = useState<Record<string, boolean>>({});
@@ -42,7 +44,9 @@ export function VrooqTV() {
     const activeVideo = videoStack[activeIdx] || null;
 
     useEffect(() => {
+        let cancelled = false;
         const fetchReels = async () => {
+            setFeedStatus('loading');
             let dbVideos: any[] = [];
             try {
                 // Fetch videos from Supabase
@@ -50,13 +54,16 @@ export function VrooqTV() {
                     .from('posts')
                     .select('*, author:profiles(username, avatar_url)')
                     .eq('content_type', 'video')
-                    .order('created_at', { ascending: false });
-                
-                if (!error && data) {
+                    .order('created_at', { ascending: false })
+                    .limit(30);
+                if (error) throw error;
+                if (data) {
                     dbVideos = data;
                 }
             } catch (err) {
                 console.warn('Failed to fetch video posts from database:', err);
+                if (!cancelled) setFeedStatus('error');
+                return;
             }
 
             const formatted = dbVideos.map(post => {
@@ -88,11 +95,15 @@ export function VrooqTV() {
                 };
             });
 
+            if (cancelled) return;
             setVideoStack(formatted.filter(item => Boolean(item.url)));
+            setActiveIdx(0);
+            setFeedStatus('ready');
         };
 
-        fetchReels();
-    }, []);
+        void fetchReels();
+        return () => { cancelled = true; };
+    }, [retryCount]);
 
     useEffect(() => {
         if (!user?.id || videoStack.length === 0) {
@@ -328,7 +339,7 @@ export function VrooqTV() {
                         </div>
                     ) : (
                         <div className="absolute inset-0 bg-zinc-950 z-0 flex items-center justify-center font-mono text-zinc-600 text-xs">
-                            Aucune vidéo publiée pour le moment.
+                            {feedStatus === 'loading' ? <p role="status">Chargement des vidéos…</p> : feedStatus === 'error' ? <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center text-white"><p>Impossible de charger les vidéos.</p><button type="button" className="rounded-xl border border-white/30 px-4 py-2" onClick={() => setRetryCount(n => n + 1)}>Réessayer</button></div> : 'Aucune vidéo publiée pour le moment.'}
                         </div>
                     )}
 
@@ -343,7 +354,7 @@ export function VrooqTV() {
                     </div>
 
                     {/* Big Pause Overlay indicator */}
-                    {!isPlaying && (
+                    {activeVideo && !isPlaying && (
                         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                             <div className="p-4 bg-black/60 rounded-full text-white backdrop-blur-md animate-ping">
                                 <Play className="h-6 w-6 text-signal-orange" />
