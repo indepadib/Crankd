@@ -50,7 +50,8 @@ export function VrooqTV() {
                     .from('posts')
                     .select('*, author:profiles(username, avatar_url)')
                     .eq('content_type', 'video')
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(30);
                 
                 if (!error && data) {
                     dbVideos = data;
