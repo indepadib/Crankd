@@ -25,6 +25,8 @@ export function VrooqTV() {
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
     const [videoError, setVideoError] = useState(false);
+    const [feedStatus, setFeedStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [retryCount, setRetryCount] = useState(0);
 
     // Track user-liked status per video
     const [likedVideos, setLikedVideos] = useState<Record<string, boolean>>({});
@@ -42,7 +44,9 @@ export function VrooqTV() {
     const activeVideo = videoStack[activeIdx] || null;
 
     useEffect(() => {
+        let cancelled = false;
         const fetchReels = async () => {
+            setFeedStatus('loading');
             let dbVideos: any[] = [];
             try {
                 // Fetch videos from Supabase
@@ -50,13 +54,16 @@ export function VrooqTV() {
                     .from('posts')
                     .select('*, author:profiles(username, avatar_url)')
                     .eq('content_type', 'video')
-                    .order('created_at', { ascending: false });
-                
-                if (!error && data) {
+                    .order('created_at', { ascending: false })
+                    .limit(30);
+                if (error) throw error;
+                if (data) {
                     dbVideos = data;
                 }
             } catch (err) {
                 console.warn('Failed to fetch video posts from database:', err);
+                if (!cancelled) setFeedStatus('error');
+                return;
             }
 
             const formatted = dbVideos.map(post => {
@@ -88,11 +95,15 @@ export function VrooqTV() {
                 };
             });
 
+            if (cancelled) return;
             setVideoStack(formatted.filter(item => Boolean(item.url)));
+            setActiveIdx(0);
+            setFeedStatus('ready');
         };
 
-        fetchReels();
-    }, []);
+        void fetchReels();
+        return () => { cancelled = true; };
+    }, [retryCount]);
 
     useEffect(() => {
         if (!user?.id || videoStack.length === 0) {
@@ -296,6 +307,8 @@ export function VrooqTV() {
                 {/* Desktop navigation left (ChevronUp) */}
                 <button 
                     onClick={handleBack}
+                    aria-label="Vidéo précédente"
+                    disabled={!activeVideo}
                     className="hidden md:flex p-3 rounded-full bg-steel border border-white/5 text-zinc-400 hover:text-signal-orange hover:border-signal-orange/20 transition-all active:scale-90"
                 >
                     <ChevronUp className="h-5 w-5" />
@@ -328,7 +341,7 @@ export function VrooqTV() {
                         </div>
                     ) : (
                         <div className="absolute inset-0 bg-zinc-950 z-0 flex items-center justify-center font-mono text-zinc-600 text-xs">
-                            Aucune vidéo publiée pour le moment.
+                            {feedStatus === 'loading' ? <p role="status">Chargement des vidéos…</p> : feedStatus === 'error' ? <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center text-white"><p>Impossible de charger les vidéos.</p><button type="button" className="rounded-xl border border-white/30 px-4 py-2" onClick={() => setRetryCount(n => n + 1)}>Réessayer</button></div> : 'Aucune vidéo publiée pour le moment.'}
                         </div>
                     )}
 
@@ -336,6 +349,8 @@ export function VrooqTV() {
                     <div className="absolute top-6 left-6 z-10">
                         <button 
                             onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                            aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+                            disabled={!activeVideo}
                             className="p-2 bg-black/40 border border-white/10 rounded-full backdrop-blur text-white hover:bg-black/60 transition-all"
                         >
                             {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
@@ -343,9 +358,9 @@ export function VrooqTV() {
                     </div>
 
                     {/* Big Pause Overlay indicator */}
-                    {!isPlaying && (
+                    {activeVideo && !isPlaying && (
                         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                            <div className="p-4 bg-black/60 rounded-full text-white backdrop-blur-md animate-ping">
+                            <div className="p-4 bg-black/60 rounded-full text-white backdrop-blur-md">
                                 <Play className="h-6 w-6 text-signal-orange" />
                             </div>
                         </div>
@@ -398,7 +413,7 @@ export function VrooqTV() {
                                 <div className="flex flex-col items-center">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); void handleLike(); }}
-                                        disabled={likePending}
+                                        disabled={likePending || !activeVideo}
                                         aria-label={likedVideos[activeVideo?.id] ? 'Retirer le like' : 'Aimer cette vidéo'}
                                         aria-pressed={Boolean(likedVideos[activeVideo?.id])}
                                         className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
@@ -411,6 +426,8 @@ export function VrooqTV() {
                                 <div className="flex flex-col items-center">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setShowComments(true); }}
+                                        aria-label="Afficher les commentaires"
+                                        disabled={!activeVideo}
                                         className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                     >
                                         <MessageCircle className="h-4.5 w-4.5 text-white" />
@@ -419,10 +436,30 @@ export function VrooqTV() {
                                 </div>
 
                                 <button 
+                                    aria-label="Partager cette vidéo"
+                                    disabled={!activeVideo?.id}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigator.clipboard.writeText(window.location.href);
-                                        alert('Vrooq TV clip link copied!');
+                                        if (!activeVideo?.id) return;
+                                        const url = new URL('/feed', window.location.origin);
+                                        url.searchParams.set('post', activeVideo.id);
+                                        void (async () => {
+                                            try {
+                                                if (typeof navigator.share === 'function') {
+                                                    try {
+                                                        await navigator.share({ title: 'VROOQ TV', url: url.href });
+                                                        return;
+                                                    } catch (error) {
+                                                        if (error instanceof Error && error.name === 'AbortError') return;
+                                                    }
+                                                }
+                                                if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+                                                await navigator.clipboard.writeText(url.href);
+                                                alert('Lien de la vidéo copié.');
+                                            } catch {
+                                                alert('Impossible de partager cette vidéo.');
+                                            }
+                                        })();
                                     }}
                                     className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                 >
@@ -444,7 +481,7 @@ export function VrooqTV() {
                             >
                                 <div className="flex items-center justify-between border-b border-white/5 pb-2">
                                     <span className="text-[10px] font-black text-white font-mono uppercase">COMMENTS ({activeVideo?.comments})</span>
-                                    <button onClick={() => setShowComments(false)} className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-all">
+                                    <button onClick={() => setShowComments(false)} aria-label="Fermer les commentaires" className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-all">
                                         <X className="h-4 w-4" />
                                     </button>
                                 </div>
@@ -464,10 +501,11 @@ export function VrooqTV() {
                                         type="text" 
                                         value={commentInput}
                                         onChange={e => setCommentInput(e.target.value)}
+                                        aria-label="Ton commentaire"
                                         placeholder="Écrire un commentaire…" 
                                         className="flex-1 bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-white placeholder-text-muted text-[10px] focus:outline-none focus:border-signal-orange/30"
                                     />
-                                    <button type="submit" className="p-2 bg-signal-orange hover:bg-orange-600 text-white rounded-xl active:scale-95 transition-all">
+                                    <button type="submit" aria-label="Envoyer le commentaire" disabled={!user || !commentInput.trim()} className="p-2 bg-signal-orange hover:bg-orange-600 text-white rounded-xl active:scale-95 transition-all">
                                         <Send className="h-3.5 w-3.5" />
                                     </button>
                                 </form>
@@ -481,6 +519,8 @@ export function VrooqTV() {
                 {/* Desktop navigation right (ChevronDown) */}
                 <button 
                     onClick={handleNext}
+                    aria-label="Vidéo suivante"
+                    disabled={!activeVideo}
                     className="hidden md:flex p-3 rounded-full bg-steel border border-white/5 text-zinc-400 hover:text-signal-orange hover:border-signal-orange/20 transition-all active:scale-90"
                 >
                     <ChevronDown className="h-5 w-5" />
