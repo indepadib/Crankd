@@ -38,8 +38,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
     const [commentText, setCommentText] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
     const [commentError, setCommentError] = useState('');
-    const [rsvps, setRsvps] = useState<string[]>([]);
-    const [isJoined, setIsJoined] = useState(false);
+
 
     // Parse description/body JSON if structured
     let parsedDetails: any = null;
@@ -86,7 +85,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
 
         // Reset state
         setCommentText('');
-        setIsJoined(false);
+
 
         const loadComments = async () => {
             setCommentError('');
@@ -110,18 +109,6 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         };
         loadComments();
 
-        // Load RSVPs for Convoys
-        if (type === 'convoy') {
-            const localRsvpsKey = `rsvps-${data.id}`;
-            const savedRsvps = localStorage.getItem(localRsvpsKey);
-            const parsedRsvps = savedRsvps ? JSON.parse(savedRsvps) : [];
-            setRsvps(parsedRsvps);
-
-            if (user?.email) {
-                const username = user.email.split('@')[0];
-                setIsJoined(parsedRsvps.includes(`@${username}`));
-            }
-        }
     }, [isOpen, data, type, user]);
 
     const handleSendComment = async (e: React.FormEvent) => {
@@ -133,9 +120,11 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         setIsSubmittingComment(true);
         setCommentError('');
         try {
-            const username = String(user.user_metadata?.username || user.email?.split('@')[0] || 'membre');
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+            if (profileError || !profile?.username) throw new Error('Profil indisponible');
+            const username = profile.username;
             const {data:created,error:insertError} = await supabase.from('post_comments').insert({
-                post_id:data.id,author_username:username,comment_text:commentText.trim(),
+                post_id:data.id,author_id:user.id,author_username:username,comment_text:commentText.trim(),
             }).select('id,author_username,comment_text,created_at').single();
             if (insertError || !created) throw new Error('Commentaire non enregistré');
             setComments(existing=>[{
@@ -151,24 +140,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
         }
     };
 
-    const handleToggleRSVP = () => {
-        if (!user || !data?.id) return;
-        const username = `@${user.email?.split('@')[0] || 'driver'}`;
-        const localRsvpsKey = `rsvps-${data.id}`;
 
-        let updated: string[];
-        if (isJoined) {
-            updated = rsvps.filter(u => u !== username);
-            setIsJoined(false);
-        } else {
-            updated = [...rsvps, username];
-            setIsJoined(true);
-        }
-
-        setRsvps(updated);
-        localStorage.setItem(localRsvpsKey, JSON.stringify(updated));
-        if (onActionSuccess) onActionSuccess();
-    };
 
     if (!isOpen || !data) return null;
 
@@ -199,11 +171,12 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                 {type === 'listing' ? 'Annonce automobile' : type === 'convoy' ? 'Sortie automobile' : 'Publication'}
                             </span>
                             <h2 className="text-2xl font-black uppercase italic tracking-tight text-white leading-none">
-                                {data.title || `${data.make} ${data.model}`}
+                                {data.title || [data.make, data.model].filter(Boolean).join(" ") || "Publication"}
                             </h2>
                         </div>
                         <button 
                             onClick={onClose}
+                            aria-label="Fermer le détail"
                             className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white transition-colors"
                         >
                             <X className="h-5 w-5" />
@@ -220,13 +193,13 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     controls 
                                     className="w-full h-full object-cover"
                                 />
-                            ) : (
+                            ) : (data.image_url || data.image) ? (
                                 <img 
-                                    src={data.image_url || data.image || 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200&q=80'} 
-                                    alt="Showcase"
+                                    src={data.image_url || data.image} 
+                                    alt={data.title || "Image publiée"}
                                     className="w-full h-full object-cover"
                                 />
-                            )}
+                            ) : <div className="flex h-full items-center justify-center text-sm text-zinc-400">Aucun média publié</div>}
                             {type === 'listing' && (
                                 <div className="absolute bottom-4 left-5 px-4 py-2 bg-[#0a0a0c]/80 backdrop-blur rounded-xl border border-white/10 text-2xl font-black text-white italic">
                                     {formatCurrency(data.price,data.currency||'USD')}
@@ -327,10 +300,10 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-4">
-                                        <SpecField label="Starting Point" value={parsedDetails?.startPoint || 'Local Hub'} icon={MapPin} />
-                                        <SpecField label="Destination" value={parsedDetails?.endPoint || 'Canyon Summit'} icon={CheckCircle2} />
-                                        <SpecField label="Date & Time" value={parsedDetails?.dateTime || data.date || 'Upcoming'} icon={Calendar} />
-                                        <SpecField label="Eligible Cars" value={parsedDetails?.eligibleCars || 'All Classes'} icon={Car} />
+                                        <SpecField label="Starting Point" value={parsedDetails?.startPoint || 'Non renseigné'} icon={MapPin} />
+                                        <SpecField label="Destination" value={parsedDetails?.endPoint || 'Non renseignée'} icon={CheckCircle2} />
+                                        <SpecField label="Date & Time" value={parsedDetails?.dateTime || data.date || 'Non renseignée'} icon={Calendar} />
+                                        <SpecField label="Eligible Cars" value={parsedDetails?.eligibleCars || 'Non renseignées'} icon={Car} />
                                     </div>
                                 </div>
 
@@ -353,29 +326,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     </div>
                                 )}
 
-                                {/* Join Banner */}
-                                <div className="p-5 bg-white/2 border border-white/5 rounded-2xl flex items-center justify-between gap-4">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2 text-white font-bold text-sm">
-                                            <Users className="h-4 w-4 text-signal-orange" />
-                                            {rsvps.length} Drivers RSVP'd
-                                        </div>
-                                        <p className="text-xs text-zinc-500 font-mono">
-                                            Max driver limit: {parsedDetails?.driverLimit || 'Unlimited'}
-                                        </p>
-                                    </div>
-
-                                    <button 
-                                        onClick={handleToggleRSVP}
-                                        className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
-                                            isJoined 
-                                                ? 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white' 
-                                                : 'bg-signal-orange text-white hover:bg-orange-600'
-                                        }`}
-                                    >
-                                        {isJoined ? 'Leave Convoy' : 'Join Convoy'}
-                                    </button>
-                                </div>
+                                <p role="status" className="rounded-xl border border-white/10 p-4 text-sm text-zinc-300">Les inscriptions partagées ne sont pas encore disponibles ici.</p>
 
                                 {/* Checklist of required gear */}
                                 {parsedDetails?.requiredGear && parsedDetails.requiredGear.length > 0 && (
@@ -391,21 +342,6 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Driver List */}
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">RSVP List</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {rsvps.map((driver, idx) => (
-                                            <span key={idx} className="px-3 py-1.5 bg-black/40 border border-white/5 text-xs text-white rounded-lg flex items-center gap-2 font-semibold">
-                                                <div className="w-4 h-4 rounded-full bg-signal-orange/20 text-signal-orange text-[9px] flex items-center justify-center">
-                                                    {driver.replace('@', '')[0]?.toUpperCase()}
-                                                </div>
-                                                {driver}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
 
                                 {/* Description */}
                                 <div className="pt-4 border-t border-white/5 space-y-2">
@@ -464,7 +400,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                             href={`/vehicle/${data.vehicle_id || data.vehicle?.id}`}
                                             className="w-full py-3.5 bg-signal-orange/10 border border-signal-orange/30 hover:bg-signal-orange hover:text-white text-signal-orange text-xs font-mono font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
                                         >
-                                            <Shield className="h-4 w-4" /> View Certified Provenance Ledger
+                                            <Shield className="h-4 w-4" /> Voir la fiche du véhicule (données déclarées)
                                         </a>
                                     </div>
                                 )}
@@ -472,7 +408,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                         )}
 
                         {/* Live Comments Engine */}
-                        <div className="pt-8 border-t border-white/5 space-y-6">
+                        {type === 'post' && <div className="pt-8 border-t border-white/5 space-y-6">
                             <div className="flex items-center gap-2 text-white font-bold text-lg">
                                 <MessageCircle className="h-5 w-5 text-signal-orange" />
                                 Commentaires ({comments.length})
@@ -490,7 +426,8 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                 />
                                 <button
                                     type="submit"
-                                    disabled={isSubmittingComment}
+                                    disabled={isSubmittingComment || !user || !commentText.trim()}
+                                    aria-label="Envoyer le commentaire"
                                     className="p-3 bg-signal-orange text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
                                 >
                                     <Send className="h-4 w-4" />
@@ -517,7 +454,7 @@ export function DetailModal({ isOpen, onClose, type, data, onActionSuccess }: De
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </div>}
 
                     </div>
                 </motion.div>
