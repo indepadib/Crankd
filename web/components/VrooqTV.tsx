@@ -436,9 +436,30 @@ export function VrooqTV() {
                                 </div>
 
                                 <button 
+                                    aria-label="Partager cette vidéo"
+                                    disabled={!activeVideo?.id}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        void navigator.clipboard.writeText(window.location.href).then(() => alert('Lien VROOQ TV copié.')).catch(() => alert('Impossible de copier le lien.'));
+                                        if (!activeVideo?.id) return;
+                                        const url = new URL('/feed', window.location.origin);
+                                        url.searchParams.set('post', activeVideo.id);
+                                        void (async () => {
+                                            try {
+                                                if (typeof navigator.share === 'function') {
+                                                    try {
+                                                        await navigator.share({ title: 'VROOQ TV', url: url.href });
+                                                        return;
+                                                    } catch (error) {
+                                                        if (error instanceof Error && error.name === 'AbortError') return;
+                                                    }
+                                                }
+                                                if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+                                                await navigator.clipboard.writeText(url.href);
+                                                alert('Lien de la vidéo copié.');
+                                            } catch {
+                                                alert('Impossible de partager cette vidéo.');
+                                            }
+                                        })();
                                     }}
                                     className="h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur border border-white/10 active:scale-90 transition-all"
                                 >
